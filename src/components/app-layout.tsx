@@ -16,6 +16,8 @@ import {
   Video,
   User,
   Users,
+  Star,
+  PlusCircle,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import type { ReactNode } from "react";
@@ -57,6 +59,8 @@ const menuItems = [
   { href: "/opportunities", label: "Opportunities", icon: Briefcase },
   { href: "/messages", label: "Messages", icon: MessageSquare },
   { href: "/collab-requests", label: "Collab Requests", icon: Users },
+  { href: "/favourites", label: "Favourites", icon: Star },
+  { href: "/team-builder", label: "Team Builder", icon: PlusCircle },
 ];
 
 function ThemeToggle() {
