@@ -1,81 +1,95 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+
+"use client";
+
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Activity, Briefcase, Bot, Users } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Bell, Plus, Search } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 
-const dashboardCards = [
-  {
-    title: "Find Your Match",
-    description: "Let our AI find the perfect creators for your next campaign.",
-    icon: Bot,
-    href: "/matchmaker",
-    cta: "Start Matching",
-  },
-  {
-    title: "Discover Opportunities",
-    description: "Browse the latest projects and collaborations from top brands.",
-    icon: Briefcase,
-    href: "/opportunities",
-    cta: "Browse Jobs",
-  },
-  {
-    title: "My Network",
-    description: "Manage your connections and build your dream team.",
-    icon: Users,
-    href: "/connections",
-    cta: "View Network",
-  },
-  {
-    title: "Recent Activity",
-    description: "Keep track of your likes, comments, and collaboration requests.",
-    icon: Activity,
-    href: "/activity",
-    cta: "View Activity",
-  }
+const stories = [
+    { name: "My Story", avatar: null, isSelf: true },
+    { name: "Sullyon", avatar: "https://placehold.co/100x100.png" },
+    { name: "Wendy", avatar: "https://placehold.co/100x100.png" },
+    { name: "Gaeul", avatar: "https://placehold.co/100x100.png" },
+    { name: "Karina", avatar: "https://placehold.co/100x100.png" },
+    { name: "Yuna", avatar: "https://placehold.co/100x100.png" },
 ];
+
+const posts = [
+    {
+        id: 1,
+        author: {
+            name: "Kang Seulgi",
+            avatar: "https://placehold.co/100x100.png",
+        },
+        time: "45 min ago",
+        image: "https://placehold.co/600x800.png",
+        hint: "fashion portrait",
+    },
+    {
+        id: 2,
+        author: {
+            name: "Irene Bae",
+            avatar: "https://placehold.co/100x100.png",
+        },
+        time: "2 hours ago",
+        image: "https://placehold.co/600x800.png",
+        hint: "urban cityscape",
+    }
+]
 
 export default function DashboardPage() {
   return (
-    <div className="flex flex-col gap-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Welcome back!</h1>
-        <p className="text-muted-foreground">Here's a snapshot of what's happening on Creator Canvas.</p>
-      </div>
+    <div className="flex flex-col gap-8 text-foreground">
+        <header className="flex justify-between items-center">
+            <h1 className="text-2xl font-bold">Creator Canvas</h1>
+            <div className="flex items-center gap-4">
+                <Button variant="ghost" size="icon"><Search className="h-6 w-6" /></Button>
+                <Button variant="ghost" size="icon"><Bell className="h-6 w-6" /></Button>
+            </div>
+        </header>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        {dashboardCards.map((card) => (
-          <Card key={card.title}>
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div className="flex flex-col space-y-1.5">
-                  <CardTitle>{card.title}</CardTitle>
-                  <CardDescription>{card.description}</CardDescription>
-                </div>
-                <div className="rounded-lg bg-primary/10 p-3 text-primary">
-                  <card.icon className="h-6 w-6" />
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <Button asChild className="w-full">
-                <Link href={card.href}>{card.cta}</Link>
-              </Button>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+        <div className="flex space-x-4 overflow-x-auto pb-4">
+            {stories.map(story => (
+                <Link href="#" key={story.name} className="flex flex-col items-center gap-2 flex-shrink-0">
+                    <Avatar className="h-16 w-16 border-2 border-primary relative">
+                        {story.avatar && <AvatarImage src={story.avatar} alt={story.name} data-ai-hint="portrait" />}
+                        <AvatarFallback>{story.name.substring(0,2)}</AvatarFallback>
+                        {story.isSelf && (
+                            <div className="absolute bottom-0 -right-1 bg-primary text-primary-foreground rounded-full h-5 w-5 flex items-center justify-center">
+                                <Plus className="h-4 w-4" />
+                            </div>
+                        )}
+                    </Avatar>
+                    <span className="text-xs font-medium">{story.name}</span>
+                </Link>
+            ))}
+        </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Projects</CardTitle>
-          <CardDescription>A list of projects you might be interested in.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex h-48 items-center justify-center rounded-lg border-2 border-dashed">
-            <p className="text-muted-foreground">No recent projects to show.</p>
-          </div>
-        </CardContent>
-      </Card>
+        <main className="space-y-6">
+            {posts.map(post => (
+                 <Card key={post.id} className="bg-card border-none rounded-2xl overflow-hidden">
+                    <div className="p-4 flex justify-between items-center">
+                        <div className="flex items-center gap-3">
+                            <Avatar className="h-10 w-10">
+                                <AvatarImage src={post.author.avatar} alt={post.author.name} data-ai-hint="user avatar" />
+                                <AvatarFallback>{post.author.name.substring(0,2)}</AvatarFallback>
+                            </Avatar>
+                            <div>
+                                <p className="font-bold">{post.author.name}</p>
+                                <p className="text-xs text-muted-foreground">{post.time}</p>
+                            </div>
+                        </div>
+                        <Button size="sm">Follow</Button>
+                    </div>
+                    <div className="relative aspect-[3/4]">
+                        <Image src={post.image} alt="Post image" fill className="object-cover" data-ai-hint={post.hint} />
+                    </div>
+                 </Card>
+            ))}
+        </main>
     </div>
   );
 }
