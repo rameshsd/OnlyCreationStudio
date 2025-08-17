@@ -5,78 +5,61 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, MapPin, Star, Settings2 } from "lucide-react";
+import { Search, MapPin, Star, Settings2, Loader2, Award, Building, Heart } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CreatorCard } from "@/components/creator-card";
-import type { AiMatchmakingOutput } from "@/ai/flows/ai-matchmaking";
-
-const sampleCreators: AiMatchmakingOutput['matches'] = [
-  {
-    creatorName: "Alex Doe",
-    profilePicture: "https://placehold.co/128x128.png",
-    professionalBio: "Lifestyle vlogger and travel enthusiast sharing my adventures around the globe. Passionate about sustainable travel and minimalist living.",
-    specialties: ["Vlogging", "Travel", "Lifestyle"],
-    primaryPlatformLink: "#",
-    matchScore: 0.95,
-  },
-  {
-    creatorName: "Jamie Tech",
-    profilePicture: "https://placehold.co/128x128.png",
-    professionalBio: "Your go-to source for the latest tech reviews, tutorials, and news. Making complex tech simple and accessible for everyone.",
-    specialties: ["Tech Reviews", "Tutorials", "Gadgets"],
-    primaryPlatformLink: "#",
-    matchScore: 0.92,
-  },
-  {
-    creatorName: "Casey Cooks",
-    profilePicture: "https://placehold.co/128x128.png",
-    professionalBio: "A passionate home cook and recipe developer. I create delicious and easy-to-follow recipes for every occasion.",
-    specialties: ["Cooking", "Food Photography", "Recipe Development"],
-    primaryPlatformLink: "#",
-    matchScore: 0.88,
-  },
-    {
-    creatorName: "Morgan Fitness",
-    profilePicture: "https://placehold.co/128x128.png",
-    professionalBio: "Certified personal trainer and fitness coach helping you achieve your health goals with effective workout plans and nutrition tips.",
-    specialties: ["Fitness", "Nutrition", "Coaching"],
-    primaryPlatformLink: "#",
-    matchScore: 0.85,
-  },
-  {
-    creatorName: "Taylor Art",
-    profilePicture: "https://placehold.co/128x128.png",
-    professionalBio: "Digital artist and illustrator creating unique and vibrant artwork. Open for commissions and collaborations.",
-    specialties: ["Digital Art", "Illustration", "Character Design"],
-    primaryPlatformLink: "#",
-    matchScore: 0.82,
-  },
-  {
-    creatorName: "Riley Games",
-    profilePicture: "https://placehold.co/128x128.png",
-    professionalBio: "Your friendly neighborhood gamer, streaming the latest titles and classic favorites. Join my community for fun and epic plays!",
-    specialties: ["Gaming", "Live Streaming", "Esports"],
-    primaryPlatformLink: "#",
-    matchScore: 0.79,
-  },
-];
-
+import { aiMatchmaking, type AiMatchmakingOutput } from "@/ai/flows/ai-matchmaking";
+import { useToast } from "@/hooks/use-toast";
+import { Separator } from "@/components/ui/separator";
 
 export default function ExplorePage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [role, setRole] = useState("all");
-  const [results, setResults] = useState(sampleCreators);
+  const [specialty, setSpecialty] = useState("");
+  const [location, setLocation] = useState("");
+  const [results, setResults] = useState<AiMatchmakingOutput['matches']>([]);
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
 
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    // In a real app, you would fetch results from an API
-    // For now, we'll just filter the sample data
-    const filtered = sampleCreators.filter(creator => 
-      creator.creatorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      creator.professionalBio.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      creator.specialties.some(s => s.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
-    setResults(filtered);
+    setLoading(true);
+    setResults([]);
+
+    let projectDescription = `Find a creator.`;
+    if (searchTerm) {
+      projectDescription += ` The creator should have a name, bio, or specialty related to "${searchTerm}".`;
+    }
+    if (role !== "all") {
+      projectDescription += ` They should be a ${role}.`;
+    }
+    if (specialty) {
+      projectDescription += ` Their specialty is in "${specialty}".`;
+    }
+    if (location) {
+      projectDescription += ` They are located in or near "${location}".`;
+    }
+
+    try {
+      const matchmakingResult = await aiMatchmaking({ projectDescription });
+      if (matchmakingResult.matches && matchmakingResult.matches.length > 0) {
+        setResults(matchmakingResult.matches);
+      } else {
+        toast({
+          title: "No Matches Found",
+          description: "We couldn't find any creators matching your search. Try different keywords.",
+        });
+      }
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Search Failed",
+        description: "An error occurred while searching for creators. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
 
@@ -97,10 +80,11 @@ export default function ExplorePage() {
                 className="pl-10"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                disabled={loading}
               />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <Select value={role} onValueChange={setRole}>
+              <Select value={role} onValueChange={setRole} disabled={loading}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select a role" />
                 </SelectTrigger>
@@ -114,15 +98,27 @@ export default function ExplorePage() {
               </Select>
               <div className="relative">
                 <Star className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <Input placeholder="Specialty (e.g., 'Gaming')" className="pl-10" />
+                <Input 
+                  placeholder="Specialty (e.g., 'Gaming')" 
+                  className="pl-10"
+                  value={specialty}
+                  onChange={(e) => setSpecialty(e.target.value)}
+                  disabled={loading}
+                />
               </div>
               <div className="relative">
                 <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <Input placeholder="Location (e.g., 'New York, NY')" className="pl-10" />
+                <Input 
+                  placeholder="Location (e.g., 'New York, NY')" 
+                  className="pl-10"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  disabled={loading}
+                />
               </div>
-              <Button type="submit" className="w-full">
-                <Search className="mr-2 h-4 w-4" />
-                Search
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
+                {loading ? 'Searching...' : 'Search'}
               </Button>
             </div>
           </form>
@@ -132,13 +128,13 @@ export default function ExplorePage() {
       <div>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-2xl font-bold tracking-tight">Search Results</h2>
-          <Button variant="ghost">
-            <Settings2 className="mr-2 h-4 w-4" />
-            Advanced Filters
-          </Button>
         </div>
         
-        {results.length > 0 ? (
+        {loading ? (
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {[...Array(8)].map((_, i) => <CreatorCard key={i} loading />)}
+          </div>
+        ) : results.length > 0 ? (
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {results.map((creator, index) => (
               <CreatorCard key={index} creator={creator} />
@@ -147,7 +143,7 @@ export default function ExplorePage() {
         ) : (
           <div className="flex h-64 flex-col items-center justify-center gap-4 rounded-lg border-2 border-dashed text-muted-foreground">
             <Search className="h-12 w-12" />
-            <p className="text-center">No creators found for your search. <br /> Try different keywords or filters.</p>
+            <p className="text-center">No creators found. <br /> Try a new search to find your perfect match.</p>
           </div>
         )}
       </div>
