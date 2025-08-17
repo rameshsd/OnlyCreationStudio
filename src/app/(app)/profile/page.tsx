@@ -1,10 +1,16 @@
+
+"use client";
+
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Briefcase, Heart, Mail, MessageCircle, PenSquare, Rss, Star, UserPlus, Users, Video } from "lucide-react";
+import { Briefcase, Heart, Mail, MessageCircle, PenSquare, Rss, Star, UserPlus, Users, Video, UserCheck, BarChart2 } from "lucide-react";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { ResponsiveContainer, BarChart, XAxis, YAxis, Bar } from "recharts";
 
 const user = {
     name: "Alexa Rodriguez",
@@ -21,8 +27,63 @@ const user = {
     skills: ["Brand Strategy", "Content Creation", "Social Media Marketing", "UI/UX Design", "Fashion Styling"],
 };
 
+const posts = [
+  { id: 1, content: "Just dropped a new video on my channel! Check it out and let me know what you think. #newvideo #creatorlife", likes: 1200, comments: 88 },
+  { id: 2, content: "So excited to announce my collaboration with @BrandX! We've been working on something special for you all. ✨", likes: 3500, comments: 241 },
+  { id: 3, content: "My thoughts on the latest design trends. A thread... 🧵", likes: 890, comments: 56 },
+];
+
+const portfolioItems = [
+    { id: 1, type: 'image', url: 'https://placehold.co/600x400.png', title: 'Project Alpha', hint: 'portfolio project' },
+    { id: 2, type: 'video', url: 'https://placehold.co/600x400.png', title: 'Project Beta', hint: 'portfolio project' },
+    { id: 3, type: 'image', url: 'https://placehold.co/600x400.png', title: 'Project Gamma', hint: 'portfolio project' },
+    { id: 4, type: 'image', url: 'https://placehold.co/600x400.png', title: 'Project Delta', hint: 'portfolio project' },
+];
+
+const statsData = [
+  { month: "Jan", followers: 400 },
+  { month: "Feb", followers: 300 },
+  { month: "Mar", followers: 500 },
+  { month: "Apr", followers: 700 },
+  { month: "May", followers: 600 },
+  { month: "Jun", followers: 800 },
+];
+
+const reviews = [
+  { id: 1, author: "BrandCorp", rating: 5, text: "Alexa was a pleasure to work with. Highly professional and delivered amazing content!" },
+  { id: 2, author: "StyleHub", rating: 5, text: "Incredibly talented and has a great eye for detail. Our campaign was a huge success." },
+  { id: 3, author: "AnotherCreator", rating: 4, text: "Great collaborator, very responsive and creative." },
+];
+
 
 export default function ProfilePage() {
+    const { toast } = useToast();
+    const [isFollowing, setIsFollowing] = useState(false);
+    const [isFavorited, setIsFavorited] = useState(false);
+
+    const handleFollow = () => {
+        setIsFollowing(!isFollowing);
+        toast({
+            title: isFollowing ? "Unfollowed" : "Followed",
+            description: isFollowing ? `You are no longer following ${user.name}.` : `You are now following ${user.name}.`,
+        });
+    };
+
+    const handleFavorite = () => {
+        setIsFavorited(!isFavorited);
+        toast({
+            title: isFavorited ? "Removed from Favorites" : "Added to Favorites",
+            description: isFavorited ? `${user.name} has been removed from your favorites.` : `${user.name} has been added to your favorites.`,
+        });
+    };
+
+    const handleComingSoon = (feature: string) => {
+        toast({
+            title: "Coming Soon!",
+            description: `${feature} functionality is not yet implemented.`,
+        });
+    };
+
     return (
         <div className="flex flex-col gap-8">
             <Card className="overflow-hidden">
@@ -30,8 +91,8 @@ export default function ProfilePage() {
                     <Image
                         src={user.coverUrl}
                         alt="Cover photo"
-                        layout="fill"
-                        objectFit="cover"
+                        fill
+                        className="object-cover"
                         data-ai-hint="cover photo abstract"
                     />
                 </div>
@@ -49,12 +110,16 @@ export default function ProfilePage() {
                                 </div>
                                 <p className="text-muted-foreground">{user.username}</p>
                             </div>
-                            <div className="flex gap-2">
-                                <Button variant="outline"><UserPlus /> Follow</Button>
-                                <Button variant="outline"><Heart /> Favorite</Button>
-                                <Button><Mail /> Message</Button>
-                                <Button variant="secondary"><Briefcase /> Collab Request</Button>
-                                <Button variant="ghost" size="icon"><PenSquare /></Button>
+                            <div className="flex flex-wrap gap-2 justify-center">
+                                <Button variant="outline" onClick={handleFollow}>
+                                    {isFollowing ? <UserCheck /> : <UserPlus />} {isFollowing ? "Following" : "Follow"}
+                                </Button>
+                                <Button variant={isFavorited ? 'default' : 'outline'} onClick={handleFavorite}>
+                                    <Heart className={isFavorited ? 'fill-current' : ''} /> {isFavorited ? "Favorited" : "Favorite"}
+                                </Button>
+                                <Button onClick={() => handleComingSoon('Messaging')}><Mail /> Message</Button>
+                                <Button variant="secondary" onClick={() => handleComingSoon('Collab Requests')}><Briefcase /> Collab Request</Button>
+                                <Button variant="ghost" size="icon" onClick={() => handleComingSoon('Edit Profile')}><PenSquare /></Button>
                             </div>
                         </div>
                     </div>
@@ -84,47 +149,83 @@ export default function ProfilePage() {
                 <TabsList className="grid w-full grid-cols-5">
                     <TabsTrigger value="posts"><Rss className="mr-2 h-4 w-4" /> Posts</TabsTrigger>
                     <TabsTrigger value="portfolio"><Video className="mr-2 h-4 w-4" /> Portfolio</TabsTrigger>
-                    <TabsTrigger value="stats"><Users className="mr-2 h-4 w-4" /> Stats</TabsTrigger>
+                    <TabsTrigger value="stats"><BarChart2 className="mr-2 h-4 w-4" /> Stats</TabsTrigger>
                     <TabsTrigger value="reviews"><MessageCircle className="mr-2 h-4 w-4" /> Reviews</TabsTrigger>
                     <TabsTrigger value="opportunities"><Briefcase className="mr-2 h-4 w-4" /> Opportunities</TabsTrigger>
                 </TabsList>
                 <TabsContent value="posts">
                     <Card>
-                        <CardHeader>Posts</CardHeader>
-                        <CardContent className="flex h-64 items-center justify-center text-muted-foreground">
-                            Content coming soon.
+                        <CardHeader><CardTitle>Recent Posts</CardTitle></CardHeader>
+                        <CardContent className="space-y-4">
+                           {posts.map(post => (
+                               <div key={post.id} className="rounded-lg border p-4">
+                                   <p className="text-sm text-foreground">{post.content}</p>
+                                   <div className="flex gap-4 text-muted-foreground text-xs mt-2">
+                                       <span>{post.likes} Likes</span>
+                                       <span>{post.comments} Comments</span>
+                                   </div>
+                               </div>
+                           ))}
                         </CardContent>
                     </Card>
                 </TabsContent>
                 <TabsContent value="portfolio">
                     <Card>
-                        <CardHeader>Portfolio</CardHeader>
-                        <CardContent className="flex h-64 items-center justify-center text-muted-foreground">
-                            Content coming soon.
+                        <CardHeader><CardTitle>Portfolio</CardTitle></CardHeader>
+                        <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                           {portfolioItems.map(item => (
+                               <div key={item.id} className="group relative aspect-square overflow-hidden rounded-lg">
+                                   <Image src={item.url} alt={item.title} fill className="object-cover transition-transform group-hover:scale-105" data-ai-hint={item.hint}/>
+                                   <div className="absolute inset-0 bg-black/40 flex items-end p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                       <p className="text-white text-sm font-bold">{item.title}</p>
+                                   </div>
+                               </div>
+                           ))}
                         </CardContent>
                     </Card>
                 </TabsContent>
                 <TabsContent value="stats">
                     <Card>
-                        <CardHeader>Stats</CardHeader>
-                        <CardContent className="flex h-64 items-center justify-center text-muted-foreground">
-                           Content coming soon.
+                        <CardHeader><CardTitle>Follower Growth</CardTitle></CardHeader>
+                        <CardContent className="h-80">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={statsData}>
+                                    <XAxis dataKey="month" stroke="#888888" fontSize={12} tickLine={false} axisLine={false}/>
+                                    <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value}`}/>
+                                    <Bar dataKey="followers" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                                </BarChart>
+                            </ResponsiveContainer>
                         </CardContent>
                     </Card>
                 </TabsContent>
                 <TabsContent value="reviews">
                     <Card>
-                        <CardHeader>Reviews</CardHeader>
-                        <CardContent className="flex h-64 items-center justify-center text-muted-foreground">
-                            Content coming soon.
+                        <CardHeader><CardTitle>Reviews</CardTitle></CardHeader>
+                        <CardContent className="space-y-4">
+                           {reviews.map(review => (
+                               <div key={review.id} className="rounded-lg border p-4">
+                                   <div className="flex justify-between items-center">
+                                       <p className="font-bold">{review.author}</p>
+                                       <div className="flex items-center gap-1">
+                                           {[...Array(review.rating)].map((_, i) => <Star key={i} className="h-4 w-4 text-primary fill-primary" />)}
+                                           {[...Array(5 - review.rating)].map((_, i) => <Star key={i} className="h-4 w-4 text-muted-foreground/50" />)}
+                                       </div>
+                                   </div>
+                                   <p className="text-sm text-muted-foreground mt-2">{review.text}</p>
+                               </div>
+                           ))}
                         </CardContent>
                     </Card>
                 </TabsContent>
                 <TabsContent value="opportunities">
                     <Card>
-                        <CardHeader>Opportunities</CardHeader>
+                        <CardHeader><CardTitle>Available for Collaboration</CardTitle></CardHeader>
                         <CardContent className="flex h-64 items-center justify-center text-muted-foreground">
-                            Content coming soon.
+                            <div className="text-center">
+                                <Briefcase className="mx-auto h-12 w-12" />
+                                <p className="mt-2">This creator is open to new opportunities.</p>
+                                <Button className="mt-4">Send Collaboration Request</Button>
+                            </div>
                         </CardContent>
                     </Card>
                 </TabsContent>
@@ -132,3 +233,5 @@ export default function ProfilePage() {
         </div>
     );
 }
+
+    
