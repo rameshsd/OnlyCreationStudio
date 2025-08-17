@@ -12,6 +12,7 @@ import {
   Settings,
   Moon,
   Sun,
+  Video,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import type { ReactNode } from "react";
@@ -47,6 +48,7 @@ import {
 const menuItems = [
   { href: "/", label: "Dashboard", icon: Home },
   { href: "/explore", label: "Explore", icon: Search },
+  { href: "/shorts", label: "Shorts", icon: Video },
   { href: "/matchmaker", label: "AI Matchmaker", icon: Bot },
   { href: "/ai-job-builder", label: "AI Job Builder", icon: FileText },
   { href: "/opportunities", label: "Opportunities", icon: Briefcase },
