@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Calendar } from '@/components/ui/calendar';
 import { Badge } from '@/components/ui/badge';
 import { Star, MapPin, Camera, Mic, Lightbulb, Users, Clock } from 'lucide-react';
