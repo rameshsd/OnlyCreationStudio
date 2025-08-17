@@ -46,7 +46,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const menuItems = [
-  { href: "/", label: "Dashboard", icon: Home },
+  { href: "/dashboard", label: "Dashboard", icon: Home },
   { href: "/explore", label: "Explore", icon: Search },
   { href: "/shorts", label: "Shorts", icon: Video },
   { href: "/matchmaker", label: "AI Matchmaker", icon: Bot },
@@ -74,10 +74,6 @@ function ThemeToggle() {
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const getCorrectedPathname = (itemHref: string) => {
-    if (itemHref === '/') return pathname === '/' || pathname === '/dashboard';
-    return pathname.startsWith(itemHref);
-  }
 
   return (
     <SidebarProvider>
@@ -91,10 +87,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
               <SidebarMenuItem key={item.label}>
                 <SidebarMenuButton
                   asChild
-                  isActive={getCorrectedPathname(item.href)}
+                  isActive={pathname.startsWith(item.href)}
                   tooltip={item.label}
                 >
-                  <Link href={item.href === "/" ? "/" : item.href}>
+                  <Link href={item.href}>
                     <item.icon />
                     <span>{item.label}</span>
                   </Link>
