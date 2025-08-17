@@ -18,6 +18,7 @@ import {
   Users,
   Star,
   PlusCircle,
+  Camera,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import type { ReactNode } from "react";
@@ -57,6 +58,7 @@ const menuItems = [
   { href: "/matchmaker", label: "AI Matchmaker", icon: Bot },
   { href: "/ai-job-builder", label: "AI Job Builder", icon: FileText },
   { href: "/opportunities", label: "Opportunities", icon: Briefcase },
+  { href: "/studios", label: "Studios", icon: Camera },
   { href: "/messages", label: "Messages", icon: MessageSquare },
   { href: "/collab-requests", label: "Collab Requests", icon: Users },
   { href: "/favourites", label: "Favourites", icon: Star },
