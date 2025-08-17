@@ -1,3 +1,4 @@
+
 import Image from "next/image";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -40,22 +41,24 @@ export function CreatorCard({ creator, loading }: { creator?: Creator, loading?:
   if (!creator) return null;
 
   return (
-    <Card className="flex flex-col transition-all hover:shadow-lg">
+    <Card className="flex flex-col transition-all hover:shadow-lg hover:-translate-y-1">
       <CardHeader className="flex-row items-start gap-4 space-y-0">
         <Avatar className="h-16 w-16 border-2 border-primary/20">
           <AvatarImage src={creator.profilePicture} alt={creator.creatorName} data-ai-hint="creator avatar" />
-          <AvatarFallback>{creator.creatorName.substring(0, 2)}</AvatarFallback>
+          <AvatarFallback>{creator.creatorName.substring(0, 2).toUpperCase()}</AvatarFallback>
         </Avatar>
         <div className="flex-1">
-          <CardTitle>{creator.creatorName}</CardTitle>
-          <div className="mt-1 flex items-center gap-2 text-sm font-semibold text-primary">
-            <Star className="h-4 w-4 fill-primary" />
-            <span>{(creator.matchScore * 100).toFixed(0)}% Match</span>
-          </div>
+          <CardTitle className="text-xl">{creator.creatorName}</CardTitle>
+          {creator.matchScore && (
+            <div className="mt-1 flex items-center gap-2 text-sm font-semibold text-primary">
+              <Star className="h-4 w-4 fill-primary" />
+              <span>{(creator.matchScore * 100).toFixed(0)}% Match</span>
+            </div>
+          )}
         </div>
       </CardHeader>
       <CardContent className="flex-1">
-        <p className="text-sm text-muted-foreground line-clamp-3">{creator.professionalBio}</p>
+        <p className="text-sm text-muted-foreground line-clamp-3 h-[60px]">{creator.professionalBio}</p>
         <div className="mt-4 flex flex-wrap gap-2">
           {creator.specialties.slice(0, 3).map((specialty) => (
             <Badge key={specialty} variant="secondary">{specialty}</Badge>
@@ -81,24 +84,26 @@ const Avatar = ({ children, className }: { children: React.ReactNode, className?
   </div>
 );
 
-const AvatarImage = ({ src, alt, ...props }: React.ComponentProps<typeof Image>) => (
-  <Image
-    src={src}
-    alt={alt}
-    width={64}
-    height={64}
-    className="aspect-square h-full w-full"
-    onError={(e) => {
-      e.currentTarget.style.display = 'none';
-      const fallback = e.currentTarget.parentElement?.querySelector('.avatar-fallback');
-      if (fallback) (fallback as HTMLElement).style.display = 'flex';
-    }}
-    {...props}
-  />
-);
+const AvatarImage = ({ src, alt, ...props }: React.ComponentProps<typeof Image>) => {
+  const [error, setError] = useState(false);
+  if (error || !src) return <AvatarFallback>{alt.substring(0, 2).toUpperCase()}</AvatarFallback>;
+  
+  return (
+    <Image
+      src={src}
+      alt={alt}
+      width={64}
+      height={64}
+      className="aspect-square h-full w-full"
+      onError={() => setError(true)}
+      {...props}
+    />
+  );
+};
+
 
 const AvatarFallback = ({ children, ...props }: { children: React.ReactNode }) => (
-  <span className="avatar-fallback flex h-full w-full items-center justify-center rounded-full bg-muted" {...props}>
+  <span className="avatar-fallback flex h-full w-full items-center justify-center rounded-full bg-muted font-bold" {...props}>
     {children}
   </span>
 );
