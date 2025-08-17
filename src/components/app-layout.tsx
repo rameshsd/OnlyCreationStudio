@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -14,6 +15,7 @@ import {
   Sun,
   Video,
   User,
+  Users,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import type { ReactNode } from "react";
@@ -54,6 +56,7 @@ const menuItems = [
   { href: "/ai-job-builder", label: "AI Job Builder", icon: FileText },
   { href: "/opportunities", label: "Opportunities", icon: Briefcase },
   { href: "/messages", label: "Messages", icon: MessageSquare },
+  { href: "/collab-requests", label: "Collab Requests", icon: Users },
 ];
 
 function ThemeToggle() {
