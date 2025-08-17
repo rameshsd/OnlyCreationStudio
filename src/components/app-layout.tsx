@@ -13,6 +13,7 @@ import {
   Moon,
   Sun,
   Video,
+  User,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import type { ReactNode } from "react";
@@ -102,7 +103,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
         <SidebarFooter>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip="Settings">
+              <SidebarMenuButton asChild tooltip="Settings" isActive={pathname.startsWith('/settings')}>
                 <Link href="/settings">
                   <Settings />
                   <span>Settings</span>
@@ -130,9 +131,13 @@ export function AppLayout({ children }: { children: ReactNode }) {
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuLabel>My Account</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>Profile</DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/profile"><User className="mr-2 h-4 w-4" />Profile</Link>
+                </DropdownMenuItem>
                 <DropdownMenuItem>Billing</DropdownMenuItem>
-                <DropdownMenuItem>Settings</DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/settings"><Settings className="mr-2 h-4 w-4" />Settings</Link>
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem>Log out</DropdownMenuItem>
               </DropdownMenuContent>
