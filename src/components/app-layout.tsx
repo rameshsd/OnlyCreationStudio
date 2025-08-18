@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -140,6 +141,9 @@ function BottomNavBar() {
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const isMobile = useIsMobile();
+  const pathname = usePathname();
+  const isShortsPage = pathname === '/shorts';
+
 
   if (isMobile === undefined) {
     return <div className="flex min-h-screen w-full items-center justify-center"><p>Loading...</p></div>
@@ -207,8 +211,15 @@ export function AppLayout({ children }: { children: ReactNode }) {
             <ModeToggle />
         </header>
 
-        <main className="w-full lg:ml-64 pt-20 lg:pt-0 lg:p-6 p-4 pb-24">
-            {children}
+         <main
+          className={cn(
+            'w-full lg:ml-64',
+            isShortsPage
+              ? 'h-screen'
+              : 'pt-20 lg:pt-0 lg:p-6 p-4 pb-24'
+          )}
+        >
+          {children}
         </main>
       </div>
       <BottomNavBar />

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useRef, useEffect } from 'react';
@@ -63,7 +64,7 @@ export default function ShortsPage() {
   }, []);
 
   return (
-    <div className="relative h-[calc(100vh-8rem)] w-full max-w-sm mx-auto">
+    <div className="relative h-full w-full max-w-full lg:max-w-sm lg:mx-auto">
        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 text-center">
         <h1 className="text-2xl font-bold text-white drop-shadow-lg">Shorts</h1>
       </div>
