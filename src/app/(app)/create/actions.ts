@@ -2,6 +2,7 @@
 'use server';
 
 import { adminStorage } from '@/lib/firebase-admin';
+import { Buffer } from 'buffer';
 
 export async function uploadPhoto(formData: FormData): Promise<{ url?: string; error?: string }> {
   try {
@@ -9,32 +10,38 @@ export async function uploadPhoto(formData: FormData): Promise<{ url?: string; e
     const userId = formData.get('userId') as string;
 
     if (!file) {
-      throw new Error('No file provided.');
+      return { error: 'No file provided.' };
+    }
+     if (file.size === 0) {
+      return { error: 'Cannot upload an empty file.' };
     }
     if (!userId) {
-      throw new Error('No user ID provided.');
+      return { error: 'No user ID provided.' };
     }
 
-    const fileBuffer = Buffer.from(await file.arrayBuffer());
-    const fileExtension = file.name.split('.').pop();
-    const cleanFileName = file.name.replace(/\.[^/.]+$/, "").replace(/[^a-zA-Z0-9]/g, '_');
-    
-    const fileName = `posts/${userId}/${Date.now()}_${cleanFileName}.${fileExtension}`;
-    
     const bucketName = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
     if (!bucketName) {
       throw new Error('Firebase Storage bucket name is not configured.');
     }
 
     const bucket = adminStorage.bucket(bucketName);
+    
+    // Read the file into a buffer
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+
+    // Create a unique filename
+    const fileName = `posts/${userId}/${Date.now()}-${file.name}`;
     const fileRef = bucket.file(fileName);
 
-    await fileRef.save(fileBuffer, {
+    // Upload the file
+    await fileRef.save(buffer, {
       metadata: {
         contentType: file.type,
       },
     });
 
+    // Get the public URL
     const [url] = await fileRef.getSignedUrl({
       action: 'read',
       expires: '03-09-2491', // A long time in the future
@@ -42,8 +49,7 @@ export async function uploadPhoto(formData: FormData): Promise<{ url?: string; e
 
     return { url };
   } catch (e: any) {
-    console.error('Upload failed:', e);
-    // Return a serializable error object
-    return { error: `Upload failed: ${e.message}` };
+    console.error('Upload failed with error:', e);
+    return { error: e.message || 'An unknown error occurred during upload.' };
   }
 }
