@@ -19,6 +19,7 @@ export async function uploadPhoto(formData: FormData): Promise<{ url?: string; e
       return { error: 'No user ID provided.' };
     }
 
+    // Use the default bucket from the initialized adminStorage instance
     const bucket = adminStorage.bucket();
     
     const bytes = await file.arrayBuffer();
