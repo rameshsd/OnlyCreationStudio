@@ -19,7 +19,8 @@ import {
   Camera,
   LayoutGrid,
   Plus,
-  LogOut
+  LogOut,
+  Loader2
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
@@ -29,6 +30,7 @@ import {
   Sheet,
   SheetContent,
   SheetTrigger,
+  SheetTitle
 } from "@/components/ui/sheet";
 
 import { Logo } from "@/components/logo";
@@ -49,7 +51,6 @@ import {
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ModeToggle } from "./mode-toggle";
 import { useAuth } from "@/hooks/use-auth";
-import { Skeleton } from "./ui/skeleton";
 
 const menuItems = [
   { href: "/dashboard", label: "Feed", icon: Home },
@@ -80,6 +81,7 @@ function MobileSidebar() {
            <Logo className="w-36" />
         </header>
         <div className="flex-1 overflow-y-auto">
+          <SheetTitle className="sr-only">Menu</SheetTitle>
           <nav className="space-y-2 p-4">
             {menuItems.map((item) => (
               <Link
