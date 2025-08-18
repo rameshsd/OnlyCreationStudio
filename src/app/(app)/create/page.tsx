@@ -10,11 +10,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { db, storage } from '@/lib/firebase';
+import { db } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Loader2, Image as ImageIcon } from 'lucide-react';
 import Image from 'next/image';
+import { uploadPhoto } from './actions';
 
 export default function CreatePostPage() {
   const { user, userData } = useAuth();
@@ -57,9 +57,9 @@ export default function CreatePostPage() {
     try {
       let imageUrl = '';
       if (imageFile) {
-        const storageRef = ref(storage, `posts/${user.uid}/${Date.now()}_${imageFile.name}`);
-        const uploadResult = await uploadBytes(storageRef, imageFile);
-        imageUrl = await getDownloadURL(uploadResult.ref);
+        const formData = new FormData();
+        formData.append('imageFile', imageFile);
+        imageUrl = await uploadPhoto(formData);
       }
 
       await addDoc(collection(db, 'posts'), {
