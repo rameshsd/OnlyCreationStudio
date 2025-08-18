@@ -50,6 +50,8 @@ export async function uploadPhoto(formData: FormData): Promise<{ url?: string; e
     return { url };
   } catch (e: any) {
     console.error('Upload failed with error:', e);
-    return { error: e.message || 'An unknown error occurred during upload.' };
+    // Attempt to return a more structured error message
+    const errorMessage = e.response?.data?.error?.message || e.message || 'An unknown error occurred during upload.';
+    return { error: errorMessage };
   }
 }
