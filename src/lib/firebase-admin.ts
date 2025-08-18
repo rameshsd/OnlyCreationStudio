@@ -3,19 +3,11 @@ import { config } from 'dotenv';
 
 config();
 
-if (!process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
-    throw new Error('FIREBASE_SERVICE_ACCOUNT_KEY environment variable is not set. Please check your .env file.');
-}
-
-const serviceAccountString = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
-
-let serviceAccount;
-try {
-  serviceAccount = JSON.parse(serviceAccountString);
-} catch (e: any) {
-  throw new Error(`Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY. Make sure it is a valid JSON. Error: ${e.message}`);
-}
-
+const serviceAccount = {
+  projectId: process.env.FIREBASE_PROJECT_ID,
+  clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+  privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+};
 
 if (!admin.apps.length) {
   admin.initializeApp({
