@@ -1,29 +1,34 @@
 
 import admin from 'firebase-admin';
-import { getApps, App } from 'firebase-admin/app';
+import { App, getApps } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
-import { serviceAccount } from './service-account';
 
-const getAdminApp = (): App => {
+function initializeAdmin(): App {
   if (getApps().length > 0) {
     return getApps()[0];
   }
 
-  // The private_key in the service account needs to have its escaped newlines replaced
-  // with actual newline characters to be parsed correctly by the SDK.
-  const privateKey = serviceAccount.private_key.replace(/\\n/g, '\n');
+  const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+  const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+  const storageBucket = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
+
+  if (!privateKey || !projectId || !clientEmail || !storageBucket) {
+    throw new Error('Missing Firebase environment variables for admin initialization.');
+  }
 
   return admin.initializeApp({
     credential: admin.credential.cert({
-        ...serviceAccount,
-        private_key: privateKey,
+      projectId,
+      clientEmail,
+      privateKey,
     }),
-    storageBucket: 'creator-canvas-w47i3.appspot.com',
+    storageBucket: storageBucket,
   });
-};
+}
 
-const adminApp = getAdminApp();
+const adminApp = initializeAdmin();
 const adminDb = getFirestore(adminApp);
 const adminStorage = getStorage(adminApp);
 
