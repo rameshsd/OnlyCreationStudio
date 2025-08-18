@@ -7,7 +7,7 @@ import { Inter } from 'next/font/google';
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
 export const metadata: Metadata = {
-  title: 'Creator Canvas',
+  title: 'OnlyCreation',
   description: 'The ultimate platform for creators and brands to connect and collaborate.',
 };
 

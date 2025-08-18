@@ -13,7 +13,7 @@ export function Logo(props: SVGProps<SVGSVGElement>) {
         <circle cx="20" cy="20" r="18" fill="hsl(var(--primary))" />
         <polygon points="15,12 15,28 28,20" fill="hsl(var(--primary-foreground))" />
         <text
-          x="46"
+          x="50"
           y="29"
           fontFamily="Manrope, sans-serif"
           fontSize="22"
@@ -21,7 +21,7 @@ export function Logo(props: SVGProps<SVGSVGElement>) {
           fill="hsl(var(--foreground))"
           className="font-headline"
         >
-          Creator Canvas
+          OnlyCreation
         </text>
       </g>
     </svg>

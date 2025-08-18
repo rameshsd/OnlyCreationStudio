@@ -25,6 +25,7 @@ import {
 import { useTheme } from "next-themes";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import React from 'react';
 
 import {
   Sheet,
@@ -215,14 +216,14 @@ export function AppLayout({ children }: { children: ReactNode }) {
           className={cn(
             'w-full lg:ml-64',
             isShortsPage
-              ? 'h-screen'
+              ? 'h-[calc(100vh-80px)] lg:h-screen'
               : 'pt-20 lg:pt-0 lg:p-6 p-4 pb-24'
           )}
         >
           {children}
         </main>
       </div>
-      <BottomNavBar />
+      {isMobile && <BottomNavBar />}
     </div>
   );
 }

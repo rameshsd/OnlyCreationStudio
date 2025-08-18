@@ -38,7 +38,7 @@ export default function WelcomePage() {
         <div className="mb-12 flex flex-col items-center text-center">
           <Logo className="mb-6 h-12 w-auto" />
           <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
-            Welcome to Creator Canvas
+            Welcome to OnlyCreation
           </h1>
           <p className="mt-4 max-w-2xl text-lg text-muted-foreground">
             The ultimate platform for creators and brands to connect and collaborate. Choose your role to get started.
