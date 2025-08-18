@@ -142,8 +142,8 @@ function BottomNavBar() {
 export function AppLayout({ children }: { children: ReactNode }) {
   const isMobile = useIsMobile();
   const pathname = usePathname();
+  
   const isShortsPage = pathname === '/shorts';
-
 
   if (isMobile === undefined) {
     return <div className="flex min-h-screen w-full items-center justify-center"><p>Loading...</p></div>
@@ -164,7 +164,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
                   href={item.href}
                   className={cn(
                     "flex items-center gap-3 rounded-lg px-3 py-2 transition-all",
-                    usePathname().startsWith(item.href)
+                    pathname.startsWith(item.href)
                       ? "bg-primary/10 text-primary font-semibold"
                       : "text-muted-foreground hover:bg-muted"
                   )}
