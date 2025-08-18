@@ -1,3 +1,4 @@
+
 import admin from 'firebase-admin';
 import { getApps } from 'firebase-admin/app';
 
@@ -30,7 +31,7 @@ function initializeAdmin() {
 }
 
 const adminApp = initializeAdmin();
-const adminDb = admin.firestore();
-const adminStorage = admin.storage();
+const adminDb = admin.firestore(adminApp);
+const adminStorage = admin.storage(adminApp);
 
 export { adminDb, adminStorage };
