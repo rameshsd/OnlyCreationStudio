@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Home,
   Search,
@@ -11,8 +11,6 @@ import {
   Briefcase,
   MessageSquare,
   Settings,
-  Moon,
-  Sun,
   Video,
   User,
   Users,
@@ -20,9 +18,9 @@ import {
   PlusCircle,
   Camera,
   LayoutGrid,
-  Plus
+  Plus,
+  LogOut
 } from "lucide-react";
-import { useTheme } from "next-themes";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import React from 'react';
@@ -30,8 +28,6 @@ import React from 'react';
 import {
   Sheet,
   SheetContent,
-  SheetHeader,
-  SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
 
@@ -52,6 +48,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ModeToggle } from "./mode-toggle";
+import { useAuth } from "@/hooks/use-auth";
+import { Skeleton } from "./ui/skeleton";
 
 const menuItems = [
   { href: "/dashboard", label: "Feed", icon: Home },
@@ -77,13 +75,12 @@ function MobileSidebar() {
           <span className="sr-only">Open Menu</span>
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="bg-background p-0 w-72">
-        <SheetHeader className="p-4 border-b">
+      <SheetContent side="left" className="bg-background p-0 w-72 flex flex-col">
+        <header className="p-4 border-b flex justify-between items-center">
            <Logo className="w-36" />
-           <SheetTitle className="sr-only">Menu</SheetTitle>
-        </SheetHeader>
-        <div className="flex h-full flex-col">
-          <nav className="flex-1 space-y-2 p-4">
+        </header>
+        <div className="flex-1 overflow-y-auto">
+          <nav className="space-y-2 p-4">
             {menuItems.map((item) => (
               <Link
                 key={item.label}
@@ -107,6 +104,7 @@ function MobileSidebar() {
 }
 
 function BottomNavBar() {
+    const { user, userData } = useAuth();
     const pathname = usePathname();
   return (
     <div className="fixed bottom-0 left-0 right-0 z-10 border-t bg-background/95 backdrop-blur-sm p-2 lg:hidden">
@@ -131,7 +129,8 @@ function BottomNavBar() {
         </Link>
         <Link href="/profile" className={cn("flex flex-col items-center justify-center gap-1", pathname.startsWith("/profile") ? "text-primary" : "text-muted-foreground")}>
           <Avatar className="h-7 w-7 border-2 border-transparent group-hover:border-primary transition-colors">
-              <AvatarImage src="https://placehold.co/100x100.png" alt="User avatar" data-ai-hint="avatar user" />
+              <AvatarImage src={userData?.avatarUrl} alt="User avatar" data-ai-hint="avatar user" />
+              <AvatarFallback>{userData?.username?.substring(0,2) || 'U'}</AvatarFallback>
           </Avatar>
           <span className="text-xs font-medium">Profile</span>
         </Link>
@@ -143,11 +142,22 @@ function BottomNavBar() {
 export function AppLayout({ children }: { children: ReactNode }) {
   const isMobile = useIsMobile();
   const pathname = usePathname();
+  const { user, userData, loading, logout } = useAuth();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await logout();
+    router.push('/login');
+  };
   
   const isShortsPage = pathname === '/shorts';
 
-  if (isMobile === undefined) {
-    return <div className="flex min-h-screen w-full items-center justify-center"><p>Loading...</p></div>
+  if (loading || isMobile === undefined) {
+      return (
+        <div className="flex min-h-screen w-full items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      );
   }
 
   return (
@@ -158,7 +168,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
             <div className="flex h-20 items-center border-b px-6">
               <Logo className="w-36" />
             </div>
-            <nav className="flex-1 space-y-2 p-4">
+            <nav className="flex-1 space-y-2 p-4 overflow-y-auto">
               {menuItems.map((item) => (
                 <Link
                   key={item.label}
@@ -180,12 +190,12 @@ export function AppLayout({ children }: { children: ReactNode }) {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="flex items-center justify-start gap-3 w-full h-auto p-2">
                      <Avatar className="h-10 w-10">
-                      <AvatarImage src="https://placehold.co/100x100.png" alt="User avatar" data-ai-hint="avatar user" />
-                      <AvatarFallback>CC</AvatarFallback>
+                      <AvatarImage src={userData?.avatarUrl} alt={userData?.username} data-ai-hint="avatar user" />
+                      <AvatarFallback>{userData?.username?.substring(0, 2).toUpperCase() || 'U'}</AvatarFallback>
                     </Avatar>
-                    <div className="text-left">
-                      <p className="font-semibold">User Name</p>
-                      <p className="text-xs text-muted-foreground">@username</p>
+                    <div className="text-left truncate">
+                      <p className="font-semibold truncate">{userData?.username || 'User'}</p>
+                      <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
                     </div>
                   </Button>
                 </DropdownMenuTrigger>
@@ -199,7 +209,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
                     <Link href="/settings"><Settings className="mr-2 h-4 w-4" />Settings</Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem>Log out</DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleLogout}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Log out
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -216,7 +229,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
           className={cn(
             'w-full lg:ml-64',
             isShortsPage
-              ? 'h-[calc(100vh-80px)] lg:h-screen'
+              ? 'h-screen pt-20 lg:h-screen lg:pt-0'
               : 'pt-20 lg:pt-0 lg:p-6 p-4 pb-24'
           )}
         >

@@ -9,25 +9,25 @@ const roles = [
     icon: Building2,
     title: "Brand",
     description: "Hire creators, launch products, and manage campaigns.",
-    href: "/dashboard",
+    href: "/signup",
   },
   {
     icon: User,
     title: "Creator / Influencer",
     description: "Showcase your work, find collaborations, and grow your audience.",
-    href: "/dashboard",
+    href: "/signup",
   },
   {
     icon: Wrench,
     title: "Service Provider / Freelancer",
     description: "Offer your skills, connect with clients, and manage projects.",
-    href: "/dashboard",
+    href: "/signup",
   },
   {
     icon: Camera,
     title: "Studio",
     description: "List your space, manage bookings, and attract clients.",
-    href: "/dashboard",
+    href: "/signup",
   },
 ];
 
@@ -67,9 +67,12 @@ export default function WelcomePage() {
           ))}
         </div>
         <div className="mt-12 text-center">
-          <Button variant="link" asChild>
-            <Link href="/dashboard">Skip for now &rarr;</Link>
-          </Button>
+          <p className="text-muted-foreground">
+            Already have an account?{' '}
+            <Button variant="link" asChild>
+                <Link href="/login">Log in &rarr;</Link>
+            </Button>
+          </p>
         </div>
       </div>
     </div>
