@@ -19,12 +19,8 @@ export async function uploadPhoto(formData: FormData): Promise<{ url?: string; e
       return { error: 'No user ID provided.' };
     }
 
-    const bucketName = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
-    if (!bucketName) {
-      throw new Error('Firebase Storage bucket name is not configured.');
-    }
-
-    const bucket = adminStorage.bucket(bucketName);
+    // Get the default bucket from the initialized admin app
+    const bucket = adminStorage.bucket();
     
     // Read the file into a buffer
     const bytes = await file.arrayBuffer();
