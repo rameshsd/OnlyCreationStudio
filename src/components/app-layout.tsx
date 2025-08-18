@@ -151,9 +151,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
     await logout();
     router.push('/login');
   };
-  
-  const isShortsPage = pathname === '/shorts';
 
+  const isShortsPage = pathname === '/shorts';
+  
   if (loading || isMobile === undefined) {
       return (
         <div className="flex min-h-screen w-full items-center justify-center">
@@ -161,6 +161,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
         </div>
       );
   }
+
 
   return (
     <div className="min-h-screen w-full bg-secondary/50 dark:bg-card">

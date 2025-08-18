@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -8,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, ChevronLeft, ChevronRight, PlayCircle, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from './ui/carousel';
+import { formatDistanceToNow } from 'date-fns';
 
 interface Media {
     type: 'image' | 'video';
@@ -22,23 +24,32 @@ interface Author {
     isVerified: boolean;
 }
 
-interface Post {
-    id: number;
-    author: Author;
-    time: string;
+interface FirestoreTimestamp {
+  seconds: number;
+  nanoseconds: number;
+}
+
+export interface Post {
+    id: string;
+    userId: string;
+    username: string;
+    userAvatar: string;
+    userIsVerified: boolean;
     caption: string;
     media: Media[];
     likes: number;
     comments: number;
     shares: number;
+    createdAt: FirestoreTimestamp;
 }
 
 const ExpandableText = ({ text, maxLength = 100 }: { text: string, maxLength?: number }) => {
     const [isExpanded, setIsExpanded] = useState(false);
+    
+    if (!text) return null;
+
     const isLongText = text.length > maxLength;
-
     const toggleExpand = () => setIsExpanded(!isExpanded);
-
     const displayedText = isLongText && !isExpanded ? `${text.slice(0, maxLength)}...` : text;
 
     return (
@@ -71,29 +82,35 @@ export function PostCard({ post }: { post: Post }) {
     const [isLiked, setIsLiked] = useState(false);
     const [isSaved, setIsSaved] = useState(false);
 
-    const hasMultipleMedia = post.media.length > 1;
+    const hasMultipleMedia = post.media?.length > 1;
+
+    const formatTimestamp = (timestamp: FirestoreTimestamp) => {
+      if (!timestamp) return 'Just now';
+      const date = new Date(timestamp.seconds * 1000 + timestamp.nanoseconds / 1000000);
+      return formatDistanceToNow(date, { addSuffix: true });
+    };
 
     return (
         <Card className="bg-card border-none rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
             <CardHeader className="p-4 flex flex-row justify-between items-center">
                 <div className="flex items-center gap-3">
                     <Avatar className="h-11 w-11">
-                        <AvatarImage src={post.author.avatar} alt={post.author.name} data-ai-hint="user avatar" />
-                        <AvatarFallback>{post.author.name.substring(0, 2)}</AvatarFallback>
+                        <AvatarImage src={post.userAvatar} alt={post.username} data-ai-hint="user avatar" />
+                        <AvatarFallback>{post.username?.substring(0, 2).toUpperCase()}</AvatarFallback>
                     </Avatar>
                     <div>
                         <div className="flex items-center gap-1">
-                            <p className="font-bold">{post.author.name}</p>
-                            {post.author.isVerified && <Star className="h-4 w-4 text-blue-500 fill-current" />}
+                            <p className="font-bold">{post.username}</p>
+                            {post.userIsVerified && <Star className="h-4 w-4 text-blue-500 fill-current" />}
                         </div>
-                        <p className="text-xs text-muted-foreground">{post.author.username} &middot; {post.time}</p>
+                        <p className="text-xs text-muted-foreground">@{post.username} &middot; {formatTimestamp(post.createdAt)}</p>
                     </div>
                 </div>
                 <Button variant="ghost" size="icon"><MoreHorizontal className="h-5 w-5" /></Button>
             </CardHeader>
             <CardContent className="px-4 pb-2 space-y-3">
                 <ExpandableText text={post.caption} />
-                {post.media.length > 0 && (
+                {post.media && post.media.length > 0 && (
                     <div className="relative -mx-4">
                         {hasMultipleMedia ? (
                              <Carousel className="w-full" opts={{ loop: true }}>

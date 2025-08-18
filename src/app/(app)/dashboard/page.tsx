@@ -6,9 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Plus, Search, Bell, Rss, TrendingUp, Users, Video } from "lucide-react";
 import Link from "next/link";
-import React, { useState } from "react";
-import { PostCard } from "@/components/post-card";
+import React, { useState, useEffect } from "react";
+import { PostCard, type Post } from "@/components/post-card";
 import { ShortsReelCard } from "@/components/shorts-reel-card";
+import { db } from "@/lib/firebase";
+import { collection, getDocs, orderBy, query } from "firebase/firestore";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const stories = [
     { name: "My Story", avatar: null, isSelf: true, hint: "add story" },
@@ -21,72 +24,6 @@ const stories = [
     { name: "Hanni", avatar: "https://placehold.co/100x100.png", hint: "portrait" },
 ];
 
-const posts = [
-    {
-        id: 1,
-        author: {
-            name: "Kang Seulgi",
-            avatar: "https://placehold.co/100x100.png",
-            username: "@seulgi",
-            isVerified: true,
-        },
-        time: "45 min ago",
-        caption: "Loving the new collection from @StyleBrand! The quality is amazing and the design is so chic. ✨ #fashion #style #OOTD",
-        media: [{ type: 'image', url: "https://placehold.co/600x800.png", hint: "fashion portrait" }],
-        likes: 1245,
-        comments: 83,
-        shares: 22,
-    },
-    {
-        id: 2,
-        author: {
-            name: "Irene Bae",
-            avatar: "https://placehold.co/100x100.png",
-            username: "@irene",
-            isVerified: true,
-        },
-        time: "2 hours ago",
-        caption: "A few shots from my recent trip to the city. The architecture was breathtaking! Which one is your favorite?",
-        media: [
-            { type: 'image', url: "https://placehold.co/600x800.png", hint: "urban cityscape" },
-            { type: 'image', url: "https://placehold.co/600x800.png", hint: "architectural detail" },
-            { type: 'image', url: "https://placehold.co/600x800.png", hint: "street photography" }
-        ],
-        likes: 3802,
-        comments: 241,
-        shares: 98,
-    },
-    {
-      id: 3,
-      author: {
-          name: "TechExplorer",
-          avatar: "https://placehold.co/100x100.png?text=TE",
-          username: "@techexplorer",
-          isVerified: false,
-      },
-      time: "5 hours ago",
-      caption: "Check out this short video review of the new CreatorCam X. Is it the best vlogging camera out there? Let me know your thoughts!",
-      media: [{ type: 'video', url: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4" }],
-      likes: 893,
-      comments: 152,
-      shares: 45,
-  },
-  {
-        id: 4,
-        author: {
-            name: "FitFreak",
-            avatar: "https://placehold.co/100x100.png?text=FF",
-            username: "@fitfreak",
-            isVerified: false,
-        },
-        time: "1 day ago",
-        caption: "New workout routine just dropped! Feeling the burn. Who's with me? 🔥 #fitness #motivation #gymlife",
-        media: [{ type: 'image', url: "https://placehold.co/600x800.png", hint: "fitness workout" }],
-        likes: 2100,
-        comments: 150,
-        shares: 60,
-    },
-]
 
 const feedFilters = [
     { label: "All", icon: Rss },
@@ -126,9 +63,58 @@ const SuggestionsCard = () => (
     </Card>
 );
 
+const PostSkeleton = () => (
+  <Card className="bg-card border-none rounded-2xl overflow-hidden shadow-sm">
+    <CardHeader className="p-4 flex flex-row justify-between items-center">
+      <div className="flex items-center gap-3">
+        <Skeleton className="h-11 w-11 rounded-full" />
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-3 w-20" />
+        </div>
+      </div>
+      <Skeleton className="h-8 w-8" />
+    </CardHeader>
+    <CardContent className="px-4 pb-2 space-y-3">
+      <Skeleton className="h-4 w-full" />
+      <Skeleton className="h-4 w-5/6" />
+      <Skeleton className="relative aspect-video w-full rounded-lg" />
+    </CardContent>
+    <CardFooter className="p-4 pt-2">
+      <div className="w-full grid grid-cols-4 gap-2">
+        <Skeleton className="h-8 w-full" />
+        <Skeleton className="h-8 w-full" />
+        <Skeleton className="h-8 w-full" />
+        <Skeleton className="h-8 w-full" />
+      </div>
+    </CardFooter>
+  </Card>
+)
+
 
 export default function DashboardPage() {
     const [activeFilter, setActiveFilter] = useState("All");
+    const [posts, setPosts] = useState<Post[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchPosts = async () => {
+            setLoading(true);
+            try {
+                const postsCollection = collection(db, "posts");
+                const q = query(postsCollection, orderBy("createdAt", "desc"));
+                const postsSnapshot = await getDocs(q);
+                const postsList = postsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
+                setPosts(postsList);
+            } catch (error) {
+                console.error("Error fetching posts: ", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchPosts();
+    }, []);
 
   return (
     <>
@@ -179,19 +165,30 @@ export default function DashboardPage() {
                 </div>
 
                 <main className="space-y-6">
-                    {posts.map((post, index) => (
-                        <React.Fragment key={post.id}>
-                            <PostCard post={post} />
-                             { (index + 1) === 2 && (
-                                <ShortsReelCard />
-                            )}
-                             { (index + 1) === 4 && (
-                                <div className="hidden lg:block">
-                                    <SuggestionsCard/>
-                                </div>
-                            )}
-                        </React.Fragment>
-                    ))}
+                    {loading ? (
+                        <>
+                          <PostSkeleton />
+                          <PostSkeleton />
+                        </>
+                    ) : posts.length > 0 ? (
+                        posts.map((post, index) => (
+                            <React.Fragment key={post.id}>
+                                <PostCard post={post} />
+                                 { (index + 1) === 2 && (
+                                    <ShortsReelCard />
+                                )}
+                                 { (index + 1) === 4 && (
+                                    <div className="hidden lg:block">
+                                        <SuggestionsCard/>
+                                    </div>
+                                )}
+                            </React.Fragment>
+                        ))
+                    ) : (
+                      <Card className="text-center p-12">
+                        <p className="text-muted-foreground">No posts yet. Be the first to share something!</p>
+                      </Card>
+                    )}
                 </main>
             </div>
         </div>
@@ -214,10 +211,13 @@ export default function DashboardPage() {
              <SuggestionsCard/>
         </aside>
     </div>
-     <Button className="fixed bottom-24 right-4 h-14 w-14 rounded-full shadow-lg z-20 lg:hidden">
-        <Plus className="h-6 w-6"/>
-        <span className="sr-only">Create Post</span>
+     <Button asChild className="fixed bottom-24 right-4 h-14 w-14 rounded-full shadow-lg z-20 lg:hidden">
+        <Link href="/create">
+            <Plus className="h-6 w-6"/>
+            <span className="sr-only">Create Post</span>
+        </Link>
      </Button>
     </>
   );
 }
+
