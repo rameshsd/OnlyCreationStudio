@@ -9,7 +9,6 @@ function initializeAdmin(): App {
     return getApps()[0];
   }
 
-  // Replace newline characters in the private key string.
   const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
   const projectId = process.env.FIREBASE_PROJECT_ID;
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
@@ -18,14 +17,19 @@ function initializeAdmin(): App {
     throw new Error('Missing Firebase Admin environment variables.');
   }
 
-  return admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId,
-      clientEmail,
-      privateKey,
-    }),
-    storageBucket: process.env.FIREBASE_STORAGE_BUCKET || `${projectId}.appspot.com`,
-  });
+  try {
+    return admin.initializeApp({
+      credential: admin.credential.cert({
+        projectId,
+        clientEmail,
+        privateKey,
+      }),
+      storageBucket: 'creator-canvas-w47i3.appspot.com',
+    });
+  } catch (e: any) {
+    console.error('Failed to initialize Firebase Admin:', e);
+    throw new Error(`Failed to initialize Firebase Admin: ${e.message}`);
+  }
 }
 
 const adminApp = initializeAdmin();
