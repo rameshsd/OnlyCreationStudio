@@ -28,6 +28,8 @@ import { cn } from "@/lib/utils";
 import {
   Sheet,
   SheetContent,
+  SheetHeader,
+  SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
 
@@ -74,10 +76,11 @@ function MobileSidebar() {
         </Button>
       </SheetTrigger>
       <SheetContent side="left" className="bg-background p-0 w-72">
+        <SheetHeader className="p-4 border-b">
+           <Logo className="w-36" />
+           <SheetTitle className="sr-only">Menu</SheetTitle>
+        </SheetHeader>
         <div className="flex h-full flex-col">
-          <div className="border-b p-4">
-            <Logo className="w-36" />
-          </div>
           <nav className="flex-1 space-y-2 p-4">
             {menuItems.map((item) => (
               <Link
