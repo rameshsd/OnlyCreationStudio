@@ -1,6 +1,7 @@
 'use server';
 
-import { adminStorage } from '@/lib/firebase-admin';
+import { storage } from '@/lib/firebase';
+import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { randomUUID } from 'crypto';
 
 export async function uploadPhoto(formData: FormData) {
@@ -10,21 +11,17 @@ export async function uploadPhoto(formData: FormData) {
   }
 
   const fileBuffer = Buffer.from(await file.arrayBuffer());
-  const bucket = adminStorage.bucket();
   const fileExtension = file.name.split('.').pop();
   const fileName = `${randomUUID()}.${fileExtension}`;
-  const fileRef = bucket.file(`posts/${fileName}`);
+  const storageRef = ref(storage, `posts/${fileName}`);
 
-  await fileRef.save(fileBuffer, {
-    metadata: {
-      contentType: file.type,
-    },
+  // Upload file
+  await uploadBytes(storageRef, fileBuffer, {
+    contentType: file.type,
   });
 
-  const [url] = await fileRef.getSignedUrl({
-    action: 'read',
-    expires: '03-09-2491', // A long time in the future
-  });
+  // Get download URL
+  const url = await getDownloadURL(storageRef);
 
   return url;
 }
