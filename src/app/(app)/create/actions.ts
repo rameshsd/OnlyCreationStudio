@@ -48,6 +48,6 @@ export async function uploadPhoto(formData: FormData): Promise<{ url?: string; e
     console.error('Upload failed:', e);
     // Return the actual error message to the client for better debugging
     // Stringify the error object to get more details in the client console
-    return { error: JSON.stringify(e, Object.getOwnPropertyNames(e)) };
+    return { error: JSON.stringify(e, Object.getOwnPropertyNames(e), 2) };
   }
 }
