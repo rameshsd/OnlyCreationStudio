@@ -59,7 +59,11 @@ export default function CreatePostPage() {
       if (imageFile) {
         const formData = new FormData();
         formData.append('imageFile', imageFile);
-        imageUrl = await uploadPhoto(formData);
+        const result = await uploadPhoto(formData);
+        if (result.error || !result.url) {
+          throw new Error(result.error || "Image upload failed.");
+        }
+        imageUrl = result.url;
       }
 
       await addDoc(collection(db, 'posts'), {
@@ -80,11 +84,11 @@ export default function CreatePostPage() {
         description: "Your post is now live.",
       });
       router.push('/dashboard');
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating post:", error);
       toast({
-        title: "Error",
-        description: "Failed to create post. Please try again.",
+        title: "Error creating post",
+        description: error.message || "Failed to create post. Please try again.",
         variant: "destructive",
       });
     } finally {
