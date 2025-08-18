@@ -7,9 +7,15 @@ if (!process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
     throw new Error('FIREBASE_SERVICE_ACCOUNT_KEY environment variable is not set. Please check your .env file.');
 }
 
-const serviceAccount = JSON.parse(
-  process.env.FIREBASE_SERVICE_ACCOUNT_KEY as string
-);
+const serviceAccountString = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+
+let serviceAccount;
+try {
+  serviceAccount = JSON.parse(serviceAccountString);
+} catch (e: any) {
+  throw new Error(`Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY. Make sure it is a valid JSON. Error: ${e.message}`);
+}
+
 
 if (!admin.apps.length) {
   admin.initializeApp({
