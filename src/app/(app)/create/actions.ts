@@ -19,7 +19,6 @@ export async function uploadPhoto(formData: FormData): Promise<{ url?: string; e
     const fileExtension = file.name.split('.').pop();
     const cleanFileName = file.name.replace(/\.[^/.]+$/, "").replace(/[^a-zA-Z0-9]/g, '_');
     
-    // Construct a user-specific path
     const fileName = `posts/${userId}/${Date.now()}_${cleanFileName}.${fileExtension}`;
     
     const bucketName = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
@@ -27,7 +26,6 @@ export async function uploadPhoto(formData: FormData): Promise<{ url?: string; e
       throw new Error('Firebase Storage bucket name is not configured.');
     }
 
-    // Explicitly specify the bucket name
     const bucket = adminStorage.bucket(bucketName);
     const fileRef = bucket.file(fileName);
 
@@ -37,7 +35,6 @@ export async function uploadPhoto(formData: FormData): Promise<{ url?: string; e
       },
     });
 
-    // Get public URL
     const [url] = await fileRef.getSignedUrl({
       action: 'read',
       expires: '03-09-2491', // A long time in the future
@@ -46,8 +43,7 @@ export async function uploadPhoto(formData: FormData): Promise<{ url?: string; e
     return { url };
   } catch (e: any) {
     console.error('Upload failed:', e);
-    // Return the actual error message to the client for better debugging
-    // Stringify the error object to get more details in the client console
-    return { error: JSON.stringify(e, Object.getOwnPropertyNames(e), 2) };
+    // Return a serializable error object
+    return { error: `Upload failed: ${e.message}` };
   }
 }
