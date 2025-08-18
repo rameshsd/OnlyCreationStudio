@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -10,6 +11,51 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+
+// Sample creator database
+const creators = [
+  {
+      id: "1",
+      creatorName: "Alexa Rodriguez",
+      profilePicture: "https://placehold.co/150x150.png",
+      professionalBio: "Digital storyteller & brand strategist. I help brands build authentic connections with their audience.",
+      specialties: ["Brand Strategy", "Content Creation", "Social Media Marketing"],
+      primaryPlatformLink: "#",
+  },
+  {
+      id: "2",
+      creatorName: "TechExplorer",
+      profilePicture: "https://placehold.co/100x100.png?text=TE",
+      professionalBio: "Unboxing the future, one gadget at a time. Your daily dose of tech news, reviews, and tutorials.",
+      specialties: ["Tech Reviews", "Gadgets", "Unboxing"],
+      primaryPlatformLink: "#",
+  },
+  {
+      id: "3",
+      creatorName: "FitFreak",
+      profilePicture: "https://placehold.co/100x100.png?text=FF",
+      professionalBio: "Helping you achieve your fitness goals with effective workout plans and nutritional advice.",
+      specialties: ["Fitness", "Workout", "Nutrition"],
+      primaryPlatformLink: "#",
+  },
+   {
+    id: "4",
+    creatorName: "Gamer's Galaxy",
+    profilePicture: "https://placehold.co/100x100.png?text=GG",
+    professionalBio: "Elite gamer and streamer. Focused on competitive FPS and RPGs. Let's conquer new worlds together.",
+    specialties: ["Gaming", "Streaming", "eSports"],
+    primaryPlatformLink: "#",
+  },
+   {
+    id: "5",
+    creatorName: "Digital Nomad",
+    profilePicture: "https://placehold.co/100x100.png?text=DN",
+    professionalBio: "Exploring the world and sharing my adventures. Specializing in travel vlogs and photography.",
+    specialties: ["Travel", "Vlogging", "Photography"],
+    primaryPlatformLink: "#",
+  }
+];
+
 
 const AiMatchmakingInputSchema = z.object({
   projectDescription: z
@@ -54,21 +100,35 @@ export async function aiMatchmaking(input: AiMatchmakingInput): Promise<AiMatchm
   return aiMatchmakingFlow(input);
 }
 
+const findCreatorsTool = ai.defineTool(
+    {
+        name: 'findCreators',
+        description: 'Search for creators based on a project description.',
+        inputSchema: z.object({
+            query: z.string().describe('A query describing the desired creators, based on the project needs.')
+        }),
+        outputSchema: z.any()
+    },
+    async (input) => {
+        // In a real app, this would query a database. For now, it returns a static list.
+        return creators;
+    }
+)
+
 const prompt = ai.definePrompt({
   name: 'aiMatchmakingPrompt',
   input: {schema: AiMatchmakingInputSchema},
   output: {schema: AiMatchmakingOutputSchema},
+  tools: [findCreatorsTool],
   prompt: `You are an AI-powered matchmaking engine that helps brands find the best creators for their projects.
 
-  Given the project description, analyze the requirements and identify creators who possess the relevant skills, experience, and audience.
+  Given the project description, use the findCreators tool to get a list of available creators. Then, analyze the project requirements and the creator profiles to identify the best matches.
 
   Project Description: {{{projectDescription}}}
 
-  Return a list of creators, including their name, profile picture, bio, specialties, and a match score indicating how well they fit the project requirements. The match score should be a number between 0 and 1.
-  Do not return any values that do not exist.
-
-  Here's the output:
-  {{output}}`,
+  Return a list of the top 3-5 creators, including their name, profile picture, bio, specialties, and a match score indicating how well they fit the project requirements. The match score should be a number between 0 and 1.
+  Do not return any creators that do not exist in the provided tool data.
+  `,
 });
 
 const aiMatchmakingFlow = ai.defineFlow(
