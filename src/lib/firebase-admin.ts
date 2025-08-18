@@ -1,8 +1,8 @@
 
 import admin from 'firebase-admin';
-import { getApps, initializeApp, App } from 'firebase-admin/app';
-import { getStorage } from 'firebase-admin/storage';
+import { getApps, App } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
+import { getStorage } from 'firebase-admin/storage';
 import { serviceAccount } from './service-account';
 
 const getAdminApp = (): App => {
@@ -10,9 +10,16 @@ const getAdminApp = (): App => {
     return getApps()[0];
   }
 
-  return initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  // The private_key in the service account needs to have its escaped newlines replaced
+  // with actual newline characters to be parsed correctly by the SDK.
+  const privateKey = serviceAccount.private_key.replace(/\\n/g, '\n');
+
+  return admin.initializeApp({
+    credential: admin.credential.cert({
+        ...serviceAccount,
+        private_key: privateKey,
+    }),
+    storageBucket: 'creator-canvas-w47i3.appspot.com',
   });
 };
 
