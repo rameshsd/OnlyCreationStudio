@@ -13,7 +13,7 @@ export function Logo(props: SVGProps<SVGSVGElement>) {
         <circle cx="20" cy="20" r="18" fill="hsl(var(--primary))" />
         <polygon points="15,12 15,28 28,20" fill="hsl(var(--primary-foreground))" />
         <text
-          x="50"
+          x="48"
           y="29"
           fontFamily="Manrope, sans-serif"
           fontSize="22"
