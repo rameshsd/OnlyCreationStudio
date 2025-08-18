@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -7,6 +8,7 @@ import { Plus, Search, Bell, Rss, TrendingUp, Users, Video } from "lucide-react"
 import Link from "next/link";
 import React, { useState } from "react";
 import { PostCard } from "@/components/post-card";
+import { ShortsReelCard } from "@/components/shorts-reel-card";
 
 const stories = [
     { name: "My Story", avatar: null, isSelf: true, hint: "add story" },
@@ -68,7 +70,22 @@ const posts = [
       likes: 893,
       comments: 152,
       shares: 45,
-  }
+  },
+  {
+        id: 4,
+        author: {
+            name: "FitFreak",
+            avatar: "https://placehold.co/100x100.png?text=FF",
+            username: "@fitfreak",
+            isVerified: false,
+        },
+        time: "1 day ago",
+        caption: "New workout routine just dropped! Feeling the burn. Who's with me? 🔥 #fitness #motivation #gymlife",
+        media: [{ type: 'image', url: "https://placehold.co/600x800.png", hint: "fitness workout" }],
+        likes: 2100,
+        comments: 150,
+        shares: 60,
+    },
 ]
 
 const feedFilters = [
@@ -165,7 +182,10 @@ export default function DashboardPage() {
                     {posts.map((post, index) => (
                         <React.Fragment key={post.id}>
                             <PostCard post={post} />
-                             { (index + 1) % 3 === 0 && (
+                             { (index + 1) === 2 && (
+                                <ShortsReelCard />
+                            )}
+                             { (index + 1) === 4 && (
                                 <div className="hidden lg:block">
                                     <SuggestionsCard/>
                                 </div>
@@ -201,3 +221,4 @@ export default function DashboardPage() {
     </>
   );
 }
+
