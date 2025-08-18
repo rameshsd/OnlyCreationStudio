@@ -22,7 +22,7 @@ function initializeAdmin(): App {
       credential: admin.credential.cert({
         projectId,
         clientEmail,
-        privateKey,
+        private_key: privateKey,
       }),
       storageBucket: 'creator-canvas-w47i3.appspot.com',
     });
