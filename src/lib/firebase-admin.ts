@@ -1,4 +1,7 @@
 import * as admin from 'firebase-admin';
+import { config } from 'dotenv';
+
+config();
 
 if (!process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
     throw new Error('FIREBASE_SERVICE_ACCOUNT_KEY environment variable is not set. Please check your .env file.');
