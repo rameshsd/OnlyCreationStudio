@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Plus, Search, Bell, Rss, TrendingUp, Users, Video } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import React, { useState } from "react";
 import { PostCard } from "@/components/post-card";
 
 const stories = [
@@ -163,14 +163,14 @@ export default function DashboardPage() {
 
                 <main className="space-y-6">
                     {posts.map((post, index) => (
-                        <>
-                            <PostCard key={post.id} post={post} />
+                        <React.Fragment key={post.id}>
+                            <PostCard post={post} />
                              { (index + 1) % 3 === 0 && (
                                 <div className="hidden lg:block">
                                     <SuggestionsCard/>
                                 </div>
                             )}
-                        </>
+                        </React.Fragment>
                     ))}
                 </main>
             </div>
