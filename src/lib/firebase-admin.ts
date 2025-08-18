@@ -10,12 +10,11 @@ function initializeAdmin(): App {
   }
 
   const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
-  const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+  const projectId = process.env.FIREBASE_PROJECT_ID;
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-  const storageBucket = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
 
-  if (!privateKey || !projectId || !clientEmail || !storageBucket) {
-    throw new Error('Missing Firebase environment variables for admin initialization.');
+  if (!privateKey || !projectId || !clientEmail) {
+    throw new Error('Missing Firebase Admin environment variables.');
   }
 
   return admin.initializeApp({
@@ -24,7 +23,7 @@ function initializeAdmin(): App {
       clientEmail,
       privateKey,
     }),
-    storageBucket: storageBucket,
+    storageBucket: `${projectId}.appspot.com`,
   });
 }
 
