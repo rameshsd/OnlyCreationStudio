@@ -22,8 +22,13 @@ export async function uploadPhoto(formData: FormData): Promise<{ url?: string; e
     // Construct a user-specific path
     const fileName = `posts/${userId}/${Date.now()}_${cleanFileName}.${fileExtension}`;
     
+    const bucketName = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
+    if (!bucketName) {
+      throw new Error('Firebase Storage bucket name is not configured.');
+    }
+
     // Explicitly specify the bucket name
-    const bucket = adminStorage.bucket(process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET);
+    const bucket = adminStorage.bucket(bucketName);
     const fileRef = bucket.file(fileName);
 
     await fileRef.save(fileBuffer, {
@@ -42,6 +47,7 @@ export async function uploadPhoto(formData: FormData): Promise<{ url?: string; e
   } catch (e: any) {
     console.error('Upload failed:', e);
     // Return the actual error message to the client for better debugging
-    return { error: e.message || 'An unknown error occurred during upload.' };
+    // Stringify the error object to get more details in the client console
+    return { error: JSON.stringify(e, Object.getOwnPropertyNames(e)) };
   }
 }
