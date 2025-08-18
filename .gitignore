@@ -1,3 +1,4 @@
+
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
@@ -13,6 +14,9 @@
 /.next/
 /out/
 
+# production
+/build
+
 # misc
 .DS_Store
 *.pem
@@ -21,23 +25,18 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-.pnpm-debug.log*
 
 # local env files
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# vercel
-.vercel
+.env*.local
+.env
 
 # typescript
 *.tsbuildinfo
 next-env.d.ts
 
-# studio
-.studio
+# Editor specific
+.vscode/
+.idea/
 
-# service account key
+# Firebase
 src/lib/service-account.ts
