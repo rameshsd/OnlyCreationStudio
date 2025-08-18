@@ -3,7 +3,7 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardFooter } from "@/components/ui/card";
 import { Plus, Search, Bell, Rss, TrendingUp, Users, Video } from "lucide-react";
 import Link from "next/link";
 import React, { useState, useEffect } from "react";
@@ -186,7 +186,9 @@ export default function DashboardPage() {
                         ))
                     ) : (
                       <Card className="text-center p-12">
-                        <p className="text-muted-foreground">No posts yet. Be the first to share something!</p>
+                        <CardContent>
+                          <p className="text-muted-foreground">No posts yet. Be the first to share something!</p>
+                        </CardContent>
                       </Card>
                     )}
                 </main>
@@ -220,4 +222,3 @@ export default function DashboardPage() {
     </>
   );
 }
-
