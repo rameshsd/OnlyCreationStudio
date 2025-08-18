@@ -9,6 +9,7 @@ function initializeAdmin(): App {
     return getApps()[0];
   }
 
+  // Replace newline characters in the private key string.
   const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
   const projectId = process.env.FIREBASE_PROJECT_ID;
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
@@ -23,7 +24,7 @@ function initializeAdmin(): App {
       clientEmail,
       privateKey,
     }),
-    storageBucket: `${projectId}.appspot.com`,
+    storageBucket: process.env.FIREBASE_STORAGE_BUCKET || `${projectId}.appspot.com`,
   });
 }
 
