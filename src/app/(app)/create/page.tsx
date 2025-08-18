@@ -59,6 +59,7 @@ export default function CreatePostPage() {
       if (imageFile) {
         const formData = new FormData();
         formData.append('imageFile', imageFile);
+        formData.append('userId', user.uid); // Pass the user ID to the action
         const result = await uploadPhoto(formData);
         if (result.error || !result.url) {
           throw new Error(result.error || "Image upload failed.");

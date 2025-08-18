@@ -1,3 +1,4 @@
+
 'use server';
 
 import { adminStorage } from '@/lib/firebase-admin';
@@ -5,14 +6,21 @@ import { adminStorage } from '@/lib/firebase-admin';
 export async function uploadPhoto(formData: FormData): Promise<{ url?: string; error?: string }> {
   try {
     const file = formData.get('imageFile') as File;
+    const userId = formData.get('userId') as string;
+
     if (!file) {
-      throw new Error('No file provided');
+      throw new Error('No file provided.');
+    }
+    if (!userId) {
+      throw new Error('No user ID provided.');
     }
 
     const fileBuffer = Buffer.from(await file.arrayBuffer());
     const fileExtension = file.name.split('.').pop();
-    // Using a timestamp and the original filename for uniqueness instead of crypto
-    const fileName = `posts/${Date.now()}_${file.name.replace(/\.[^/.]+$/, "")}.${fileExtension}`;
+    const cleanFileName = file.name.replace(/\.[^/.]+$/, "").replace(/[^a-zA-Z0-9]/g, '_');
+    
+    // Construct a user-specific path
+    const fileName = `posts/${userId}/${Date.now()}_${cleanFileName}.${fileExtension}`;
     const bucket = adminStorage.bucket();
     const fileRef = bucket.file(fileName);
 
