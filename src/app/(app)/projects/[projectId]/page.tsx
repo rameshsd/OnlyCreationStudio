@@ -10,7 +10,7 @@ import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from "@/components/ui/button";
 import { Badge } from '@/components/ui/badge';
-import { MoreHorizontal, Plus, BookOpen, Bug, Puzzle, Rocket, Trophy, GanttChartSquare, ListTodo, BarChart2, Calendar, Timeline } from "lucide-react";
+import { MoreHorizontal, Plus, BookOpen, Bug, Puzzle, Rocket, Trophy, GanttChartSquare, ListTodo, BarChart2, Calendar, History } from "lucide-react";
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -170,10 +170,10 @@ export default function ProjectWorkspacePage() {
                 return acc;
             }, {} as {[key: string]: Task});
 
-            const sanitizedColumns = data.columnOrder.reduce((acc, columnId) => {
+            const sanitizedColumns = (data.columnOrder || []).reduce((acc, columnId) => {
                 const column = data.columns[columnId];
                 if(column) {
-                    const taskIds = (column.taskIds || []).map(task => typeof task === 'string' ? task : task.id);
+                    const taskIds = (column.taskIds || []).map(task => typeof task === 'string' ? task : (task as any).id).filter(Boolean);
                     acc[columnId] = { ...column, taskIds: taskIds };
                 }
                 return acc;
@@ -323,7 +323,7 @@ export default function ProjectWorkspacePage() {
                 <nav className="flex items-center gap-1">
                     <Button variant="ghost" size="sm" className="bg-accent/80"><GanttChartSquare className="mr-2 h-4 w-4"/>Board</Button>
                     <Button variant="ghost" size="sm"><BarChart2 className="mr-2 h-4 w-4"/>Analytics</Button>
-                    <Button variant="ghost" size="sm"><Timeline className="mr-2 h-4 w-4"/>Feature Timeline</Button>
+                    <Button variant="ghost" size="sm"><History className="mr-2 h-4 w-4"/>Feature Timeline</Button>
                     <Button variant="ghost" size="sm"><Calendar className="mr-2 h-4 w-4"/>Epic Roadmap</Button>
                 </nav>
             </div>
@@ -333,7 +333,7 @@ export default function ProjectWorkspacePage() {
             {isMounted && (
                 <DragDropContext onDragEnd={onDragEnd}>
                     <div className="flex gap-4 items-start h-full pb-4">
-                    {project.columnOrder.map((columnId) => {
+                    {(project.columnOrder || []).map((columnId) => {
                         const column = project.columns[columnId];
                         if (!column) return null;
                         
@@ -436,5 +436,3 @@ export default function ProjectWorkspacePage() {
     </div>
   )
 }
-
-    
