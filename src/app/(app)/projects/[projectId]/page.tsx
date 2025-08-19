@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -46,14 +47,16 @@ const initialProjectData = {
 };
 
 // In a real app, you'd fetch this from Firestore based on params.projectId
-const useProject = (projectId: string) => {
+const useProject = (projectId: string | string[] | undefined) => {
     const [project, setProject] = useState(initialProjectData);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Simulate fetching data from a database
-        setProject(initialProjectData);
-        setLoading(false);
+        if (projectId) {
+            // Simulate fetching data from a database
+            setProject(initialProjectData);
+            setLoading(false);
+        }
     }, [projectId]);
 
     const updateProject = (newProjectData: typeof initialProjectData) => {
@@ -108,7 +111,8 @@ const AddTaskForm = ({ columnId, onAddTask, onCancel }: { columnId: string, onAd
     )
 }
 
-export default function ProjectWorkspacePage({ params }: { params: { projectId: string } }) {
+export default function ProjectWorkspacePage() {
+  const params = useParams();
   const projectId = params.projectId;
   const { project, loading, updateProject } = useProject(projectId);
   const [isMounted, setIsMounted] = useState(false);
