@@ -27,10 +27,10 @@ const studioData = {
   rating: 4.9,
   reviewCount: 128,
   images: [
-    "https://placehold.co/1200x800.png",
-    "https://placehold.co/600x400.png",
-    "https://placehold.co/600x400.png",
-    "https://placehold.co/600x400.png",
+    "https://images.unsplash.com/photo-1554236372-d0e4c7e4a836?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    "https://images.unsplash.com/photo-1603484478330-a936c9c3459c?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    "https://images.unsplash.com/photo-1594223193433-f7129523a5c3?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    "https://images.unsplash.com/photo-1595152758217-d67b2d5f8a05?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
   ],
   description: "A state-of-the-art multimedia studio in the heart of Brooklyn. Perfect for photoshoots, video production, and podcasting. Our space is designed to inspire creativity and provide you with all the tools you need to bring your vision to life.",
   amenities: [

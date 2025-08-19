@@ -6,14 +6,14 @@ import { PlusCircle, Trash2, Users } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
 const teamMembers = [
-    { name: "Alexa Rodriguez", role: "Lead Influencer", avatar: "https://placehold.co/150x150.png" },
-    { name: "John Doe", role: "Videographer", avatar: "https://placehold.co/150x150.png?text=JD" },
-    { name: "Jane Smith", role: "Copywriter", avatar: "https://placehold.co/150x150.png?text=JS" },
+    { name: "Alexa Rodriguez", role: "Lead Influencer", avatar: "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?q=80&w=1887&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" },
+    { name: "John Doe", role: "Videographer", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=1887&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" },
+    { name: "Jane Smith", role: "Copywriter", avatar: "https://images.unsplash.com/photo-1580489944761-15a19d654956?q=80&w=1961&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" },
 ];
 
 const suggestedMembers = [
-    { name: "Digital Nomad", role: "Travel Content", avatar: "https://placehold.co/100x100.png?text=DN" },
-    { name: "Gamer's Galaxy", role: "Gaming Influencer", avatar: "https://placehold.co/100x100.png?text=GG" },
+    { name: "Digital Nomad", role: "Travel Content", avatar: "https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?q=80&w=2071&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" },
+    { name: "Gamer's Galaxy", role: "Gaming Influencer", avatar: "https://images.unsplash.com/photo-1580327344181-c11ac2a2653e?q=80&w=1887&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" },
 ]
 
 export default function TeamBuilderPage() {

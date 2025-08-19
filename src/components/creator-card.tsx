@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Star, Link as LinkIcon } from "lucide-react";
 import type { AiMatchmakingOutput } from "@/ai/flows/ai-matchmaking";
 import { Skeleton } from "./ui/skeleton";
+import React, { useState } from 'react';
 
 type Creator = AiMatchmakingOutput['matches'][0];
 
@@ -84,7 +85,7 @@ const Avatar = ({ children, className }: { children: React.ReactNode, className?
   </div>
 );
 
-const AvatarImage = ({ src, alt, ...props }: React.ComponentProps<typeof Image>) => {
+const AvatarImage = ({ src, alt, ...props }: React.ComponentProps<typeof Image> & { "data-ai-hint": string; }) => {
   const [error, setError] = useState(false);
   if (error || !src) return <AvatarFallback>{alt.substring(0, 2).toUpperCase()}</AvatarFallback>;
   

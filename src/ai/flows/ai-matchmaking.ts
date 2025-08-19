@@ -17,7 +17,7 @@ const creators = [
   {
       id: "1",
       creatorName: "Alexa Rodriguez",
-      profilePicture: "https://placehold.co/150x150.png",
+      profilePicture: "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?q=80&w=1887&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       professionalBio: "Digital storyteller & brand strategist. I help brands build authentic connections with their audience.",
       specialties: ["Brand Strategy", "Content Creation", "Social Media Marketing"],
       primaryPlatformLink: "#",
@@ -25,7 +25,7 @@ const creators = [
   {
       id: "2",
       creatorName: "TechExplorer",
-      profilePicture: "https://placehold.co/100x100.png?text=TE",
+      profilePicture: "https://images.unsplash.com/photo-1550745165-9bc0b252726a?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       professionalBio: "Unboxing the future, one gadget at a time. Your daily dose of tech news, reviews, and tutorials.",
       specialties: ["Tech Reviews", "Gadgets", "Unboxing"],
       primaryPlatformLink: "#",
@@ -33,7 +33,7 @@ const creators = [
   {
       id: "3",
       creatorName: "FitFreak",
-      profilePicture: "https://placehold.co/100x100.png?text=FF",
+      profilePicture: "https://images.unsplash.com/photo-1541534401786-204b8928468c?q=80&w=1887&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       professionalBio: "Helping you achieve your fitness goals with effective workout plans and nutritional advice.",
       specialties: ["Fitness", "Workout", "Nutrition"],
       primaryPlatformLink: "#",
@@ -41,7 +41,7 @@ const creators = [
    {
     id: "4",
     creatorName: "Gamer's Galaxy",
-    profilePicture: "https://placehold.co/100x100.png?text=GG",
+    profilePicture: "https://images.unsplash.com/photo-1580327344181-c11ac2a2653e?q=80&w=1887&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
     professionalBio: "Elite gamer and streamer. Focused on competitive FPS and RPGs. Let's conquer new worlds together.",
     specialties: ["Gaming", "Streaming", "eSports"],
     primaryPlatformLink: "#",
@@ -49,7 +49,7 @@ const creators = [
    {
     id: "5",
     creatorName: "Digital Nomad",
-    profilePicture: "https://placehold.co/100x100.png?text=DN",
+    profilePicture: "https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?q=80&w=2071&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
     professionalBio: "Exploring the world and sharing my adventures. Specializing in travel vlogs and photography.",
     specialties: ["Travel", "Vlogging", "Photography"],
     primaryPlatformLink: "#",

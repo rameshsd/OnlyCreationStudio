@@ -15,8 +15,8 @@ import { ResponsiveContainer, BarChart, XAxis, YAxis, Bar } from "recharts";
 const user = {
     name: "Alexa Rodriguez",
     username: "@alexa_creates",
-    avatarUrl: "https://placehold.co/150x150.png",
-    coverUrl: "https://placehold.co/1200x400.png",
+    avatarUrl: "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?q=80&w=1887&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    coverUrl: "https://images.unsplash.com/photo-1501183007986-d0d080b147f9?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
     bio: "Digital storyteller & brand strategist. I help brands build authentic connections with their audience. Passionate about sustainable fashion and minimalist design. Let's create something beautiful together!",
     isVerified: true,
     stats: [
@@ -34,10 +34,10 @@ const posts = [
 ];
 
 const portfolioItems = [
-    { id: 1, type: 'image', url: 'https://placehold.co/600x400.png', title: 'Project Alpha', hint: 'portfolio project' },
-    { id: 2, type: 'video', url: 'https://placehold.co/600x400.png', title: 'Project Beta', hint: 'portfolio project' },
-    { id: 3, type: 'image', url: 'https://placehold.co/600x400.png', title: 'Project Gamma', hint: 'portfolio project' },
-    { id: 4, type: 'image', url: 'https://placehold.co/600x400.png', title: 'Project Delta', hint: 'portfolio project' },
+    { id: 1, type: 'image', url: 'https://images.unsplash.com/photo-1556228724-4ce34b61215c?q=80&w=1887&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D', title: 'Project Alpha', hint: 'portfolio project' },
+    { id: 2, type: 'video', url: 'https://images.unsplash.com/photo-1611156434368-838dec96541f?q=80&w=1887&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D', title: 'Project Beta', hint: 'portfolio project' },
+    { id: 3, type: 'image', url: 'https://images.unsplash.com/photo-1524502397800-2eea8ff322b6?q=80&w=1887&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D', title: 'Project Gamma', hint: 'portfolio project' },
+    { id: 4, type: 'image', url: 'https://images.unsplash.com/photo-1562572159-4efc207f5aff?q=80&w=1935&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D', title: 'Project Delta', hint: 'portfolio project' },
 ];
 
 const statsData = [
@@ -233,5 +233,3 @@ export default function ProfilePage() {
         </div>
     );
 }
-
-    

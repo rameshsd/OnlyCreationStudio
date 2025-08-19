@@ -25,6 +25,27 @@ const captions = [
 
 const hints = ["fashion", "travel", "food", "tech", "nature", "cityscape", "abstract", "art", "fitness", "work", "lifestyle", "pet", "car", "music", "gaming"];
 
+const imagePool = [
+    { url: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=1920&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D', hint: 'fashion' },
+    { url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=1887&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D', hint: 'portrait' },
+    { url: 'https://images.unsplash.com/photo-1488161628813-04466f872d24?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D', hint: 'travel' },
+    { url: 'https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?q=80&w=1887&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D', hint: 'lifestyle' },
+    { url: 'https://images.unsplash.com/photo-1543353071-873f17a7a088?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D', hint: 'food' },
+    { url: 'https://images.unsplash.com/photo-1526657782461-9fe13507e03f?q=80&w=1935&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D', hint: 'tech' },
+    { url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D', hint: 'nature' },
+    { url: 'https://images.unsplash.com/photo-1505761671935-60b3a742750f?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D', hint: 'cityscape' },
+];
+
+const avatarPool = [
+    "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=1964&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?q=80&w=1887&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=1887&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    "https://images.unsplash.com/photo-1580489944761-15a19d654956?q=80&w=1961&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=1887&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    "https://images.unsplash.com/photo-1517841905240-472988babdf9?q=80&w=1887&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=1887&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+];
+
 const getRandomElement = <T>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
 
 const generateRandomName = () => `${getRandomElement(firstNames)} ${getRandomElement(lastNames)}`;
@@ -42,14 +63,10 @@ export const generateMockPosts = (count: number): Post[] => {
             id: `post_${i}_${Date.now()}`,
             userId: `user_${Math.floor(Math.random() * 1000)}`,
             username: username,
-            userAvatar: `https://placehold.co/100x100.png?text=${name.substring(0, 2).toUpperCase()}`,
+            userAvatar: getRandomElement(avatarPool),
             userIsVerified: Math.random() > 0.7,
             caption: getRandomElement(captions),
-            media: hasMedia ? Array.from({ length: mediaCount }, (_, j) => ({
-                type: 'image',
-                url: `https://placehold.co/600x${Math.floor(Math.random() * 200) + 400}.png`,
-                hint: getRandomElement(hints),
-            })) : [],
+            media: hasMedia ? Array.from({ length: mediaCount }, (_, j) => getRandomElement(imagePool)) : [],
             likes: Math.floor(Math.random() * 25000),
             comments: Math.floor(Math.random() * 1000),
             shares: Math.floor(Math.random() * 500),
@@ -68,7 +85,7 @@ export const generateMockStories = (count: number) => {
         const name = getRandomElement(firstNames);
         stories.push({
             name,
-            avatar: `https://placehold.co/100x100.png?text=${name.substring(0,2)}`,
+            avatar: getRandomElement(avatarPool),
             isSelf: false,
             hint: "portrait",
         });
@@ -96,7 +113,7 @@ export const generateMockSuggestions = (count: number) => {
         suggestions.push({
             name: name,
             username: `@${generateUsername(name)}`,
-            avatar: `https://placehold.co/100x100.png?text=${name.substring(0, 2)}`,
+            avatar: getRandomElement(avatarPool),
             hint: "user avatar"
         });
     }
@@ -116,7 +133,7 @@ export const generateMockCollabRequests = (count: number, type: 'received' | 'se
             to: to,
             project: project,
             status: status,
-            avatar: `https://placehold.co/100x100.png?text=${type === 'received' ? from.substring(0,2) : to.substring(0,2)}`,
+            avatar: getRandomElement(avatarPool),
         });
     }
     return requests;
@@ -126,11 +143,12 @@ export const generateMockExploreItems = (count: number) => {
     const items = [];
     for(let i=0; i< count; i++) {
         const name = getRandomElement(firstNames);
+        const image = getRandomElement(imagePool);
         items.push({
             name: name,
             age: `${Math.floor(Math.random() * 15) + 17} y.o`,
-            image: `https://placehold.co/400x600.png?text=${name.substring(0,2)}`,
-            hint: "portrait female"
+            image: image.url,
+            hint: image.hint,
         })
     }
     return items;
@@ -146,7 +164,7 @@ export const generateMockMessages = (count: number) => {
             id: i,
             name: name,
             lastMessage: getRandomElement(captions).substring(0,40),
-            avatar: `https://placehold.co/100x100.png?text=${name.substring(0,2)}`,
+            avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${name}`,
             unread: Math.floor(Math.random() * 5),
             online: Math.random() > 0.5,
         });
@@ -159,5 +177,3 @@ export const generateMockMessages = (count: number) => {
     }
     return { conversations, messages };
 }
-
-    
