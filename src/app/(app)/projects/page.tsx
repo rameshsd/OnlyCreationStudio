@@ -1,20 +1,65 @@
 
 "use client";
 
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/hooks/use-auth';
+import { db } from '@/lib/firebase';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { FolderKanban, Plus } from 'lucide-react';
+import { FolderKanban, Plus, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { Skeleton } from '@/components/ui/skeleton';
 
-// In a real app, you would fetch and display a list of projects from your database.
-const projects = [
-    { id: '1', name: 'Creator Canvas Product Roadmap', description: 'The main product roadmap and backlog for the Creator Canvas application.' },
-    { id: '2', name: 'Social Media App', description: 'A new social media platform for creators to connect with their audience.' },
-    { id: '3', name: 'eTMF System', description: 'Electronic Trial Master File system for clinical trial management.' },
-    { id: '4', name: 'Barcode Labeling Initiative', description: 'Implementing barcode labels across the warehouse.' }
-];
+interface Project {
+    id: string;
+    name: string;
+    description: string;
+}
+
+const ProjectCardSkeleton = () => (
+    <Card>
+        <CardHeader>
+            <div className="flex items-center gap-4">
+                <Skeleton className="h-12 w-12 rounded-lg" />
+                <div className="space-y-2">
+                    <Skeleton className="h-5 w-48" />
+                    <Skeleton className="h-4 w-64" />
+                </div>
+            </div>
+        </CardHeader>
+    </Card>
+)
 
 export default function ProjectsPage() {
+    const { user } = useAuth();
+    const [projects, setProjects] = useState<Project[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        if (!user) {
+            setLoading(false);
+            return;
+        }
+
+        setLoading(true);
+        const q = query(collection(db, "projects"), where("ownerId", "==", user.uid));
+        
+        const unsubscribe = onSnapshot(q, (querySnapshot) => {
+            const projectsData: Project[] = [];
+            querySnapshot.forEach((doc) => {
+                projectsData.push({ id: doc.id, ...doc.data() } as Project);
+            });
+            setProjects(projectsData);
+            setLoading(false);
+        }, (error) => {
+            console.error("Error fetching projects: ", error);
+            setLoading(false);
+        });
+
+        return () => unsubscribe();
+    }, [user]);
+
     return (
         <div className="flex flex-col gap-8">
             <div className="flex justify-between items-center">
@@ -30,10 +75,16 @@ export default function ProjectsPage() {
                 </Button>
             </div>
 
-            {projects.length > 0 ? (
+            {loading ? (
+                <div className="space-y-4">
+                   <ProjectCardSkeleton />
+                   <ProjectCardSkeleton />
+                   <ProjectCardSkeleton />
+                </div>
+            ) : projects.length > 0 ? (
                 <div className="space-y-4">
                     {projects.map(project => (
-                        <Link key={project.id} href={`/projects/${project.id}?name=${encodeURIComponent(project.name)}&description=${encodeURIComponent(project.description)}`}>
+                        <Link key={project.id} href={`/projects/${project.id}`}>
                             <Card className="hover:bg-accent hover:border-primary/50 transition-colors cursor-pointer">
                                 <CardHeader>
                                     <div className="flex items-center gap-4">

@@ -2,94 +2,28 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { useSearchParams, useParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
+import { db } from '@/lib/firebase';
+import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
+import { useAuth } from '@/hooks/use-auth';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from '@/components/ui/badge';
-import { MoreHorizontal, Plus, Paperclip, FileText, Video, Music, Clock, GripVertical, Bug, Award, Wrench, Eye, KeyRound, Plane, Rocket, Puzzle, BookOpen, Trophy, Flag, Star } from "lucide-react";
+import { MoreHorizontal, Plus, Loader2, BookOpen, Bug, Puzzle, Rocket, Trophy, Wrench, Eye, Plane } from "lucide-react";
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from '@/components/ui/label';
-
-const initialProjectData = {
-  '1': {
-    name: 'Creator Canvas Product Roadmap',
-    description: 'A collaborative project to launch our new sustainable product line. This workspace is for coordinating tasks, sharing files, and tracking progress.',
-    columns: {
-      'todo': {
-        id: 'todo',
-        title: 'Not Started',
-        tasks: [
-          { id: 'task-1', type: 'Bug', icon: Bug, title: 'Login Bugs', tags: [{label: 'Bug', color: 'bg-red-500/20 text-red-700'}, {label: 'Sprint 20', color: 'bg-gray-500/20 text-gray-700'}], assignees: ['Camille Ricketts', 'Nate Martins'] },
-          { id: 'task-2', type: 'Epic', icon: Rocket, title: 'Mobile Start Up Time', tags: [{label: 'Epic', color: 'bg-green-500/20 text-green-700'},], assignees: ['Camille Ricketts', 'David Tibbitts', 'Andrea Lim'] },
-          { id: 'task-3', type: 'Bug', icon: Bug, title: 'Error Codes', tags: [{label: 'Bug', color: 'bg-red-500/20 text-red-700'}, {label: 'Sprint 21', color: 'bg-gray-500/20 text-gray-700'}], assignees: ['Andrea Lim', 'Cory Etzkorn'] },
-        ],
-      },
-      'in-progress': {
-        id: 'in-progress',
-        title: 'In Progress',
-        tasks: [
-          { id: 'task-4', type: 'Feature', icon: Plane, title: 'Onboarding', tags: [{label: 'Epic', color: 'bg-green-500/20 text-green-700'}], assignees: ['Andrea Lim', 'Nate Martins'] },
-          { id: 'task-5', type: 'Task', icon: Puzzle, title: 'Rewriting Flow', tags: [{label: 'Task', color: 'bg-yellow-500/20 text-yellow-700'}, {label: 'Sprint 23', color: 'bg-gray-500/20 text-gray-700'}], assignees: ['David Tibbitts', 'Camille Ricketts', 'Nate Martins'] },
-          { id: 'task-8', type: 'Task', icon: Wrench, title: 'Landing Page Redesign', tags: [], assignees: ['Cory Etzkorn', 'Nate Martins', 'Andrea Lim'] },
-        ],
-      },
-      'review': {
-          id: 'review',
-          title: 'Complete',
-          tasks: [
-               { id: 'task-6', type: 'Task', icon: Wrench, title: 'Rewrite Query Caching Logic', tags: [{label: 'Task', color: 'bg-yellow-500/20 text-yellow-700'}, {label: 'Sprint 23', color: 'bg-gray-500/20 text-gray-700'}, {label: 'Sprint 24', color: 'bg-gray-500/20 text-gray-700'}], assignees: ['David Tibbitts', 'Cory Etzkorn'] },
-               { id: 'task-7', type: 'Task', icon: Eye, title: 'Mobile', tags: [{label: 'Task', color: 'bg-yellow-500/20 text-yellow-700'}, {label: 'Sprint 23', color: 'bg-gray-500/20 text-gray-700'}], assignees: ['Ben Lang', 'Cory Etzkorn'] },
-          ],
-      },
-    },
-    columnOrder: ['todo', 'in-progress', 'review'],
-  }
-};
-
-const emptyProjectData = (name: string, description: string) => ({
-  name: name || "New Project",
-  description: description || "Start adding tasks to your new project.",
-  columns: {
-    'todo': { id: 'todo', title: 'To Do', tasks: [] },
-    'in-progress': { id: 'in-progress', title: 'In Progress', tasks: [] },
-    'done': { id: 'done', title: 'Done', tasks: [] },
-  },
-  columnOrder: ['todo', 'in-progress', 'done'],
-});
-
-
-// In a real app, you'd fetch this from Firestore based on params.projectId
-const useProject = (projectId: string | string[] | undefined, name: string | null, description: string | null) => {
-    const [project, setProject] = useState<any>(null);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        if (projectId) {
-            // Simulate fetching data from a database
-            const projectData = (initialProjectData as any)[projectId as any] || emptyProjectData(name || `Project ${projectId}`, description || `Details for project ${projectId}`);
-            setProject(projectData);
-            setLoading(false);
-        }
-    }, [projectId, name, description]);
-
-    const updateProject = (newProjectData: any) => {
-        // In a real app, this would also save to Firestore
-        setProject(newProjectData);
-        console.log("Project state updated. In a real app, this would be saved to DB.");
-    }
-
-    return { project, loading, updateProject };
-}
+import { useToast } from '@/hooks/use-toast';
+import { Skeleton } from '@/components/ui/skeleton';
 
 type WorkItemType = "Epic" | "Feature" | "User Story" | "Task" | "Bug";
 
 type Task = {
     id: string;
-    icon: React.ElementType;
+    icon?: React.ElementType; // Made optional as we will assign it based on type
     title: string;
     type: WorkItemType;
     tags: { label: string; color: string }[];
@@ -102,6 +36,13 @@ type Column = {
     tasks: Task[];
 }
 
+type Project = {
+    name: string;
+    description: string;
+    columns: { [key: string]: Column };
+    columnOrder: string[];
+}
+
 const workItemTypes: { value: WorkItemType; label: string; icon: React.ElementType }[] = [
     { value: "Epic", label: "Epic", icon: Rocket },
     { value: "Feature", label: "Feature", icon: Trophy },
@@ -109,6 +50,11 @@ const workItemTypes: { value: WorkItemType; label: string; icon: React.ElementTy
     { value: "Task", label: "Task", icon: Puzzle },
     { value: "Bug", label: "Bug", icon: Bug },
 ]
+
+const getIconForTaskType = (type: WorkItemType): React.ElementType => {
+    return workItemTypes.find(item => item.value === type)?.icon || Puzzle;
+}
+
 
 const AddTaskForm = ({ columnId, onAddTask, onCancel }: { columnId: string, onAddTask: (columnId: string, taskTitle: string, taskType: WorkItemType) => void, onCancel: () => void }) => {
     const [title, setTitle] = useState('');
@@ -158,21 +104,71 @@ const AddTaskForm = ({ columnId, onAddTask, onCancel }: { columnId: string, onAd
     )
 }
 
+const ProjectSkeleton = () => (
+    <div className="flex flex-col gap-8 h-full">
+        <div>
+            <Skeleton className="h-9 w-1/3 mb-2" />
+            <Skeleton className="h-4 w-2/3" />
+        </div>
+        <div className="flex-1 overflow-x-auto">
+            <div className="flex gap-6 items-start h-full pb-4">
+                {[...Array(3)].map((_, i) => (
+                    <div key={i} className="w-80 flex-shrink-0 bg-secondary/50 rounded-lg p-3 space-y-3">
+                        <Skeleton className="h-6 w-1/2" />
+                        <Skeleton className="h-24 w-full" />
+                        <Skeleton className="h-24 w-full" />
+                    </div>
+                ))}
+            </div>
+        </div>
+    </div>
+);
+
+
 export default function ProjectWorkspacePage() {
   const params = useParams();
-  const searchParams = useSearchParams();
+  const projectId = params.projectId as string;
+  const { user } = useAuth();
+  const { toast } = useToast();
 
-  const name = searchParams.get('name');
-  const description = searchParams.get('description');
-  
-  const { project, loading, updateProject } = useProject(params.projectId, name, description);
+  const [project, setProject] = useState<Project | null>(null);
+  const [loading, setLoading] = useState(true);
   const [isMounted, setIsMounted] = useState(false);
   const [newColumnName, setNewColumnName] = useState('');
   const [addingTaskToColumn, setAddingTaskToColumn] = useState<string | null>(null);
 
   useEffect(() => {
     setIsMounted(true);
-  }, []);
+    if (!user || !projectId) return;
+
+    setLoading(true);
+    const docRef = doc(db, "projects", projectId);
+    const unsubscribe = onSnapshot(docRef, (doc) => {
+        if (doc.exists()) {
+            setProject(doc.data() as Project);
+        } else {
+            toast({ title: "Error", description: "Project not found.", variant: "destructive" });
+            setProject(null);
+        }
+        setLoading(false);
+    }, (error) => {
+        console.error("Error fetching project:", error);
+        toast({ title: "Error", description: "Failed to fetch project data.", variant: "destructive" });
+        setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [projectId, user, toast]);
+
+  const updateProjectInDb = async (updatedProject: Project) => {
+    const docRef = doc(db, "projects", projectId);
+    try {
+        await updateDoc(docRef, updatedProject);
+    } catch (error) {
+        console.error("Error updating project:", error);
+        toast({ title: "Update Error", description: "Failed to save changes.", variant: "destructive" });
+    }
+  }
 
   const onDragEnd = (result: DropResult) => {
     if (!project) return;
@@ -181,18 +177,17 @@ export default function ProjectWorkspacePage() {
     if (!destination) return;
     if (destination.droppableId === source.droppableId && destination.index === source.index) return;
 
-    const startColumn = project.columns[source.droppableId as keyof typeof project.columns];
-    const endColumn = project.columns[destination.droppableId as keyof typeof project.columns];
-
+    const startColumn = project.columns[source.droppableId];
+    const endColumn = project.columns[destination.droppableId];
+    
     const newProject = { ...project };
 
     if (startColumn === endColumn) {
         const newTasks = Array.from(startColumn.tasks);
         const [removed] = newTasks.splice(source.index, 1);
         newTasks.splice(destination.index, 0, removed);
-
         const newColumn = { ...startColumn, tasks: newTasks };
-        newProject.columns[newColumn.id as keyof typeof project.columns] = newColumn;
+        newProject.columns[newColumn.id] = newColumn;
     } else {
         const startTasks = Array.from(startColumn.tasks);
         const [removed] = startTasks.splice(source.index, 1);
@@ -202,16 +197,17 @@ export default function ProjectWorkspacePage() {
         endTasks.splice(destination.index, 0, removed);
         const newEndColumn = { ...endColumn, tasks: endTasks };
         
-        newProject.columns[newStartColumn.id as keyof typeof project.columns] = newStartColumn;
-        newProject.columns[newEndColumn.id as keyof typeof project.columns] = newEndColumn;
+        newProject.columns[newStartColumn.id] = newStartColumn;
+        newProject.columns[newEndColumn.id] = newEndColumn;
     }
     
-    updateProject(newProject);
+    setProject(newProject); // Optimistic update
+    updateProjectInDb(newProject);
   };
 
   const handleAddColumn = () => {
     if (!newColumnName.trim() || !project) return;
-    const newColumnId = `column-${Object.keys(project.columns).length + 1}`;
+    const newColumnId = `column-${Date.now()}`;
     const newColumn: Column = { id: newColumnId, title: newColumnName, tasks: [] };
 
     const newProject = {
@@ -220,7 +216,8 @@ export default function ProjectWorkspacePage() {
       columnOrder: [...project.columnOrder, newColumnId],
     };
 
-    updateProject(newProject);
+    setProject(newProject);
+    updateProjectInDb(newProject);
     setNewColumnName('');
   };
 
@@ -228,34 +225,32 @@ export default function ProjectWorkspacePage() {
     if(!project) return;
 
     const newTaskId = `task-${Date.now()}`;
-    const workItemConfig = workItemTypes.find(w => w.value === taskType) || { icon: Puzzle };
-
     const newTask: Task = {
         id: newTaskId,
         title: taskTitle,
         type: taskType,
-        icon: workItemConfig.icon,
         tags: [],
         assignees: []
     };
 
-    const targetColumn = project.columns[columnId as keyof typeof project.columns];
+    const targetColumn = project.columns[columnId];
     const newTasks = [...targetColumn.tasks, newTask];
     const updatedColumn = { ...targetColumn, tasks: newTasks };
     
-    const newProject = {
+    const newProject: Project = {
         ...project,
         columns: {
             ...project.columns,
             [columnId]: updatedColumn
         }
     }
-    updateProject(newProject);
-    setAddingTaskToColumn(null); // Close the form
+    setProject(newProject);
+    updateProjectInDb(newProject);
+    setAddingTaskToColumn(null);
   }
 
-  if (loading) return <div>Loading project...</div>;
-  if (!project) return <div>Project not found.</div>;
+  if (loading) return <ProjectSkeleton />;
+  if (!project) return <div>Project not found. Start by creating a new one.</div>;
 
   return (
     <div className="flex flex-col gap-8 h-full">
@@ -268,9 +263,14 @@ export default function ProjectWorkspacePage() {
         {isMounted && (
             <DragDropContext onDragEnd={onDragEnd}>
                 <div className="flex gap-6 items-start h-full pb-4">
-                {project.columnOrder.map((columnId: string) => {
-                    const column = project.columns[columnId as keyof typeof project.columns];
+                {project.columnOrder.map((columnId) => {
+                    const column = project.columns[columnId];
                     if (!column) return null;
+                    const tasksWithIcons = column.tasks.map(task => ({
+                        ...task,
+                        icon: getIconForTaskType(task.type)
+                    }));
+
                     return (
                         <div key={column.id} className="w-80 flex-shrink-0 bg-secondary/50 rounded-lg">
                              <div className="flex justify-between items-center p-3">
@@ -290,7 +290,7 @@ export default function ProjectWorkspacePage() {
                                         ref={provided.innerRef}
                                         className={`space-y-3 p-2 rounded-b-lg transition-colors min-h-[200px] ${snapshot.isDraggingOver ? 'bg-primary/10' : ''}`}
                                     >
-                                    {column.tasks.map((task: Task, index: number) => (
+                                    {tasksWithIcons.map((task, index) => (
                                         <Draggable draggableId={task.id} index={index} key={task.id}>
                                             {(provided, snapshot) => (
                                                 <div
