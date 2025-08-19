@@ -22,7 +22,6 @@ import {
   LogOut,
   Loader2,
   FolderKanban,
-  FolderPlus
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
@@ -61,7 +60,6 @@ const menuItems = [
   { href: "/matchmaker", label: "AI Matchmaker", icon: Bot },
   { href: "/ai-job-builder", label: "AI Job Builder", icon: FileText },
   { href: "/projects", label: "Projects", icon: FolderKanban, exact: false },
-  { href: "/projects/create", label: "Create Project", icon: FolderPlus, exact: true },
   { href: "/opportunities", label: "Opportunities", icon: Briefcase },
   { href: "/studios", label: "Studios", icon: Camera },
   { href: "/messages", label: "Messages", icon: MessageSquare },
