@@ -344,7 +344,7 @@ export default function ProjectWorkspacePage() {
                                                 <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setAddingTaskToColumn(column.id)}><Plus className="h-4 w-4" /></Button>
                                             </div>
                                         </div>
-                                        <Droppable droppableId={column.id}>
+                                        <Droppable droppableId={column.id} isDropDisabled={false}>
                                             {(provided, snapshot) => (
                                                 <div
                                                     {...provided.droppableProps}
@@ -422,3 +422,5 @@ export default function ProjectWorkspacePage() {
     </div>
   )
 }
+
+    
