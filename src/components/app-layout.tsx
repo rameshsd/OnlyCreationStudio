@@ -21,7 +21,8 @@ import {
   Plus,
   LogOut,
   Loader2,
-  FolderKanban
+  FolderKanban,
+  FolderPlus
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
@@ -59,7 +60,8 @@ const menuItems = [
   { href: "/shorts", label: "Shorts", icon: Video },
   { href: "/matchmaker", label: "AI Matchmaker", icon: Bot },
   { href: "/ai-job-builder", label: "AI Job Builder", icon: FileText },
-  { href: "/projects/1", label: "Projects", icon: FolderKanban },
+  { href: "/projects", label: "Projects", icon: FolderKanban, exact: false },
+  { href: "/projects/create", label: "Create Project", icon: FolderPlus, exact: true },
   { href: "/opportunities", label: "Opportunities", icon: Briefcase },
   { href: "/studios", label: "Studios", icon: Camera },
   { href: "/messages", label: "Messages", icon: MessageSquare },
@@ -85,13 +87,17 @@ function MobileSidebar() {
         <div className="flex-1 overflow-y-auto">
           <SheetTitle className="sr-only">Menu</SheetTitle>
           <nav className="space-y-2 p-4">
-            {menuItems.map((item) => (
+            {menuItems.map((item) => {
+               const isActive = item.exact 
+                ? pathname === item.href 
+                : pathname.startsWith(item.href);
+              return (
               <Link
                 key={item.label}
                 href={item.href}
                 className={cn(
                   "flex items-center gap-3 rounded-lg px-3 py-2 transition-all",
-                  pathname.startsWith(item.href)
+                  isActive
                     ? "bg-primary/10 text-primary font-semibold"
                     : "text-muted-foreground hover:bg-muted"
                 )}
@@ -99,7 +105,7 @@ function MobileSidebar() {
                 <item.icon className="h-5 w-5" />
                 <span>{item.label}</span>
               </Link>
-            ))}
+            )})}
           </nav>
         </div>
       </SheetContent>
@@ -174,13 +180,17 @@ export function AppLayout({ children }: { children: ReactNode }) {
               <Logo className="w-36" />
             </div>
             <nav className="flex-1 space-y-2 p-4 overflow-y-auto">
-              {menuItems.map((item) => (
+              {menuItems.map((item) => {
+                 const isActive = item.exact 
+                  ? pathname === item.href 
+                  : pathname.startsWith(item.href);
+                return (
                 <Link
                   key={item.label}
                   href={item.href}
                   className={cn(
                     "flex items-center gap-3 rounded-lg px-3 py-2 transition-all",
-                    pathname.startsWith(item.href)
+                    isActive
                       ? "bg-primary/10 text-primary font-semibold"
                       : "text-muted-foreground hover:bg-muted"
                   )}
@@ -188,7 +198,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
                   <item.icon className="h-5 w-5" />
                   <span>{item.label}</span>
                 </Link>
-              ))}
+              )})}
             </nav>
             <div className="p-4 mt-auto border-t">
                  <DropdownMenu>
