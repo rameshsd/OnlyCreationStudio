@@ -20,7 +20,8 @@ import {
   LayoutGrid,
   Plus,
   LogOut,
-  Loader2
+  Loader2,
+  FolderKanban
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
@@ -58,6 +59,7 @@ const menuItems = [
   { href: "/shorts", label: "Shorts", icon: Video },
   { href: "/matchmaker", label: "AI Matchmaker", icon: Bot },
   { href: "/ai-job-builder", label: "AI Job Builder", icon: FileText },
+  { href: "/projects/1", label: "Projects", icon: FolderKanban },
   { href: "/opportunities", label: "Opportunities", icon: Briefcase },
   { href: "/studios", label: "Studios", icon: Camera },
   { href: "/messages", label: "Messages", icon: MessageSquare },
