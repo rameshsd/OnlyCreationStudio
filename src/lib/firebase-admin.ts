@@ -3,27 +3,18 @@ import admin from 'firebase-admin';
 import { App, getApps } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
+import { serviceAccount } from './service-account';
 
 function initializeAdmin(): App {
   if (getApps().length > 0) {
     return getApps()[0];
   }
 
-  const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
-  const projectId = process.env.FIREBASE_PROJECT_ID;
-  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-
-  if (!privateKey || !projectId || !clientEmail) {
-    throw new Error('Missing Firebase Admin environment variables.');
-  }
-
   try {
+    // The serviceAccount object is imported from a git-ignored file.
+    // This is a more robust way to handle credentials than env variables.
     return admin.initializeApp({
-      credential: admin.credential.cert({
-        projectId,
-        clientEmail,
-        private_key: privateKey,
-      }),
+      credential: admin.credential.cert(serviceAccount),
       storageBucket: 'creator-canvas-w47i3.appspot.com',
     });
   } catch (e: any) {
