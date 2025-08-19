@@ -8,7 +8,10 @@ import Link from 'next/link';
 
 // In a real app, you would fetch and display a list of projects from your database.
 const projects = [
-    { id: '1', name: 'Creator Canvas Product Roadmap', description: 'The main product roadmap and backlog for the Creator Canvas application.' }
+    { id: '1', name: 'Creator Canvas Product Roadmap', description: 'The main product roadmap and backlog for the Creator Canvas application.' },
+    { id: '2', name: 'Social Media App', description: 'A new social media platform for creators to connect with their audience.' },
+    { id: '3', name: 'eTMF System', description: 'Electronic Trial Master File system for clinical trial management.' },
+    { id: '4', name: 'Barcode Labeling Initiative', description: 'Implementing barcode labels across the warehouse.' }
 ];
 
 export default function ProjectsPage() {
@@ -30,7 +33,7 @@ export default function ProjectsPage() {
             {projects.length > 0 ? (
                 <div className="space-y-4">
                     {projects.map(project => (
-                        <Link key={project.id} href={`/projects/${project.id}`}>
+                        <Link key={project.id} href={`/projects/${project.id}?name=${encodeURIComponent(project.name)}&description=${encodeURIComponent(project.description)}`}>
                             <Card className="hover:bg-accent hover:border-primary/50 transition-colors cursor-pointer">
                                 <CardHeader>
                                     <div className="flex items-center gap-4">
