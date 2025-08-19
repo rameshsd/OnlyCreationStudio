@@ -13,6 +13,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
+import { Badge } from '@/components/ui/badge';
 
 
 const workItemTypes: { value: WorkItemType; label: string; icon: React.ElementType }[] = [
@@ -53,9 +54,9 @@ const WorkItemRow = ({ item, allItems, level = 0 }: { item: Task, allItems: Task
                     </div>
                     <div className="col-span-3 flex items-center gap-2 -space-x-2">
                         {item.assignees.map(assignee => (
-                             <Avatar key={assignee} className="h-6 w-6 border-2 border-card">
-                                <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${assignee}`} data-ai-hint="user avatar" />
-                                <AvatarFallback className="text-xs">{assignee.substring(0,1)}</AvatarFallback>
+                             <Avatar key={assignee.name} className="h-6 w-6 border-2 border-card">
+                                <AvatarImage src={assignee.avatar} data-ai-hint="user avatar" />
+                                <AvatarFallback className="text-xs">{assignee.name.substring(0,1)}</AvatarFallback>
                             </Avatar>
                         ))}
                     </div>

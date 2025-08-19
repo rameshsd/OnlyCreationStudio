@@ -42,12 +42,12 @@ export default function CreateProjectPage() {
     setLoading(true);
 
     try {
-      const epic1 = { id: 'task-1', title: 'User Authentication Feature', type: 'Epic', assignees: [], tags: [], parentId: null, status: 'New', progress: { current: 1, total: 5 } };
-      const feature1 = { id: 'task-2', title: 'Implement OAuth Login', type: 'Feature', assignees: [{name: 'Alexa R', avatar: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?q=80&w=1887&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'}], tags: [], parentId: 'task-1', status: 'Active', progress: { current: 3, total: 10 } };
-      const story1 = { id: 'task-3', title: 'Login with Google', type: 'User Story', assignees: [{name: 'John D', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=1887&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'}], tags: [], parentId: 'task-2', status: 'Active', progress: { current: 1, total: 2 } };
-      const task1 = { id: 'task-4', title: 'Frontend Integration for Google SSO', type: 'Task', assignees: [], tags: [{label: 'UI', color: 'bg-blue-500'}], parentId: 'task-3', status: 'Resolved', progress: { current: 1, total: 1 } };
-      const task2 = { id: 'task-5', title: 'Backend API for Google Callback', type: 'Task', assignees: [{name: 'John D', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=1887&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'}], tags: [{label: 'Backend', color: 'bg-red-500'}], parentId: 'task-3', status: 'Closed', progress: { current: 1, total: 1 } };
-      const bug1 = { id: 'task-6', title: 'Incorrect redirect after login', type: 'Bug', assignees: [], tags: [{label: 'High Priority', color: 'bg-yellow-500'}], parentId: 'task-4', status: 'New', progress: { current: 0, total: 1 } };
+      const epic1 = { id: 'task-1', title: 'User Authentication Feature', type: 'Epic', assignees: [], tags: [], parentId: null, status: 'New', progress: { current: 1, total: 5 }, areaPath: 'Project Management', comments: 1, updatedAt: '8/19' };
+      const feature1 = { id: 'task-2', title: 'Implement OAuth Login', type: 'Feature', assignees: [{name: 'Alexa R', avatar: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?q=80&w=1887&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'}], tags: [], parentId: 'task-1', status: 'Active', progress: { current: 3, total: 10 }, areaPath: 'Project Management', comments: 3, updatedAt: '8/18' };
+      const story1 = { id: 'task-3', title: 'Login with Google', type: 'User Story', assignees: [{name: 'John D', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=1887&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'}], tags: [], parentId: 'task-2', status: 'Active', progress: { current: 1, total: 2 }, areaPath: 'Project Management', comments: 5, updatedAt: '8/17' };
+      const task1 = { id: 'task-4', title: 'Frontend Integration for Google SSO', type: 'Task', assignees: [], tags: [{label: 'UI', color: 'bg-blue-500'}], parentId: 'task-3', status: 'Resolved', progress: { current: 1, total: 1 }, areaPath: 'Project Management\\UI', comments: 2, updatedAt: '8/16' };
+      const task2 = { id: 'task-5', title: 'Backend API for Google Callback', type: 'Task', assignees: [{name: 'John D', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=1887&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'}], tags: [{label: 'Backend', color: 'bg-red-500'}], parentId: 'task-3', status: 'Closed', progress: { current: 1, total: 1 }, areaPath: 'Project Management\\API', comments: 0, updatedAt: '8/15' };
+      const bug1 = { id: 'task-6', title: 'Incorrect redirect after login', type: 'Bug', assignees: [], tags: [{label: 'High Priority', color: 'bg-yellow-500'}], parentId: 'task-4', status: 'New', progress: { current: 0, total: 1 }, areaPath: 'Project Management\\UI', comments: 1, updatedAt: '8/14' };
       
       const projectData = {
         name: projectName,
@@ -183,5 +183,3 @@ export default function CreateProjectPage() {
     </div>
   );
 }
-
-    
