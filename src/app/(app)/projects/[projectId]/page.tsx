@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -9,7 +10,7 @@ import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from "@/components/ui/button";
 import { Badge } from '@/components/ui/badge';
-import { MoreHorizontal, Plus, BookOpen, Bug, Puzzle, Rocket, Trophy } from "lucide-react";
+import { MoreHorizontal, Plus, BookOpen, Bug, Puzzle, Rocket, Trophy, GanttChartSquare, ListTodo, BarChart2, Calendar, Timeline } from "lucide-react";
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -17,9 +18,8 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BacklogView } from '@/components/backlog-view';
-import { ListTodo, GanttChartSquare } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 
 export type WorkItemType = "Epic" | "Feature" | "User Story" | "Task" | "Bug";
@@ -29,9 +29,11 @@ export type Task = {
     icon?: React.ElementType;
     title: string;
     type: WorkItemType;
+    status: "New" | "Active" | "Resolved" | "Closed" | "Doing";
     tags: { label: string; color: string }[];
-    assignees: string[];
+    assignees: { name: string, avatar: string }[];
     parentId?: string | null;
+    progress?: { current: number, total: number };
 }
 
 export type Column = {
@@ -49,16 +51,24 @@ export type Project = {
     workItems: { [key: string]: Task };
 }
 
-const workItemTypes: { value: WorkItemType; label: string; icon: React.ElementType }[] = [
-    { value: "Epic", label: "Epic", icon: Rocket },
-    { value: "Feature", label: "Feature", icon: Trophy },
-    { value: "User Story", label: "User Story", icon: BookOpen },
-    { value: "Task", label: "Task", icon: Puzzle },
-    { value: "Bug", label: "Bug", icon: Bug },
+const workItemTypes: { value: WorkItemType; label: string; icon: React.ElementType, color: string }[] = [
+    { value: "Epic", label: "Epic", icon: Rocket, color: 'bg-orange-400' },
+    { value: "Feature", label: "Feature", icon: Trophy, color: 'bg-purple-400' },
+    { value: "User Story", label: "User Story", icon: BookOpen, color: 'bg-blue-400' },
+    { value: "Task", label: "Task", icon: Puzzle, color: 'bg-gray-400' },
+    { value: "Bug", label: "Bug", icon: Bug, color: 'bg-red-400' },
 ]
 
-const getIconForTaskType = (type: WorkItemType): React.ElementType => {
-    return workItemTypes.find(item => item.value === type)?.icon || Puzzle;
+const getInfoForTaskType = (type: WorkItemType) => {
+    return workItemTypes.find(item => item.value === type) || { icon: Puzzle, color: 'bg-gray-400' };
+}
+
+const statusColors: {[key: string]: string} = {
+    "New": "bg-gray-500",
+    "Active": "bg-blue-500",
+    "Resolved": "bg-purple-500",
+    "Closed": "bg-green-500",
+    "Doing": "bg-yellow-500"
 }
 
 
@@ -155,17 +165,17 @@ export default function ProjectWorkspacePage() {
 
             const workItemsArray = Array.isArray(data.workItems) ? data.workItems : [];
             
-            // Normalize workItems to a map if it's an array
             const workItemsMap = workItemsArray.reduce((acc, item) => {
                 acc[item.id] = item;
                 return acc;
             }, {} as {[key: string]: Task});
 
-            // Ensure columns have taskIds array
-            const sanitizedColumns = Object.entries(data.columns).reduce((acc, [columnId, column]) => {
-                const taskIds = (column.tasks || []).map(task => typeof task === 'string' ? task : task.id);
-                acc[columnId] = { ...column, taskIds: taskIds || [] };
-                delete (acc[columnId] as any).tasks;
+            const sanitizedColumns = data.columnOrder.reduce((acc, columnId) => {
+                const column = data.columns[columnId];
+                if(column) {
+                    const taskIds = (column.taskIds || []).map(task => typeof task === 'string' ? task : task.id);
+                    acc[columnId] = { ...column, taskIds: taskIds };
+                }
                 return acc;
             }, {} as {[key: string]: Column});
 
@@ -190,11 +200,11 @@ export default function ProjectWorkspacePage() {
     if (!projectId) return;
     const docRef = doc(db, "projects", projectId);
     try {
-        // When updating, convert workItems map back to array for Firestore
+        const dataToUpdate: { [key: string]: any } = { ...updatedProjectData };
         if (updatedProjectData.workItems) {
-            (updatedProjectData as any).workItems = Object.values(updatedProjectData.workItems);
+            dataToUpdate.workItems = Object.values(updatedProjectData.workItems);
         }
-        await updateDoc(docRef, updatedProjectData);
+        await updateDoc(docRef, dataToUpdate);
     } catch (error) {
         console.error("Error updating project:", error);
         toast({ title: "Update Error", description: "Failed to save changes.", variant: "destructive" });
@@ -267,6 +277,8 @@ export default function ProjectWorkspacePage() {
         tags: [],
         assignees: [],
         parentId: null,
+        status: 'New',
+        progress: {current: 0, total: 1}
     };
 
     const targetColumn = project.columns[columnId];
@@ -293,132 +305,134 @@ export default function ProjectWorkspacePage() {
   if (!project) return <div>Project not found. Start by creating a new one.</div>;
   
   const allWorkItems = project.workItems ? Object.values(project.workItems) : [];
-  const topLevelTasks = allWorkItems.filter(task => !task.parentId);
 
   const getTasksForColumn = (columnId: string): Task[] => {
       const column = project.columns[columnId];
-      if (!column) return [];
+      if (!column || !project.workItems) return [];
       
-      const taskIdsInColumn = new Set(column.taskIds);
-      return topLevelTasks
-        .filter(task => taskIdsInColumn.has(task.id))
-        .sort((a, b) => column.taskIds.indexOf(a.id) - column.taskIds.indexOf(b.id));
+      return (column.taskIds || [])
+        .map(taskId => project.workItems[taskId])
+        .filter(Boolean); // Filter out any undefined tasks
   }
 
-
   return (
-    <div className="flex flex-col gap-8 h-full">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">{project.name}</h1>
-        <p className="text-muted-foreground max-w-3xl">{project.description}</p>
-      </div>
-      
-        <Tabs defaultValue="board" className="w-full">
-            <TabsList>
-                <TabsTrigger value="board"><GanttChartSquare className="mr-2 h-4 w-4" /> Board</TabsTrigger>
-                <TabsTrigger value="backlog"><ListTodo className="mr-2 h-4 w-4" /> Backlog</TabsTrigger>
-            </TabsList>
-            <TabsContent value="board" className="mt-4">
-                 <div className="flex-1 overflow-x-auto">
-                    {isMounted && (
-                        <DragDropContext onDragEnd={onDragEnd}>
-                            <div className="flex gap-6 items-start h-full pb-4">
-                            {project.columnOrder.map((columnId) => {
-                                const column = project.columns[columnId];
-                                if (!column) return null;
-                                
-                                const tasks = getTasksForColumn(columnId).map(task => ({
-                                    ...task,
-                                    icon: getIconForTaskType(task.type)
-                                }));
+    <div className="flex flex-col gap-4 h-full">
+         <header className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+                <h1 className="text-2xl font-bold tracking-tight">{project.name}</h1>
+                <nav className="flex items-center gap-1">
+                    <Button variant="ghost" size="sm" className="bg-accent/80"><GanttChartSquare className="mr-2 h-4 w-4"/>Board</Button>
+                    <Button variant="ghost" size="sm"><BarChart2 className="mr-2 h-4 w-4"/>Analytics</Button>
+                    <Button variant="ghost" size="sm"><Timeline className="mr-2 h-4 w-4"/>Feature Timeline</Button>
+                    <Button variant="ghost" size="sm"><Calendar className="mr-2 h-4 w-4"/>Epic Roadmap</Button>
+                </nav>
+            </div>
+        </header>
 
-                                return (
-                                    <div key={column.id} className="w-80 flex-shrink-0">
-                                        <div className="flex justify-between items-center bg-secondary/50 p-3 rounded-t-lg">
-                                            <div className="flex items-center gap-2">
-                                                <h3 className="font-semibold text-foreground">{column.title}</h3>
-                                                <Badge variant="secondary" className="text-sm">{tasks.length}</Badge>
-                                            </div>
-                                            <div className="flex items-center gap-1">
-                                                <Button variant="ghost" size="icon" className="h-6 w-6"><MoreHorizontal className="h-4 w-4" /></Button>
-                                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setAddingTaskToColumn(column.id)}><Plus className="h-4 w-4" /></Button>
-                                            </div>
-                                        </div>
-                                        <Droppable droppableId={column.id}>
-                                            {(provided, snapshot) => (
-                                                <div
-                                                    {...provided.droppableProps}
-                                                    ref={provided.innerRef}
-                                                    className={`space-y-3 p-2 rounded-b-lg transition-colors min-h-[200px] bg-secondary/50 ${snapshot.isDraggingOver ? 'bg-primary/10' : ''}`}
-                                                >
-                                                {tasks.map((task, index) => (
-                                                    <Draggable draggableId={task.id} index={index} key={task.id}>
-                                                        {(provided, snapshot) => (
-                                                            <div
-                                                                ref={provided.innerRef}
-                                                                {...provided.draggableProps}
-                                                                {...provided.dragHandleProps}
-                                                                className={`bg-card p-4 rounded-lg shadow-sm border ${snapshot.isDragging ? 'shadow-lg ring-2 ring-primary' : ''}`}
-                                                            >
-                                                                <div className="flex items-center gap-2 mb-3">
-                                                                    {task.icon && <task.icon className="h-4 w-4 text-muted-foreground" />}
-                                                                    <p className="font-semibold leading-none">{task.title}</p>
-                                                                </div>
-                                                                
-                                                                {task.assignees && task.assignees.length > 0 && (
-                                                                    <div className="flex items-center gap-2 mt-3 -space-x-2">
-                                                                        {task.assignees.map(assignee => (
-                                                                            <Avatar key={assignee} className="h-6 w-6 border-2 border-card">
-                                                                                <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${assignee}`} data-ai-hint="user avatar" />
-                                                                                <AvatarFallback className="text-xs">{assignee.substring(0,1)}</AvatarFallback>
-                                                                            </Avatar>
-                                                                        ))}
-                                                                    </div>
-                                                                )}
-                                                                
-                                                                {task.tags && task.tags.length > 0 && (
-                                                                    <div className="flex flex-wrap gap-1.5 mt-3">
-                                                                        {task.tags.map(tag => (
-                                                                            <Badge key={tag.label} variant="secondary">{tag.label}</Badge>
-                                                                        ))}
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        )}
-                                                    </Draggable>
-                                                ))}
-                                                {provided.placeholder}
+         <div className="flex-1 overflow-x-auto">
+            {isMounted && (
+                <DragDropContext onDragEnd={onDragEnd}>
+                    <div className="flex gap-4 items-start h-full pb-4">
+                    {project.columnOrder.map((columnId) => {
+                        const column = project.columns[columnId];
+                        if (!column) return null;
+                        
+                        const tasks = getTasksForColumn(columnId);
 
-                                                {addingTaskToColumn === column.id && (
-                                                    <AddTaskForm 
-                                                        columnId={column.id} 
-                                                        onAddTask={handleAddTask}
-                                                        onCancel={() => setAddingTaskToColumn(null)}
-                                                    />
-                                                )}
-                                                </div>
-                                            )}
-                                        </Droppable>
+                        return (
+                            <div key={column.id} className="w-80 flex-shrink-0">
+                                <div className="flex justify-between items-center bg-secondary p-2 rounded-t-lg">
+                                    <div className="flex items-center gap-2">
+                                        <h3 className="font-semibold text-foreground text-sm">{column.title}</h3>
+                                        <Badge variant="secondary" className="text-xs">{tasks.length}/10</Badge>
                                     </div>
-                                );
-                            })}
-                            <div className="w-72 flex-shrink-0">
-                                <div className="bg-secondary/50 p-2 rounded-lg">
-                                    <div className="flex gap-2">
-                                        <Input value={newColumnName} onChange={(e) => setNewColumnName(e.target.value)} placeholder="Add new column..." className="bg-background" />
-                                        <Button onClick={handleAddColumn} size="icon"><Plus className="h-4 w-4" /></Button>
+                                    <div className="flex items-center gap-1">
+                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setAddingTaskToColumn(column.id)}><Plus className="h-4 w-4" /></Button>
                                     </div>
                                 </div>
+                                <Droppable droppableId={column.id}>
+                                    {(provided, snapshot) => (
+                                        <div
+                                            {...provided.droppableProps}
+                                            ref={provided.innerRef}
+                                            className={`space-y-2 p-2 rounded-b-lg transition-colors min-h-[200px] bg-secondary/70 ${snapshot.isDraggingOver ? 'bg-primary/10' : ''}`}
+                                        >
+                                        {tasks.map((task, index) => {
+                                            const { icon: Icon, color } = getInfoForTaskType(task.type);
+                                            return (
+                                                <Draggable draggableId={task.id} index={index} key={task.id}>
+                                                    {(provided, snapshot) => (
+                                                        <div
+                                                            ref={provided.innerRef}
+                                                            {...provided.draggableProps}
+                                                            {...provided.dragHandleProps}
+                                                            className={`relative bg-card p-3 rounded-md shadow-sm border-l-4 ${snapshot.isDragging ? 'shadow-lg ring-2 ring-primary' : ''}`}
+                                                            style={{ borderLeftColor: `hsl(var(--${task.type === 'Feature' ? 'primary' : 'accent-foreground'}))` }}
+                                                        >
+                                                            <div className={cn("absolute top-0 left-0 bottom-0 w-1 rounded-l-md", color)}></div>
+                                                            <div className="pl-1">
+                                                                <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+                                                                    <Icon className="h-4 w-4" />
+                                                                    <span>{task.id.split('-')[1]}</span>
+                                                                    <h4 className="font-semibold text-sm text-foreground flex-1 truncate">{task.title}</h4>
+                                                                </div>
+                                                                
+                                                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                                                    <div className={cn("w-2.5 h-2.5 rounded-full", statusColors[task.status])} />
+                                                                    <span>{task.status}</span>
+                                                                </div>
+
+                                                                <div className="flex items-center justify-between mt-2">
+                                                                    {task.assignees && task.assignees.length > 0 ? (
+                                                                        <div className="flex items-center gap-2">
+                                                                            <Avatar className="h-6 w-6">
+                                                                                <AvatarImage src={task.assignees[0].avatar} data-ai-hint="user avatar" />
+                                                                                <AvatarFallback className="text-xs">{task.assignees[0].name.substring(0,2)}</AvatarFallback>
+                                                                            </Avatar>
+                                                                            <span className="text-xs">{task.assignees[0].name}</span>
+                                                                        </div>
+                                                                    ) : <div />}
+                                                                    
+                                                                    {task.progress && (
+                                                                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                                                            <ListTodo className="h-3 w-3" />
+                                                                            <span>{task.progress.current}/{task.progress.total}</span>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </Draggable>
+                                            )
+                                        })}
+                                        {provided.placeholder}
+
+                                        {addingTaskToColumn === column.id && (
+                                            <AddTaskForm 
+                                                columnId={column.id} 
+                                                onAddTask={handleAddTask}
+                                                onCancel={() => setAddingTaskToColumn(null)}
+                                            />
+                                        )}
+                                        </div>
+                                    )}
+                                </Droppable>
                             </div>
+                        );
+                    })}
+                    <div className="w-72 flex-shrink-0">
+                        <div className="bg-secondary/50 p-2 rounded-lg">
+                            <div className="flex gap-2">
+                                <Input value={newColumnName} onChange={(e) => setNewColumnName(e.target.value)} placeholder="Add new column..." className="bg-background" />
+                                <Button onClick={handleAddColumn} size="icon"><Plus className="h-4 w-4" /></Button>
                             </div>
-                        </DragDropContext>
-                    )}
-                 </div>
-            </TabsContent>
-            <TabsContent value="backlog">
-                 <BacklogView project={project} />
-            </TabsContent>
-        </Tabs>
+                        </div>
+                    </div>
+                    </div>
+                </DragDropContext>
+            )}
+         </div>
     </div>
   )
 }

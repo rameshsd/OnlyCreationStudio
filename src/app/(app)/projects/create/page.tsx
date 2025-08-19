@@ -42,13 +42,13 @@ export default function CreateProjectPage() {
     setLoading(true);
 
     try {
-      const epic1 = { id: 'task-1', title: 'Develop Mobile App', type: 'Epic', assignees: [], tags: [], parentId: null };
-      const feature1 = { id: 'task-2', title: 'User Authentication', type: 'Feature', assignees: ['Alexa'], tags: [], parentId: 'task-1' };
-      const story1 = { id: 'task-3', title: 'As a user, I want to log in using my email and password', type: 'User Story', assignees: ['John'], tags: [], parentId: 'task-2' };
-      const task1 = { id: 'task-4', title: 'Create Login Page UI', type: 'Task', assignees: ['Jane'], tags: [{label: 'UI', color: 'bg-blue-500'}], parentId: 'task-3' };
-      const task2 = { id: 'task-5', title: 'Implement Backend API for Authentication', type: 'Task', assignees: ['John'], tags: [{label: 'Backend', color: 'bg-red-500'}], parentId: 'task-3' };
-      const bug1 = { id: 'task-6', title: 'Button is not aligned correctly on the login page', type: 'Bug', assignees: ['Jane'], tags: [{label: 'UI', color: 'bg-blue-500'}, {label: 'High Priority', color: 'bg-yellow-500'}], parentId: 'task-4' };
-
+      const epic1 = { id: 'task-1', title: 'User Authentication Feature', type: 'Epic', assignees: [], tags: [], parentId: null, status: 'New', progress: { current: 1, total: 5 } };
+      const feature1 = { id: 'task-2', title: 'Implement OAuth Login', type: 'Feature', assignees: [{name: 'Alexa R', avatar: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?q=80&w=1887&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'}], tags: [], parentId: 'task-1', status: 'Active', progress: { current: 3, total: 10 } };
+      const story1 = { id: 'task-3', title: 'Login with Google', type: 'User Story', assignees: [{name: 'John D', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=1887&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'}], tags: [], parentId: 'task-2', status: 'Active', progress: { current: 1, total: 2 } };
+      const task1 = { id: 'task-4', title: 'Frontend Integration for Google SSO', type: 'Task', assignees: [], tags: [{label: 'UI', color: 'bg-blue-500'}], parentId: 'task-3', status: 'Resolved', progress: { current: 1, total: 1 } };
+      const task2 = { id: 'task-5', title: 'Backend API for Google Callback', type: 'Task', assignees: [{name: 'John D', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=1887&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'}], tags: [{label: 'Backend', color: 'bg-red-500'}], parentId: 'task-3', status: 'Closed', progress: { current: 1, total: 1 } };
+      const bug1 = { id: 'task-6', title: 'Incorrect redirect after login', type: 'Bug', assignees: [], tags: [{label: 'High Priority', color: 'bg-yellow-500'}], parentId: 'task-4', status: 'New', progress: { current: 0, total: 1 } };
+      
       const projectData = {
         name: projectName,
         description,
@@ -59,10 +59,10 @@ export default function CreateProjectPage() {
         createdAt: serverTimestamp(),
         workItems: [epic1, feature1, story1, task1, task2, bug1],
         columns: {
-            'todo': { id: 'todo', title: 'To Do', tasks: [epic1] },
-            'in-progress': { id: 'in-progress', title: 'In Progress', tasks: [] },
-            'in-review': { id: 'in-review', title: 'In Review / Testing', tasks: [] },
-            'done': { id: 'done', title: 'Done', tasks: [] },
+            'todo': { id: 'todo', title: 'To Do', taskIds: ['task-1', 'task-6'] },
+            'in-progress': { id: 'in-progress', title: 'In Progress', taskIds: ['task-2', 'task-3'] },
+            'in-review': { id: 'in-review', title: 'In Review / Testing', taskIds: ['task-4'] },
+            'done': { id: 'done', title: 'Done', taskIds: ['task-5'] },
         },
         columnOrder: ['todo', 'in-progress', 'in-review', 'done'],
       };
@@ -183,3 +183,5 @@ export default function CreateProjectPage() {
     </div>
   );
 }
+
+    
