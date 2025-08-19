@@ -12,7 +12,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from '@/hooks/use-toast';
 import { GitBranch, Eye, Users, Shield, Rocket, ListChecks, Activity, BrainCircuit, Loader2 } from 'lucide-react';
-import { addDoc, collection } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/use-auth';
 
@@ -42,6 +42,13 @@ export default function CreateProjectPage() {
     setLoading(true);
 
     try {
+      const epic1 = { id: 'task-1', title: 'Develop Mobile App', type: 'Epic', assignees: [], tags: [], parentId: null };
+      const feature1 = { id: 'task-2', title: 'User Authentication', type: 'Feature', assignees: ['Alexa'], tags: [], parentId: 'task-1' };
+      const story1 = { id: 'task-3', title: 'As a user, I want to log in using my email and password', type: 'User Story', assignees: ['John'], tags: [], parentId: 'task-2' };
+      const task1 = { id: 'task-4', title: 'Create Login Page UI', type: 'Task', assignees: ['Jane'], tags: [{label: 'UI', color: 'bg-blue-500'}], parentId: 'task-3' };
+      const task2 = { id: 'task-5', title: 'Implement Backend API for Authentication', type: 'Task', assignees: ['John'], tags: [{label: 'Backend', color: 'bg-red-500'}], parentId: 'task-3' };
+      const bug1 = { id: 'task-6', title: 'Button is not aligned correctly on the login page', type: 'Bug', assignees: ['Jane'], tags: [{label: 'UI', color: 'bg-blue-500'}, {label: 'High Priority', color: 'bg-yellow-500'}], parentId: 'task-4' };
+
       const projectData = {
         name: projectName,
         description,
@@ -49,9 +56,10 @@ export default function CreateProjectPage() {
         versionControl,
         workItemProcess,
         ownerId: user.uid,
-        createdAt: new Date(),
+        createdAt: serverTimestamp(),
+        workItems: [epic1, feature1, story1, task1, task2, bug1],
         columns: {
-            'todo': { id: 'todo', title: 'To Do', tasks: [] },
+            'todo': { id: 'todo', title: 'To Do', tasks: [epic1] },
             'in-progress': { id: 'in-progress', title: 'In Progress', tasks: [] },
             'done': { id: 'done', title: 'Done', tasks: [] },
         },
