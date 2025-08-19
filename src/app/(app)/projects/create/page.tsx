@@ -27,7 +27,7 @@ export default function CreateProjectPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    // In a real application, you would save this data to your database.
+    // In a real application, you would save this data to your database and get a new project ID.
     console.log({
       projectName,
       description,
@@ -44,8 +44,12 @@ export default function CreateProjectPage() {
     // Simulate async operation
     setTimeout(() => {
       setLoading(false);
-      // Redirect to the newly created project's page (using a mock ID for now)
-      router.push('/projects/1'); 
+      // Redirect to the newly created project's page.
+      // In a real app, this ID would come from the database.
+      // We are redirecting to a new ID that doesn't have mock data,
+      // so it will correctly appear as a new, empty project.
+      const newProjectId = `proj-${Date.now()}`;
+      router.push(`/projects/${newProjectId}`); 
     }, 1000);
   };
 

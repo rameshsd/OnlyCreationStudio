@@ -13,53 +13,68 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 
 const initialProjectData = {
-  name: 'Creator Canvas Product Roadmap',
-  description: 'A collaborative project to launch our new sustainable product line. This workspace is for coordinating tasks, sharing files, and tracking progress.',
-  columns: {
-    'todo': {
-      id: 'todo',
-      title: 'Not Started',
-      tasks: [
-        { id: 'task-1', icon: KeyRound, title: 'Login Bugs', tags: [{label: 'Bug', color: 'bg-red-500/20 text-red-700'}, {label: 'Sprint 20', color: 'bg-gray-500/20 text-gray-700'}], assignees: ['Camille Ricketts', 'Nate Martins'] },
-        { id: 'task-2', icon: Rocket, title: 'Mobile Start Up Time', tags: [{label: 'Epic', color: 'bg-green-500/20 text-green-700'},], assignees: ['Camille Ricketts', 'David Tibbitts', 'Andrea Lim'] },
-        { id: 'task-3', icon: Bug, title: 'Error Codes', tags: [{label: 'Bug', color: 'bg-red-500/20 text-red-700'}, {label: 'Sprint 21', color: 'bg-gray-500/20 text-gray-700'}], assignees: ['Andrea Lim', 'Cory Etzkorn'] },
-      ],
-    },
-    'in-progress': {
-      id: 'in-progress',
-      title: 'In Progress',
-      tasks: [
-        { id: 'task-4', icon: Plane, title: 'Onboarding', tags: [{label: 'Epic', color: 'bg-green-500/20 text-green-700'}], assignees: ['Andrea Lim', 'Nate Martins'] },
-        { id: 'task-5', icon: Puzzle, title: 'Rewriting Flow', tags: [{label: 'Task', color: 'bg-yellow-500/20 text-yellow-700'}, {label: 'Sprint 23', color: 'bg-gray-500/20 text-gray-700'}], assignees: ['David Tibbitts', 'Camille Ricketts', 'Nate Martins'] },
-        { id: 'task-8', icon: Wrench, title: 'Landing Page Redesign', tags: [], assignees: ['Cory Etzkorn', 'Nate Martins', 'Andrea Lim'] },
-      ],
-    },
-    'review': {
-        id: 'review',
-        title: 'Complete',
+  '1': {
+    name: 'Creator Canvas Product Roadmap',
+    description: 'A collaborative project to launch our new sustainable product line. This workspace is for coordinating tasks, sharing files, and tracking progress.',
+    columns: {
+      'todo': {
+        id: 'todo',
+        title: 'Not Started',
         tasks: [
-             { id: 'task-6', icon: Wrench, title: 'Rewrite Query Caching Logic', tags: [{label: 'Task', color: 'bg-yellow-500/20 text-yellow-700'}, {label: 'Sprint 23', color: 'bg-gray-500/20 text-gray-700'}, {label: 'Sprint 24', color: 'bg-gray-500/20 text-gray-700'}], assignees: ['David Tibbitts', 'Cory Etzkorn'] },
-             { id: 'task-7', icon: Eye, title: 'Mobile', tags: [{label: 'Task', color: 'bg-yellow-500/20 text-yellow-700'}, {label: 'Sprint 23', color: 'bg-gray-500/20 text-gray-700'}], assignees: ['Ben Lang', 'Cory Etzkorn'] },
+          { id: 'task-1', icon: KeyRound, title: 'Login Bugs', tags: [{label: 'Bug', color: 'bg-red-500/20 text-red-700'}, {label: 'Sprint 20', color: 'bg-gray-500/20 text-gray-700'}], assignees: ['Camille Ricketts', 'Nate Martins'] },
+          { id: 'task-2', icon: Rocket, title: 'Mobile Start Up Time', tags: [{label: 'Epic', color: 'bg-green-500/20 text-green-700'},], assignees: ['Camille Ricketts', 'David Tibbitts', 'Andrea Lim'] },
+          { id: 'task-3', icon: Bug, title: 'Error Codes', tags: [{label: 'Bug', color: 'bg-red-500/20 text-red-700'}, {label: 'Sprint 21', color: 'bg-gray-500/20 text-gray-700'}], assignees: ['Andrea Lim', 'Cory Etzkorn'] },
         ],
+      },
+      'in-progress': {
+        id: 'in-progress',
+        title: 'In Progress',
+        tasks: [
+          { id: 'task-4', icon: Plane, title: 'Onboarding', tags: [{label: 'Epic', color: 'bg-green-500/20 text-green-700'}], assignees: ['Andrea Lim', 'Nate Martins'] },
+          { id: 'task-5', icon: Puzzle, title: 'Rewriting Flow', tags: [{label: 'Task', color: 'bg-yellow-500/20 text-yellow-700'}, {label: 'Sprint 23', color: 'bg-gray-500/20 text-gray-700'}], assignees: ['David Tibbitts', 'Camille Ricketts', 'Nate Martins'] },
+          { id: 'task-8', icon: Wrench, title: 'Landing Page Redesign', tags: [], assignees: ['Cory Etzkorn', 'Nate Martins', 'Andrea Lim'] },
+        ],
+      },
+      'review': {
+          id: 'review',
+          title: 'Complete',
+          tasks: [
+               { id: 'task-6', icon: Wrench, title: 'Rewrite Query Caching Logic', tags: [{label: 'Task', color: 'bg-yellow-500/20 text-yellow-700'}, {label: 'Sprint 23', color: 'bg-gray-500/20 text-gray-700'}, {label: 'Sprint 24', color: 'bg-gray-500/20 text-gray-700'}], assignees: ['David Tibbitts', 'Cory Etzkorn'] },
+               { id: 'task-7', icon: Eye, title: 'Mobile', tags: [{label: 'Task', color: 'bg-yellow-500/20 text-yellow-700'}, {label: 'Sprint 23', color: 'bg-gray-500/20 text-gray-700'}], assignees: ['Ben Lang', 'Cory Etzkorn'] },
+          ],
+      },
     },
-  },
-  columnOrder: ['todo', 'in-progress', 'review'],
+    columnOrder: ['todo', 'in-progress', 'review'],
+  }
 };
+
+const emptyProjectData = (name: string, description: string) => ({
+  name: name || "New Project",
+  description: description || "Start adding tasks to your new project.",
+  columns: {
+    'todo': { id: 'todo', title: 'To Do', tasks: [] },
+    'in-progress': { id: 'in-progress', title: 'In Progress', tasks: [] },
+    'done': { id: 'done', title: 'Done', tasks: [] },
+  },
+  columnOrder: ['todo', 'in-progress', 'done'],
+});
+
 
 // In a real app, you'd fetch this from Firestore based on params.projectId
 const useProject = (projectId: string | string[] | undefined) => {
-    const [project, setProject] = useState(initialProjectData);
+    const [project, setProject] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         if (projectId) {
             // Simulate fetching data from a database
-            setProject(initialProjectData);
+            const projectData = (initialProjectData as any)[projectId as any] || emptyProjectData(`Project ${projectId}`, `Details for project ${projectId}`);
+            setProject(projectData);
             setLoading(false);
         }
     }, [projectId]);
 
-    const updateProject = (newProjectData: typeof initialProjectData) => {
+    const updateProject = (newProjectData: any) => {
         // In a real app, this would also save to Firestore
         setProject(newProjectData);
         console.log("Project state updated. In a real app, this would be saved to DB.");
@@ -113,8 +128,7 @@ const AddTaskForm = ({ columnId, onAddTask, onCancel }: { columnId: string, onAd
 
 export default function ProjectWorkspacePage() {
   const params = useParams();
-  const projectId = params.projectId;
-  const { project, loading, updateProject } = useProject(projectId);
+  const { project, loading, updateProject } = useProject(params.projectId);
   const [isMounted, setIsMounted] = useState(false);
   const [newColumnName, setNewColumnName] = useState('');
   const [addingTaskToColumn, setAddingTaskToColumn] = useState<string | null>(null);
@@ -214,8 +228,9 @@ export default function ProjectWorkspacePage() {
         {isMounted && (
             <DragDropContext onDragEnd={onDragEnd}>
                 <div className="flex gap-6 items-start h-full pb-4">
-                {project.columnOrder.map((columnId) => {
+                {project.columnOrder.map((columnId: string) => {
                     const column = project.columns[columnId as keyof typeof project.columns];
+                    if (!column) return null;
                     return (
                         <div key={column.id} className="w-80 flex-shrink-0 bg-secondary/50 rounded-lg">
                              <div className="flex justify-between items-center p-3">
