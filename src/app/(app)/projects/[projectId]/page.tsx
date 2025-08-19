@@ -8,9 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from '@/components/ui/badge';
-import { MoreHorizontal, Plus, Paperclip, FileText, Video, Music, Clock, GripVertical, Bug, Award, Wrench, Eye, KeyRound, Plane, Rocket, Puzzle } from "lucide-react";
+import { MoreHorizontal, Plus, Paperclip, FileText, Video, Music, Clock, GripVertical, Bug, Award, Wrench, Eye, KeyRound, Plane, Rocket, Puzzle, BookOpen, Trophy, Flag, Star } from "lucide-react";
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from '@/components/ui/label';
 
 const initialProjectData = {
   '1': {
@@ -21,26 +23,26 @@ const initialProjectData = {
         id: 'todo',
         title: 'Not Started',
         tasks: [
-          { id: 'task-1', icon: KeyRound, title: 'Login Bugs', tags: [{label: 'Bug', color: 'bg-red-500/20 text-red-700'}, {label: 'Sprint 20', color: 'bg-gray-500/20 text-gray-700'}], assignees: ['Camille Ricketts', 'Nate Martins'] },
-          { id: 'task-2', icon: Rocket, title: 'Mobile Start Up Time', tags: [{label: 'Epic', color: 'bg-green-500/20 text-green-700'},], assignees: ['Camille Ricketts', 'David Tibbitts', 'Andrea Lim'] },
-          { id: 'task-3', icon: Bug, title: 'Error Codes', tags: [{label: 'Bug', color: 'bg-red-500/20 text-red-700'}, {label: 'Sprint 21', color: 'bg-gray-500/20 text-gray-700'}], assignees: ['Andrea Lim', 'Cory Etzkorn'] },
+          { id: 'task-1', type: 'Bug', icon: Bug, title: 'Login Bugs', tags: [{label: 'Bug', color: 'bg-red-500/20 text-red-700'}, {label: 'Sprint 20', color: 'bg-gray-500/20 text-gray-700'}], assignees: ['Camille Ricketts', 'Nate Martins'] },
+          { id: 'task-2', type: 'Epic', icon: Rocket, title: 'Mobile Start Up Time', tags: [{label: 'Epic', color: 'bg-green-500/20 text-green-700'},], assignees: ['Camille Ricketts', 'David Tibbitts', 'Andrea Lim'] },
+          { id: 'task-3', type: 'Bug', icon: Bug, title: 'Error Codes', tags: [{label: 'Bug', color: 'bg-red-500/20 text-red-700'}, {label: 'Sprint 21', color: 'bg-gray-500/20 text-gray-700'}], assignees: ['Andrea Lim', 'Cory Etzkorn'] },
         ],
       },
       'in-progress': {
         id: 'in-progress',
         title: 'In Progress',
         tasks: [
-          { id: 'task-4', icon: Plane, title: 'Onboarding', tags: [{label: 'Epic', color: 'bg-green-500/20 text-green-700'}], assignees: ['Andrea Lim', 'Nate Martins'] },
-          { id: 'task-5', icon: Puzzle, title: 'Rewriting Flow', tags: [{label: 'Task', color: 'bg-yellow-500/20 text-yellow-700'}, {label: 'Sprint 23', color: 'bg-gray-500/20 text-gray-700'}], assignees: ['David Tibbitts', 'Camille Ricketts', 'Nate Martins'] },
-          { id: 'task-8', icon: Wrench, title: 'Landing Page Redesign', tags: [], assignees: ['Cory Etzkorn', 'Nate Martins', 'Andrea Lim'] },
+          { id: 'task-4', type: 'Feature', icon: Plane, title: 'Onboarding', tags: [{label: 'Epic', color: 'bg-green-500/20 text-green-700'}], assignees: ['Andrea Lim', 'Nate Martins'] },
+          { id: 'task-5', type: 'Task', icon: Puzzle, title: 'Rewriting Flow', tags: [{label: 'Task', color: 'bg-yellow-500/20 text-yellow-700'}, {label: 'Sprint 23', color: 'bg-gray-500/20 text-gray-700'}], assignees: ['David Tibbitts', 'Camille Ricketts', 'Nate Martins'] },
+          { id: 'task-8', type: 'Task', icon: Wrench, title: 'Landing Page Redesign', tags: [], assignees: ['Cory Etzkorn', 'Nate Martins', 'Andrea Lim'] },
         ],
       },
       'review': {
           id: 'review',
           title: 'Complete',
           tasks: [
-               { id: 'task-6', icon: Wrench, title: 'Rewrite Query Caching Logic', tags: [{label: 'Task', color: 'bg-yellow-500/20 text-yellow-700'}, {label: 'Sprint 23', color: 'bg-gray-500/20 text-gray-700'}, {label: 'Sprint 24', color: 'bg-gray-500/20 text-gray-700'}], assignees: ['David Tibbitts', 'Cory Etzkorn'] },
-               { id: 'task-7', icon: Eye, title: 'Mobile', tags: [{label: 'Task', color: 'bg-yellow-500/20 text-yellow-700'}, {label: 'Sprint 23', color: 'bg-gray-500/20 text-gray-700'}], assignees: ['Ben Lang', 'Cory Etzkorn'] },
+               { id: 'task-6', type: 'Task', icon: Wrench, title: 'Rewrite Query Caching Logic', tags: [{label: 'Task', color: 'bg-yellow-500/20 text-yellow-700'}, {label: 'Sprint 23', color: 'bg-gray-500/20 text-gray-700'}, {label: 'Sprint 24', color: 'bg-gray-500/20 text-gray-700'}], assignees: ['David Tibbitts', 'Cory Etzkorn'] },
+               { id: 'task-7', type: 'Task', icon: Eye, title: 'Mobile', tags: [{label: 'Task', color: 'bg-yellow-500/20 text-yellow-700'}, {label: 'Sprint 23', color: 'bg-gray-500/20 text-gray-700'}], assignees: ['Ben Lang', 'Cory Etzkorn'] },
           ],
       },
     },
@@ -83,10 +85,13 @@ const useProject = (projectId: string | string[] | undefined, name: string | nul
     return { project, loading, updateProject };
 }
 
+type WorkItemType = "Epic" | "Feature" | "User Story" | "Task" | "Bug";
+
 type Task = {
     id: string;
     icon: React.ElementType;
     title: string;
+    type: WorkItemType;
     tags: { label: string; color: string }[];
     assignees: string[];
 }
@@ -97,19 +102,28 @@ type Column = {
     tasks: Task[];
 }
 
-const AddTaskForm = ({ columnId, onAddTask, onCancel }: { columnId: string, onAddTask: (columnId: string, taskTitle: string) => void, onCancel: () => void }) => {
+const workItemTypes: { value: WorkItemType; label: string; icon: React.ElementType }[] = [
+    { value: "Epic", label: "Epic", icon: Rocket },
+    { value: "Feature", label: "Feature", icon: Trophy },
+    { value: "User Story", label: "User Story", icon: BookOpen },
+    { value: "Task", label: "Task", icon: Puzzle },
+    { value: "Bug", label: "Bug", icon: Bug },
+]
+
+const AddTaskForm = ({ columnId, onAddTask, onCancel }: { columnId: string, onAddTask: (columnId: string, taskTitle: string, taskType: WorkItemType) => void, onCancel: () => void }) => {
     const [title, setTitle] = useState('');
+    const [type, setType] = useState<WorkItemType>("Task");
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (title.trim()) {
-            onAddTask(columnId, title.trim());
+            onAddTask(columnId, title.trim(), type);
             setTitle('');
         }
     };
 
     return (
-        <form onSubmit={handleSubmit} className="p-1 mt-2 space-y-2">
+        <form onSubmit={handleSubmit} className="p-1 mt-2 space-y-4">
             <Textarea 
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
@@ -118,6 +132,24 @@ const AddTaskForm = ({ columnId, onAddTask, onCancel }: { columnId: string, onAd
                 rows={3}
                 autoFocus
             />
+            <div>
+                 <Label htmlFor="task-type">Type</Label>
+                 <Select value={type} onValueChange={(value) => setType(value as WorkItemType)}>
+                    <SelectTrigger id="task-type">
+                        <SelectValue placeholder="Select work item type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {workItemTypes.map(item => (
+                             <SelectItem key={item.value} value={item.value}>
+                                 <div className="flex items-center gap-2">
+                                    <item.icon className="h-4 w-4" />
+                                    <span>{item.label}</span>
+                                 </div>
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
             <div className="flex items-center gap-2">
                 <Button type="submit" size="sm">Add Task</Button>
                 <Button type="button" variant="ghost" size="sm" onClick={onCancel}>Cancel</Button>
@@ -192,14 +224,17 @@ export default function ProjectWorkspacePage() {
     setNewColumnName('');
   };
 
-  const handleAddTask = (columnId: string, taskTitle: string) => {
+  const handleAddTask = (columnId: string, taskTitle: string, taskType: WorkItemType) => {
     if(!project) return;
 
     const newTaskId = `task-${Date.now()}`;
+    const workItemConfig = workItemTypes.find(w => w.value === taskType) || { icon: Puzzle };
+
     const newTask: Task = {
         id: newTaskId,
         title: taskTitle,
-        icon: Puzzle, // Default icon
+        type: taskType,
+        icon: workItemConfig.icon,
         tags: [],
         assignees: []
     };
