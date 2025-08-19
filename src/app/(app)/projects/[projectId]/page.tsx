@@ -109,7 +109,8 @@ const AddTaskForm = ({ columnId, onAddTask, onCancel }: { columnId: string, onAd
 }
 
 export default function ProjectWorkspacePage({ params }: { params: { projectId: string } }) {
-  const { project, loading, updateProject } = useProject(params.projectId);
+  const projectId = params.projectId;
+  const { project, loading, updateProject } = useProject(projectId);
   const [isMounted, setIsMounted] = useState(false);
   const [newColumnName, setNewColumnName] = useState('');
   const [addingTaskToColumn, setAddingTaskToColumn] = useState<string | null>(null);
