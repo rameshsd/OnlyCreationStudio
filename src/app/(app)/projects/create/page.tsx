@@ -44,12 +44,13 @@ export default function CreateProjectPage() {
     // Simulate async operation
     setTimeout(() => {
       setLoading(false);
-      // Redirect to the newly created project's page.
-      // In a real app, this ID would come from the database.
-      // We are redirecting to a new ID that doesn't have mock data,
-      // so it will correctly appear as a new, empty project.
+      // Redirect to the newly created project's page, passing details in query params.
       const newProjectId = `proj-${Date.now()}`;
-      router.push(`/projects/${newProjectId}`); 
+      const query = new URLSearchParams({
+        name: projectName,
+        description: description,
+      }).toString();
+      router.push(`/projects/${newProjectId}?${query}`); 
     }, 1000);
   };
 

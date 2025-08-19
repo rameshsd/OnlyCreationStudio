@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useSearchParams, useParams } from 'next/navigation';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -61,18 +61,18 @@ const emptyProjectData = (name: string, description: string) => ({
 
 
 // In a real app, you'd fetch this from Firestore based on params.projectId
-const useProject = (projectId: string | string[] | undefined) => {
+const useProject = (projectId: string | string[] | undefined, name: string | null, description: string | null) => {
     const [project, setProject] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         if (projectId) {
             // Simulate fetching data from a database
-            const projectData = (initialProjectData as any)[projectId as any] || emptyProjectData(`Project ${projectId}`, `Details for project ${projectId}`);
+            const projectData = (initialProjectData as any)[projectId as any] || emptyProjectData(name || `Project ${projectId}`, description || `Details for project ${projectId}`);
             setProject(projectData);
             setLoading(false);
         }
-    }, [projectId]);
+    }, [projectId, name, description]);
 
     const updateProject = (newProjectData: any) => {
         // In a real app, this would also save to Firestore
@@ -128,7 +128,12 @@ const AddTaskForm = ({ columnId, onAddTask, onCancel }: { columnId: string, onAd
 
 export default function ProjectWorkspacePage() {
   const params = useParams();
-  const { project, loading, updateProject } = useProject(params.projectId);
+  const searchParams = useSearchParams();
+
+  const name = searchParams.get('name');
+  const description = searchParams.get('description');
+  
+  const { project, loading, updateProject } = useProject(params.projectId, name, description);
   const [isMounted, setIsMounted] = useState(false);
   const [newColumnName, setNewColumnName] = useState('');
   const [addingTaskToColumn, setAddingTaskToColumn] = useState<string | null>(null);
@@ -250,7 +255,7 @@ export default function ProjectWorkspacePage() {
                                         ref={provided.innerRef}
                                         className={`space-y-3 p-2 rounded-b-lg transition-colors min-h-[200px] ${snapshot.isDraggingOver ? 'bg-primary/10' : ''}`}
                                     >
-                                    {column.tasks.map((task, index) => (
+                                    {column.tasks.map((task: Task, index: number) => (
                                         <Draggable draggableId={task.id} index={index} key={task.id}>
                                             {(provided, snapshot) => (
                                                 <div
