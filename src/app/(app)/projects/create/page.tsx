@@ -61,9 +61,10 @@ export default function CreateProjectPage() {
         columns: {
             'todo': { id: 'todo', title: 'To Do', tasks: [epic1] },
             'in-progress': { id: 'in-progress', title: 'In Progress', tasks: [] },
+            'in-review': { id: 'in-review', title: 'In Review / Testing', tasks: [] },
             'done': { id: 'done', title: 'Done', tasks: [] },
         },
-        columnOrder: ['todo', 'in-progress', 'done'],
+        columnOrder: ['todo', 'in-progress', 'in-review', 'done'],
       };
 
       const docRef = await addDoc(collection(db, "projects"), projectData);

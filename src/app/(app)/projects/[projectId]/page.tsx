@@ -3,9 +3,9 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
+import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
 import { db } from '@/lib/firebase';
-import { doc, onSnapshot, updateDoc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from "@/components/ui/button";
 import { Badge } from '@/components/ui/badge';
@@ -37,7 +37,7 @@ export type Task = {
 export type Column = {
     id: string;
     title: string;
-    tasks: Task[];
+    taskIds: string[];
 }
 
 export type Project = {
@@ -46,7 +46,7 @@ export type Project = {
     description: string;
     columns: { [key: string]: Column };
     columnOrder: string[];
-    workItems: Task[];
+    workItems: { [key: string]: Task };
 }
 
 const workItemTypes: { value: WorkItemType; label: string; icon: React.ElementType }[] = [
@@ -118,7 +118,7 @@ const ProjectSkeleton = () => (
         </div>
         <div className="flex-1 overflow-x-auto">
             <div className="flex gap-6 items-start h-full pb-4">
-                {[...Array(3)].map((_, i) => (
+                {[...Array(4)].map((_, i) => (
                     <div key={i} className="w-80 flex-shrink-0 bg-secondary/50 rounded-lg p-3 space-y-3">
                         <Skeleton className="h-6 w-1/2" />
                         <Skeleton className="h-24 w-full" />
@@ -151,13 +151,27 @@ export default function ProjectWorkspacePage() {
     const docRef = doc(db, "projects", projectId);
     const unsubscribe = onSnapshot(docRef, (doc) => {
         if (doc.exists()) {
-            const data = doc.data() as Project;
-            // Legacy support: if workItems doesn't exist, create it from columns
-            if (!data.workItems) {
-                const allTasks = Object.values(data.columns).flatMap(col => col.tasks);
-                data.workItems = allTasks;
-            }
-            setProject({ ...data, id: doc.id });
+            const data = doc.data() as Omit<Project, 'id'>;
+
+            const workItemsArray = Array.isArray(data.workItems) ? data.workItems : [];
+            
+            // Normalize workItems to a map if it's an array
+            const workItemsMap = workItemsArray.reduce((acc, item) => {
+                acc[item.id] = item;
+                return acc;
+            }, {} as {[key: string]: Task});
+
+            // Ensure columns have taskIds array
+            const sanitizedColumns = Object.entries(data.columns).reduce((acc, [columnId, column]) => {
+                const taskIds = (column.tasks || []).map(task => typeof task === 'string' ? task : task.id);
+                acc[columnId] = { ...column, taskIds: taskIds || [] };
+                delete (acc[columnId] as any).tasks;
+                return acc;
+            }, {} as {[key: string]: Column});
+
+
+            setProject({ ...data, id: doc.id, workItems: workItemsMap, columns: sanitizedColumns });
+
         } else {
             toast({ title: "Error", description: "Project not found.", variant: "destructive" });
             setProject(null);
@@ -172,11 +186,15 @@ export default function ProjectWorkspacePage() {
     return () => unsubscribe();
   }, [projectId, user, toast]);
 
-  const updateProjectInDb = async (updatedProject: Omit<Project, 'id'>) => {
+  const updateProjectInDb = async (updatedProjectData: Partial<Omit<Project, 'id'>>) => {
     if (!projectId) return;
     const docRef = doc(db, "projects", projectId);
     try {
-        await updateDoc(docRef, updatedProject);
+        // When updating, convert workItems map back to array for Firestore
+        if (updatedProjectData.workItems) {
+            (updatedProjectData as any).workItems = Object.values(updatedProjectData.workItems);
+        }
+        await updateDoc(docRef, updatedProjectData);
     } catch (error) {
         console.error("Error updating project:", error);
         toast({ title: "Update Error", description: "Failed to save changes.", variant: "destructive" });
@@ -189,39 +207,40 @@ export default function ProjectWorkspacePage() {
 
     if (!destination) return;
     if (destination.droppableId === source.droppableId && destination.index === source.index) return;
-
+    
     const startColumn = project.columns[source.droppableId];
     const endColumn = project.columns[destination.droppableId];
     
     const newProject = { ...project };
 
     if (startColumn === endColumn) {
-        const newTasks = Array.from(startColumn.tasks);
-        const [removed] = newTasks.splice(source.index, 1);
-        newTasks.splice(destination.index, 0, removed);
-        const newColumn = { ...startColumn, tasks: newTasks };
+        const newTaskIds = Array.from(startColumn.taskIds);
+        newTaskIds.splice(source.index, 1);
+        newTaskIds.splice(destination.index, 0, draggableId);
+        
+        const newColumn = { ...startColumn, taskIds: newTaskIds };
         newProject.columns[newColumn.id] = newColumn;
     } else {
-        const startTasks = Array.from(startColumn.tasks);
-        const [removed] = startTasks.splice(source.index, 1);
-        const newStartColumn = { ...startColumn, tasks: startTasks };
+        const startTaskIds = Array.from(startColumn.taskIds);
+        startTaskIds.splice(source.index, 1);
+        const newStartColumn = { ...startColumn, taskIds: startTaskIds };
 
-        const endTasks = Array.from(endColumn.tasks);
-        endTasks.splice(destination.index, 0, removed);
-        const newEndColumn = { ...endColumn, tasks: endTasks };
+        const endTaskIds = Array.from(endColumn.taskIds);
+        endTaskIds.splice(destination.index, 0, draggableId);
+        const newEndColumn = { ...endColumn, taskIds: endTaskIds };
         
         newProject.columns[newStartColumn.id] = newStartColumn;
         newProject.columns[newEndColumn.id] = newEndColumn;
     }
     
     setProject(newProject as Project);
-    updateProjectInDb({ name: newProject.name, description: newProject.description, columns: newProject.columns, columnOrder: newProject.columnOrder, workItems: newProject.workItems });
+    updateProjectInDb({ columns: newProject.columns });
   };
 
   const handleAddColumn = async () => {
     if (!newColumnName.trim() || !project) return;
     const newColumnId = `column-${Date.now()}`;
-    const newColumn: Column = { id: newColumnId, title: newColumnName, tasks: [] };
+    const newColumn: Column = { id: newColumnId, title: newColumnName, taskIds: [] };
 
     const newProjectData: Project = {
       ...project,
@@ -231,11 +250,8 @@ export default function ProjectWorkspacePage() {
 
     setProject(newProjectData);
     await updateProjectInDb({
-        name: newProjectData.name, 
-        description: newProjectData.description, 
         columns: newProjectData.columns, 
         columnOrder: newProjectData.columnOrder, 
-        workItems: newProjectData.workItems
     });
     setNewColumnName('');
   };
@@ -254,8 +270,8 @@ export default function ProjectWorkspacePage() {
     };
 
     const targetColumn = project.columns[columnId];
-    const newTasks = [...targetColumn.tasks, newTask];
-    const updatedColumn = { ...targetColumn, tasks: newTasks };
+    const newTaskIds = [...targetColumn.taskIds, newTaskId];
+    const updatedColumn = { ...targetColumn, taskIds: newTaskIds };
     
     const newProjectData: Project = {
         ...project,
@@ -263,30 +279,30 @@ export default function ProjectWorkspacePage() {
             ...project.columns,
             [columnId]: updatedColumn
         },
-        workItems: [...project.workItems, newTask]
+        workItems: {...project.workItems, [newTaskId]: newTask }
     }
     setProject(newProjectData);
     await updateProjectInDb({ 
-        name: newProjectData.name, 
-        description: newProjectData.description, 
         columns: newProjectData.columns, 
-        columnOrder: newProjectData.columnOrder, 
-        workItems: newProjectData.workItems 
+        workItems: newProjectData.workItems as any,
     });
     setAddingTaskToColumn(null);
   }
 
   if (loading) return <ProjectSkeleton />;
   if (!project) return <div>Project not found. Start by creating a new one.</div>;
+  
+  const allWorkItems = project.workItems ? Object.values(project.workItems) : [];
+  const topLevelTasks = allWorkItems.filter(task => !task.parentId);
 
-  // Filter tasks that are not part of a hierarchy to show on board
-  const topLevelTasks = project.workItems.filter(task => !task.parentId);
-  const getTasksForColumn = (columnId: string) => {
+  const getTasksForColumn = (columnId: string): Task[] => {
       const column = project.columns[columnId];
       if (!column) return [];
       
-      const taskIdsInColumn = new Set(column.tasks.map(t => t.id));
-      return topLevelTasks.filter(task => taskIdsInColumn.has(task.id));
+      const taskIdsInColumn = new Set(column.taskIds);
+      return topLevelTasks
+        .filter(task => taskIdsInColumn.has(task.id))
+        .sort((a, b) => column.taskIds.indexOf(a.id) - column.taskIds.indexOf(b.id));
   }
 
 
@@ -317,8 +333,8 @@ export default function ProjectWorkspacePage() {
                                 }));
 
                                 return (
-                                    <div key={column.id} className="w-80 flex-shrink-0 bg-secondary/50 rounded-lg">
-                                        <div className="flex justify-between items-center p-3">
+                                    <div key={column.id} className="w-80 flex-shrink-0">
+                                        <div className="flex justify-between items-center bg-secondary/50 p-3 rounded-t-lg">
                                             <div className="flex items-center gap-2">
                                                 <h3 className="font-semibold text-foreground">{column.title}</h3>
                                                 <Badge variant="secondary" className="text-sm">{tasks.length}</Badge>
@@ -333,7 +349,7 @@ export default function ProjectWorkspacePage() {
                                                 <div
                                                     {...provided.droppableProps}
                                                     ref={provided.innerRef}
-                                                    className={`space-y-3 p-2 rounded-b-lg transition-colors min-h-[200px] ${snapshot.isDraggingOver ? 'bg-primary/10' : ''}`}
+                                                    className={`space-y-3 p-2 rounded-b-lg transition-colors min-h-[200px] bg-secondary/50 ${snapshot.isDraggingOver ? 'bg-primary/10' : ''}`}
                                                 >
                                                 {tasks.map((task, index) => (
                                                     <Draggable draggableId={task.id} index={index} key={task.id}>

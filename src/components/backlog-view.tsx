@@ -34,7 +34,7 @@ const WorkItemRow = ({ item, allItems, level = 0 }: { item: Task, allItems: Task
 
     return (
         <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-            <div className="flex items-center" style={{ paddingLeft: `${level * 2}rem` }}>
+            <div className="flex items-center" style={{ paddingLeft: `${level * 1.5}rem` }}>
                  <CollapsibleTrigger asChild>
                     <Button variant="ghost" size="icon" className={cn("h-8 w-8", children.length === 0 && "invisible")}>
                         {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
@@ -42,11 +42,16 @@ const WorkItemRow = ({ item, allItems, level = 0 }: { item: Task, allItems: Task
                     </Button>
                 </CollapsibleTrigger>
                 
-                <div className="flex-1 flex items-center gap-3 p-2 rounded-md hover:bg-accent">
-                    <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab" />
-                    <Icon className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-                    <span className="font-medium flex-1 truncate">{item.title}</span>
-                    <div className="flex items-center gap-2 -space-x-2 mr-2">
+                <div className="flex-1 grid grid-cols-12 items-center gap-3 p-2 rounded-md hover:bg-accent">
+                    <div className="col-span-6 flex items-center gap-2">
+                        <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab flex-shrink-0" />
+                        <Icon className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                        <span className="font-medium flex-1 truncate">{item.title}</span>
+                    </div>
+                    <div className="col-span-2">
+                      <Badge variant="outline">{item.type}</Badge>
+                    </div>
+                    <div className="col-span-3 flex items-center gap-2 -space-x-2">
                         {item.assignees.map(assignee => (
                              <Avatar key={assignee} className="h-6 w-6 border-2 border-card">
                                 <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${assignee}`} data-ai-hint="user avatar" />
@@ -54,7 +59,9 @@ const WorkItemRow = ({ item, allItems, level = 0 }: { item: Task, allItems: Task
                             </Avatar>
                         ))}
                     </div>
-                    <Button variant="outline" size="sm" className="h-7"><Plus className="h-4 w-4 mr-1" /> Add Child</Button>
+                    <div className="col-span-1 justify-self-end">
+                      <Button variant="outline" size="sm" className="h-7"><Plus className="h-4 w-4 mr-1" /> Add</Button>
+                    </div>
                 </div>
             </div>
             <CollapsibleContent>
@@ -67,7 +74,7 @@ const WorkItemRow = ({ item, allItems, level = 0 }: { item: Task, allItems: Task
 }
 
 
-export function BacklogView({ project }: { project: Project }) {
+export function BacklogView({ project }: { project: Project | null }) {
     if (!project || !project.workItems) {
         return (
             <Card>
@@ -81,17 +88,19 @@ export function BacklogView({ project }: { project: Project }) {
         )
     }
 
-    const topLevelItems = project.workItems.filter(item => !item.parentId);
+    const allItems = Object.values(project.workItems);
+    const topLevelItems = allItems.filter(item => !item.parentId);
     
     return (
         <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Project Backlog</CardTitle>
+                <Button><Plus className="h-4 w-4 mr-2"/> Add Work Item</Button>
             </CardHeader>
             <CardContent>
-                <div className="border rounded-lg">
+                <div className="border rounded-lg p-2 space-y-1">
                     {topLevelItems.map(item => (
-                        <WorkItemRow key={item.id} item={item} allItems={project.workItems} />
+                        <WorkItemRow key={item.id} item={item} allItems={allItems} />
                     ))}
                 </div>
             </CardContent>
