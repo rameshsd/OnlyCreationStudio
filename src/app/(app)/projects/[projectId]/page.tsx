@@ -159,6 +159,9 @@ export default function ProjectWorkspacePage() {
 
   useEffect(() => {
     setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
     if (!user || !projectId) return;
 
     setLoading(true);
@@ -451,3 +454,5 @@ export default function ProjectWorkspacePage() {
     </div>
   )
 }
+
+    
