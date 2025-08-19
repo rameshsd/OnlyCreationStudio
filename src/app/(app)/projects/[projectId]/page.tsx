@@ -4,7 +4,23 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+  DragOverlay,
+  DragStartEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  useSortable,
+  rectSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { db } from '@/lib/firebase';
 import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { useAuth } from '@/hooks/use-auth';
@@ -144,6 +160,68 @@ const ProjectSkeleton = () => (
     </div>
 );
 
+const TaskCard = ({ task }: { task: Task }) => {
+    const { icon: Icon, color } = getInfoForTaskType(task.type);
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({ id: task.id });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+    };
+
+    return (
+        <div
+            ref={setNodeRef}
+            style={style}
+            {...attributes}
+            {...listeners}
+            className={`relative bg-card p-3 rounded-md shadow-sm border-l-4`}
+            data-is-dragging={isDragging}
+        >
+            <div className={cn("absolute top-0 left-0 bottom-0 w-1 rounded-l-md", color)}></div>
+            <div className="pl-1">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+                    <Icon className="h-4 w-4" />
+                    <span>{task.id.split('-')[1]}</span>
+                    <h4 className="font-semibold text-sm text-foreground flex-1 truncate">{task.title}</h4>
+                </div>
+                
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <div className={cn("w-2.5 h-2.5 rounded-full", statusColors[task.status])} />
+                    <span>{task.status}</span>
+                </div>
+
+                <div className="flex items-center justify-between mt-2">
+                    {task.assignees && task.assignees.length > 0 ? (
+                        <div className="flex items-center gap-2">
+                            <Avatar className="h-6 w-6">
+                                <AvatarImage src={task.assignees[0].avatar} data-ai-hint="user avatar" />
+                                <AvatarFallback className="text-xs">{task.assignees[0].name.substring(0,2)}</AvatarFallback>
+                            </Avatar>
+                            <span className="text-xs">{task.assignees[0].name}</span>
+                        </div>
+                    ) : <div />}
+                    
+                    {task.progress && (
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <ListTodo className="h-3 w-3" />
+                            <span>{task.progress.current}/{task.progress.total}</span>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
 
 export default function ProjectWorkspacePage() {
   const params = useParams();
@@ -153,13 +231,10 @@ export default function ProjectWorkspacePage() {
 
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isMounted, setIsMounted] = useState(false);
   const [newColumnName, setNewColumnName] = useState('');
   const [addingTaskToColumn, setAddingTaskToColumn] = useState<string | null>(null);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const sensors = useSensors(useSensor(PointerSensor));
 
   useEffect(() => {
     if (!user || !projectId) return;
@@ -218,40 +293,70 @@ export default function ProjectWorkspacePage() {
     }
   }
 
-  const onDragEnd = (result: DropResult) => {
-    if (!project) return;
-    const { destination, source, draggableId } = result;
+ const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id as string);
+  };
 
-    if (!destination) return;
-    if (destination.droppableId === source.droppableId && destination.index === source.index) return;
+  const handleDragEnd = (event: DragEndEvent) => {
+    setActiveId(null);
+    const { active, over } = event;
+
+    if (!over || !project) return;
+    if (active.id === over.id) return;
     
-    const startColumn = project.columns[source.droppableId];
-    const endColumn = project.columns[destination.droppableId];
-    
+    const activeId = active.id as string;
+    const overId = over.id as string;
+
     const newProject = { ...project };
-
-    if (startColumn === endColumn) {
-        const newTaskIds = Array.from(startColumn.taskIds);
-        newTaskIds.splice(source.index, 1);
-        newTaskIds.splice(destination.index, 0, draggableId);
-        
-        const newColumn = { ...startColumn, taskIds: newTaskIds };
-        newProject.columns[newColumn.id] = newColumn;
-    } else {
-        const startTaskIds = Array.from(startColumn.taskIds);
-        startTaskIds.splice(source.index, 1);
-        const newStartColumn = { ...startColumn, taskIds: startTaskIds };
-
-        const endTaskIds = Array.from(endColumn.taskIds);
-        endTaskIds.splice(destination.index, 0, draggableId);
-        const newEndColumn = { ...endColumn, taskIds: endTaskIds };
-        
-        newProject.columns[newStartColumn.id] = newStartColumn;
-        newProject.columns[newEndColumn.id] = newEndColumn;
-    }
+    const { columns } = newProject;
     
-    setProject(newProject as Project);
+    const activeContainer = findContainer(activeId);
+    const overContainer = findContainer(overId) || findColumnContainer(overId);
+    
+    if (!activeContainer || !overContainer || !columns[activeContainer] || !columns[overContainer]) {
+      return;
+    }
+
+    if (activeContainer === overContainer) {
+      // Move within the same column
+      const taskIds = columns[activeContainer].taskIds;
+      const oldIndex = taskIds.indexOf(activeId);
+      const newIndex = taskIds.indexOf(overId);
+      columns[activeContainer].taskIds = arrayMove(taskIds, oldIndex, newIndex);
+    } else {
+      // Move to a different column
+      const activeTaskIds = columns[activeContainer].taskIds;
+      const overTaskIds = columns[overContainer].taskIds;
+      const activeIndex = activeTaskIds.indexOf(activeId);
+      
+      let newIndex = overTaskIds.length;
+      if (columns[overContainer].taskIds.includes(overId)){
+        newIndex = overTaskIds.indexOf(overId);
+      }
+      
+      columns[activeContainer].taskIds.splice(activeIndex, 1);
+      columns[overContainer].taskIds.splice(newIndex, 0, activeId);
+    }
+
+    setProject(newProject);
     updateProjectInDb({ columns: newProject.columns });
+  };
+  
+  const findContainer = (id: string) => {
+    if (!project) return;
+    if (id in project.columns) {
+      return id;
+    }
+    for (const columnId in project.columns) {
+      if (project.columns[columnId].taskIds.includes(id)) {
+        return columnId;
+      }
+    }
+  };
+
+  const findColumnContainer = (id: string) => {
+    if (project?.columns[id]) return id;
+    return undefined;
   };
 
   const handleAddColumn = async () => {
@@ -314,16 +419,7 @@ export default function ProjectWorkspacePage() {
   if (loading) return <ProjectSkeleton />;
   if (!project) return <div>Project not found. Start by creating a new one.</div>;
   
-  const allWorkItems = project.workItems ? Object.values(project.workItems) : [];
-
-  const getTasksForColumn = (columnId: string): Task[] => {
-      const column = project.columns[columnId];
-      if (!column || !project.workItems) return [];
-      
-      return (column.taskIds || [])
-        .map(taskId => project.workItems[taskId])
-        .filter(Boolean); // Filter out any undefined tasks
-  }
+  const activeTask = activeId ? project.workItems[activeId] : null;
 
   return (
     <div className="flex flex-col gap-4 h-full">
@@ -343,14 +439,19 @@ export default function ProjectWorkspacePage() {
             </TabsList>
             <TabsContent value="board" className="mt-4">
                 <div className="flex-1 overflow-x-auto">
-                    {isMounted && (
-                        <DragDropContext onDragEnd={onDragEnd}>
-                            <div className="flex gap-4 items-start h-full pb-4">
+                   <DndContext
+                        sensors={sensors}
+                        collisionDetection={closestCenter}
+                        onDragStart={handleDragStart}
+                        onDragEnd={handleDragEnd}
+                    >
+                        <div className="flex gap-4 items-start h-full pb-4">
+                        <SortableContext items={project.columnOrder || []} strategy={rectSortingStrategy}>
                             {(project.columnOrder || []).map((columnId) => {
                                 const column = project.columns[columnId];
                                 if (!column) return null;
                                 
-                                const tasks = getTasksForColumn(columnId);
+                                const tasks = column.taskIds.map(id => project.workItems[id]).filter(Boolean);
 
                                 return (
                                     <div key={column.id} className="w-80 flex-shrink-0">
@@ -363,77 +464,30 @@ export default function ProjectWorkspacePage() {
                                                 <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setAddingTaskToColumn(column.id)}><Plus className="h-4 w-4" /></Button>
                                             </div>
                                         </div>
-                                        <Droppable droppableId={column.id}>
-                                            {(provided, snapshot) => (
-                                                <div
-                                                    {...provided.droppableProps}
-                                                    ref={provided.innerRef}
-                                                    className={`space-y-2 p-2 rounded-b-lg transition-colors min-h-[200px] bg-secondary/70 ${snapshot.isDraggingOver ? 'bg-primary/10' : ''}`}
-                                                >
-                                                {tasks.map((task, index) => {
-                                                    const { icon: Icon, color } = getInfoForTaskType(task.type);
-                                                    return (
-                                                        <Draggable draggableId={task.id} index={index} key={task.id}>
-                                                            {(provided, snapshot) => (
-                                                                <div
-                                                                    ref={provided.innerRef}
-                                                                    {...provided.draggableProps}
-                                                                    {...provided.dragHandleProps}
-                                                                    className={`relative bg-card p-3 rounded-md shadow-sm border-l-4 ${snapshot.isDragging ? 'shadow-lg ring-2 ring-primary' : ''}`}
-                                                                    style={{ borderLeftColor: `hsl(var(--${task.type === 'Feature' ? 'primary' : 'accent-foreground'}))` }}
-                                                                >
-                                                                    <div className={cn("absolute top-0 left-0 bottom-0 w-1 rounded-l-md", color)}></div>
-                                                                    <div className="pl-1">
-                                                                        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
-                                                                            <Icon className="h-4 w-4" />
-                                                                            <span>{task.id.split('-')[1]}</span>
-                                                                            <h4 className="font-semibold text-sm text-foreground flex-1 truncate">{task.title}</h4>
-                                                                        </div>
-                                                                        
-                                                                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                                                            <div className={cn("w-2.5 h-2.5 rounded-full", statusColors[task.status])} />
-                                                                            <span>{task.status}</span>
-                                                                        </div>
+                                         <div className={`space-y-2 p-2 rounded-b-lg transition-colors min-h-[200px] bg-secondary/70`}>
+                                            <SortableContext items={column.taskIds} strategy={rectSortingStrategy}>
+                                                {tasks.map(task => (
+                                                    <TaskCard key={task.id} task={task} />
+                                                ))}
+                                            </SortableContext>
 
-                                                                        <div className="flex items-center justify-between mt-2">
-                                                                            {task.assignees && task.assignees.length > 0 ? (
-                                                                                <div className="flex items-center gap-2">
-                                                                                    <Avatar className="h-6 w-6">
-                                                                                        <AvatarImage src={task.assignees[0].avatar} data-ai-hint="user avatar" />
-                                                                                        <AvatarFallback className="text-xs">{task.assignees[0].name.substring(0,2)}</AvatarFallback>
-                                                                                    </Avatar>
-                                                                                    <span className="text-xs">{task.assignees[0].name}</span>
-                                                                                </div>
-                                                                            ) : <div />}
-                                                                            
-                                                                            {task.progress && (
-                                                                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                                                                    <ListTodo className="h-3 w-3" />
-                                                                                    <span>{task.progress.current}/{task.progress.total}</span>
-                                                                                </div>
-                                                                            )}
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            )}
-                                                        </Draggable>
-                                                    )
-                                                })}
-                                                {provided.placeholder}
-
-                                                {addingTaskToColumn === column.id && (
-                                                    <AddTaskForm 
-                                                        columnId={column.id} 
-                                                        onAddTask={handleAddTask}
-                                                        onCancel={() => setAddingTaskToColumn(null)}
-                                                    />
-                                                )}
-                                                </div>
+                                            {addingTaskToColumn === column.id && (
+                                                <AddTaskForm 
+                                                    columnId={column.id} 
+                                                    onAddTask={handleAddTask}
+                                                    onCancel={() => setAddingTaskToColumn(null)}
+                                                />
                                             )}
-                                        </Droppable>
+                                        </div>
                                     </div>
                                 );
                             })}
+                          </SortableContext>
+
+                            <DragOverlay>
+                                {activeTask ? <TaskCard task={activeTask} /> : null}
+                            </DragOverlay>
+
                             <div className="w-72 flex-shrink-0">
                                 <div className="bg-secondary/50 p-2 rounded-lg">
                                     <div className="flex gap-2">
@@ -442,9 +496,8 @@ export default function ProjectWorkspacePage() {
                                     </div>
                                 </div>
                             </div>
-                            </div>
-                        </DragDropContext>
-                    )}
+                        </div>
+                    </DndContext>
                  </div>
             </TabsContent>
             <TabsContent value="work-items">
@@ -454,5 +507,3 @@ export default function ProjectWorkspacePage() {
     </div>
   )
 }
-
-    
