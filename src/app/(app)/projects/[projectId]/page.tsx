@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from '@/components/ui/badge';
 import { MoreHorizontal, Plus, Paperclip, FileText, Video, Music, Clock, GripVertical, Bug, Award, Wrench, Eye, KeyRound, Plane, Rocket, Puzzle } from "lucide-react";
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 
 const initialProjectData = {
   name: 'Creator Canvas Product Roadmap',
@@ -44,27 +45,82 @@ const initialProjectData = {
   columnOrder: ['todo', 'in-progress', 'review'],
 };
 
-const getFileIcon = (type: string) => {
-    switch (type) {
-        case 'pdf': return <FileText className="w-6 h-6 text-red-500" />;
-        case 'video': return <Video className="w-6 h-6 text-blue-500" />;
-        case 'audio': return <Music className="w-6 h-6 text-purple-500" />;
-        default: return <Paperclip className="w-6 h-6 text-gray-500" />;
+// In a real app, you'd fetch this from Firestore based on params.projectId
+const useProject = (projectId: string) => {
+    const [project, setProject] = useState(initialProjectData);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        // Simulate fetching data from a database
+        setProject(initialProjectData);
+        setLoading(false);
+    }, [projectId]);
+
+    const updateProject = (newProjectData: typeof initialProjectData) => {
+        // In a real app, this would also save to Firestore
+        setProject(newProjectData);
+        console.log("Project state updated. In a real app, this would be saved to DB.");
     }
+
+    return { project, loading, updateProject };
 }
 
+type Task = {
+    id: string;
+    icon: React.ElementType;
+    title: string;
+    tags: { label: string; color: string }[];
+    assignees: string[];
+}
+
+type Column = {
+    id: string;
+    title: string;
+    tasks: Task[];
+}
+
+const AddTaskForm = ({ columnId, onAddTask, onCancel }: { columnId: string, onAddTask: (columnId: string, taskTitle: string) => void, onCancel: () => void }) => {
+    const [title, setTitle] = useState('');
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (title.trim()) {
+            onAddTask(columnId, title.trim());
+            setTitle('');
+        }
+    };
+
+    return (
+        <form onSubmit={handleSubmit} className="p-1 mt-2 space-y-2">
+            <Textarea 
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Enter task title..."
+                className="w-full"
+                rows={3}
+                autoFocus
+            />
+            <div className="flex items-center gap-2">
+                <Button type="submit" size="sm">Add Task</Button>
+                <Button type="button" variant="ghost" size="sm" onClick={onCancel}>Cancel</Button>
+            </div>
+        </form>
+    )
+}
 
 export default function ProjectWorkspacePage({ params }: { params: { projectId: string } }) {
-  const [project, setProject] = useState(initialProjectData);
+  const { project, loading, updateProject } = useProject(params.projectId);
   const [isMounted, setIsMounted] = useState(false);
   const [newColumnName, setNewColumnName] = useState('');
+  const [addingTaskToColumn, setAddingTaskToColumn] = useState<string | null>(null);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
   const onDragEnd = (result: DropResult) => {
-    const { destination, source } = result;
+    if (!project) return;
+    const { destination, source, draggableId } = result;
 
     if (!destination) return;
     if (destination.droppableId === source.droppableId && destination.index === source.index) return;
@@ -72,46 +128,75 @@ export default function ProjectWorkspacePage({ params }: { params: { projectId: 
     const startColumn = project.columns[source.droppableId as keyof typeof project.columns];
     const endColumn = project.columns[destination.droppableId as keyof typeof project.columns];
 
+    const newProject = { ...project };
+
     if (startColumn === endColumn) {
         const newTasks = Array.from(startColumn.tasks);
         const [removed] = newTasks.splice(source.index, 1);
         newTasks.splice(destination.index, 0, removed);
 
         const newColumn = { ...startColumn, tasks: newTasks };
-        setProject(prev => ({ ...prev, columns: { ...prev.columns, [newColumn.id]: newColumn } }));
-        return;
+        newProject.columns[newColumn.id as keyof typeof project.columns] = newColumn;
+    } else {
+        const startTasks = Array.from(startColumn.tasks);
+        const [removed] = startTasks.splice(source.index, 1);
+        const newStartColumn = { ...startColumn, tasks: startTasks };
+
+        const endTasks = Array.from(endColumn.tasks);
+        endTasks.splice(destination.index, 0, removed);
+        const newEndColumn = { ...endColumn, tasks: endTasks };
+        
+        newProject.columns[newStartColumn.id as keyof typeof project.columns] = newStartColumn;
+        newProject.columns[newEndColumn.id as keyof typeof project.columns] = newEndColumn;
     }
-
-    const startTasks = Array.from(startColumn.tasks);
-    const [removed] = startTasks.splice(source.index, 1);
-    const newStartColumn = { ...startColumn, tasks: startTasks };
-
-    const endTasks = Array.from(endColumn.tasks);
-    endTasks.splice(destination.index, 0, removed);
-    const newEndColumn = { ...endColumn, tasks: endTasks };
-
-    setProject(prev => ({
-      ...prev,
-      columns: {
-        ...prev.columns,
-        [newStartColumn.id]: newStartColumn,
-        [newEndColumn.id]: newEndColumn,
-      },
-    }));
+    
+    updateProject(newProject);
   };
 
   const handleAddColumn = () => {
-    if (!newColumnName.trim()) return;
+    if (!newColumnName.trim() || !project) return;
     const newColumnId = `column-${Object.keys(project.columns).length + 1}`;
-    const newColumn = { id: newColumnId, title: newColumnName, tasks: [] };
+    const newColumn: Column = { id: newColumnId, title: newColumnName, tasks: [] };
 
-    setProject(prev => ({
-      ...prev,
-      columns: { ...prev.columns, [newColumnId]: newColumn },
-      columnOrder: [...prev.columnOrder, newColumnId],
-    }));
+    const newProject = {
+      ...project,
+      columns: { ...project.columns, [newColumnId]: newColumn },
+      columnOrder: [...project.columnOrder, newColumnId],
+    };
+
+    updateProject(newProject);
     setNewColumnName('');
   };
+
+  const handleAddTask = (columnId: string, taskTitle: string) => {
+    if(!project) return;
+
+    const newTaskId = `task-${Date.now()}`;
+    const newTask: Task = {
+        id: newTaskId,
+        title: taskTitle,
+        icon: Puzzle, // Default icon
+        tags: [],
+        assignees: []
+    };
+
+    const targetColumn = project.columns[columnId as keyof typeof project.columns];
+    const newTasks = [...targetColumn.tasks, newTask];
+    const updatedColumn = { ...targetColumn, tasks: newTasks };
+    
+    const newProject = {
+        ...project,
+        columns: {
+            ...project.columns,
+            [columnId]: updatedColumn
+        }
+    }
+    updateProject(newProject);
+    setAddingTaskToColumn(null); // Close the form
+  }
+
+  if (loading) return <div>Loading project...</div>;
+  if (!project) return <div>Project not found.</div>;
 
   return (
     <div className="flex flex-col gap-8 h-full">
@@ -127,15 +212,15 @@ export default function ProjectWorkspacePage({ params }: { params: { projectId: 
                 {project.columnOrder.map((columnId) => {
                     const column = project.columns[columnId as keyof typeof project.columns];
                     return (
-                        <div key={column.id} className="w-80 flex-shrink-0">
-                             <div className="flex justify-between items-center mb-4 px-1">
+                        <div key={column.id} className="w-80 flex-shrink-0 bg-secondary/50 rounded-lg">
+                             <div className="flex justify-between items-center p-3">
                                 <div className="flex items-center gap-2">
                                     <h3 className="font-semibold text-foreground">{column.title}</h3>
                                     <Badge variant="secondary" className="text-sm">{column.tasks.length}</Badge>
                                 </div>
                                 <div className="flex items-center gap-1">
                                     <Button variant="ghost" size="icon" className="h-6 w-6"><MoreHorizontal className="h-4 w-4" /></Button>
-                                    <Button variant="ghost" size="icon" className="h-6 w-6"><Plus className="h-4 w-4" /></Button>
+                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setAddingTaskToColumn(column.id)}><Plus className="h-4 w-4" /></Button>
                                 </div>
                             </div>
                             <Droppable droppableId={column.id}>
@@ -143,7 +228,7 @@ export default function ProjectWorkspacePage({ params }: { params: { projectId: 
                                     <div
                                         {...provided.droppableProps}
                                         ref={provided.innerRef}
-                                        className={`space-y-3 p-2 rounded-lg transition-colors min-h-[200px] ${snapshot.isDraggingOver ? 'bg-primary/10' : ''}`}
+                                        className={`space-y-3 p-2 rounded-b-lg transition-colors min-h-[200px] ${snapshot.isDraggingOver ? 'bg-primary/10' : ''}`}
                                     >
                                     {column.tasks.map((task, index) => (
                                         <Draggable draggableId={task.id} index={index} key={task.id}>
@@ -185,17 +270,27 @@ export default function ProjectWorkspacePage({ params }: { params: { projectId: 
                                         </Draggable>
                                     ))}
                                     {provided.placeholder}
+
+                                    {addingTaskToColumn === column.id && (
+                                        <AddTaskForm 
+                                            columnId={column.id} 
+                                            onAddTask={handleAddTask}
+                                            onCancel={() => setAddingTaskToColumn(null)}
+                                        />
+                                    )}
                                     </div>
                                 )}
                             </Droppable>
                         </div>
                     );
                 })}
-                 <div className="w-72 flex-shrink-0 pt-1">
-                    <div className="flex gap-2">
-                        <Input value={newColumnName} onChange={(e) => setNewColumnName(e.target.value)} placeholder="New column name" />
-                        <Button onClick={handleAddColumn} size="icon"><Plus className="h-4 w-4" /></Button>
-                    </div>
+                 <div className="w-72 flex-shrink-0">
+                     <div className="bg-secondary/50 p-2 rounded-lg">
+                        <div className="flex gap-2">
+                            <Input value={newColumnName} onChange={(e) => setNewColumnName(e.target.value)} placeholder="Add new column..." className="bg-background" />
+                            <Button onClick={handleAddColumn} size="icon"><Plus className="h-4 w-4" /></Button>
+                        </div>
+                     </div>
                 </div>
                 </div>
             </DragDropContext>
