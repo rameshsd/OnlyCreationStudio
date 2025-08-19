@@ -6,17 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import Image from 'next/image';
+import { generateMockExploreItems } from '@/lib/mock-data';
 
-const filterTabs = ["Person", "Short Video", "Tags"];
+const filterTabs = ["Person", "Short Video", "Tags", "Live", "Trending"];
 
-const exploreItems = [
-    { name: "Danielle", age: "17 y.o", image: "https://placehold.co/400x600.png", hint: "portrait female" },
-    { name: "Jiwoo", age: "22 y.o", image: "https://placehold.co/400x600.png", hint: "portrait female" },
-    { name: "Jihyo", age: null, image: "https://placehold.co/400x600.png", hint: "portrait female" },
-    { name: "Haewon", age: null, image: "https://placehold.co/400x600.png", hint: "portrait female" },
-    { name: "Sana", age: "25 y.o", image: "https://placehold.co/400x600.png", hint: "portrait female" },
-    { name: "Mina", age: "24 y.o", image: "https://placehold.co/400x600.png", hint: "portrait female" },
-];
+const exploreItems = generateMockExploreItems(50);
 
 export default function ExplorePage() {
   const [activeTab, setActiveTab] = useState("Person");
@@ -31,20 +25,20 @@ export default function ExplorePage() {
             />
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 overflow-x-auto -mx-4 px-4 pb-2">
             {filterTabs.map(tab => (
                 <Button 
                     key={tab} 
                     variant={activeTab === tab ? "default" : "secondary"}
                     onClick={() => setActiveTab(tab)}
-                    className="rounded-full"
+                    className="rounded-full flex-shrink-0"
                 >
                     {tab}
                 </Button>
             ))}
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             {exploreItems.map((item, index) => (
                 <div key={index} className="relative aspect-[2/3] rounded-2xl overflow-hidden group">
                     <Image 
@@ -65,3 +59,5 @@ export default function ExplorePage() {
     </div>
   );
 }
+
+    

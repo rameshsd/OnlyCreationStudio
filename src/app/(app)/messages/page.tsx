@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Search, Send, MoreVertical, Star, UserPlus } from 'lucide-react';
+import { Search, Send, MoreVertical, Star, UserPlus, MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   Tooltip,
@@ -14,40 +14,21 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { generateMockMessages } from '@/lib/mock-data';
 
-const conversations = [
-  { id: 1, name: "EcoWear Inc.", lastMessage: "Sounds great! Let's finalize the details.", avatar: "https://placehold.co/100x100.png?text=EW", unread: 2, online: true },
-  { id: 2, name: "Digital Nomad", lastMessage: "I'll send over the draft by EOD.", avatar: "https://placehold.co/100x100.png?text=DN", unread: 0, online: false },
-  { id: 3, name: "Gamer's Galaxy", lastMessage: "Can you provide more specs on the headset?", avatar: "https://placehold.co/100x100.png?text=GG", unread: 0, online: true },
-  { id: 4, name: "Artisan Creations", lastMessage: "Perfect, thank you!", avatar: "https://placehold.co/100x100.png?text=AC", unread: 5, online: false },
-  { id: 5, name: "FitFoodie", lastMessage: "Yes, I'm available next week.", avatar: "https://placehold.co/100x100.png?text=FF", unread: 0, online: true },
-];
-
-const messages = {
-  1: [
-    { from: "other", text: "Hey! We loved your portfolio and think you'd be a great fit for our Sustainable Fashion Line Launch.", time: "10:30 AM" },
-    { from: "me", text: "Thank you! I'm very interested. What are the next steps?", time: "10:32 AM" },
-    { from: "other", text: "We'd like to schedule a quick call to discuss the campaign goals and your role. Are you free tomorrow?", time: "10:33 AM" },
-    { from: "me", text: "Yes, I am. Does 2 PM work for you?", time: "10:35 AM" },
-    { from: "other", text: "Sounds great! Let's finalize the details.", time: "10:36 AM" },
-  ],
-  2: [{ from: "other", text: "I'll send over the draft by EOD.", time: "Yesterday" }],
-  3: [{ from: "other", text: "Can you provide more specs on the headset?", time: "Yesterday" }],
-  4: [{ from: "me", text: "The new designs look amazing!", time: "Tuesday" }, { from: "other", text: "Perfect, thank you!", time: "Tuesday" }],
-  5: [{ from: "other", text: "Yes, I'm available next week.", time: "Monday" }],
-};
+const { conversations, messages: mockMessages } = generateMockMessages(30);
 
 type Conversation = typeof conversations[0];
-type Messages = typeof messages;
+type Messages = typeof mockMessages;
 
 export default function MessagesPage() {
   const [selectedConvo, setSelectedConvo] = useState<Conversation | null>(conversations[0]);
-  const [currentMessages, setCurrentMessages] = useState<Messages[keyof Messages]>(messages[1]);
+  const [currentMessages, setCurrentMessages] = useState<Messages[keyof Messages]>(mockMessages[1]);
   const [newMessage, setNewMessage] = useState("");
 
   const handleSelectConvo = (convo: Conversation) => {
     setSelectedConvo(convo);
-    setCurrentMessages(messages[convo.id as keyof Messages] || []);
+    setCurrentMessages(mockMessages[convo.id as keyof Messages] || []);
   };
 
   const handleSendMessage = (e: React.FormEvent) => {
@@ -75,7 +56,7 @@ export default function MessagesPage() {
           </div>
         </CardHeader>
         <CardContent className="flex-1 overflow-y-auto">
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-1">
             {conversations.map(convo => (
               <button key={convo.id} onClick={() => handleSelectConvo(convo)} className={cn("flex items-center gap-3 p-3 rounded-lg text-left transition-colors", selectedConvo?.id === convo.id ? 'bg-primary/10' : 'hover:bg-accent')}>
                 <div className="relative">
@@ -89,7 +70,7 @@ export default function MessagesPage() {
                   <p className="font-semibold">{convo.name}</p>
                   <p className="text-sm text-muted-foreground truncate">{convo.lastMessage}</p>
                 </div>
-                {convo.unread > 0 && <div className="h-5 w-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs">{convo.unread}</div>}
+                {convo.unread > 0 && <div className="h-5 min-w-[1.25rem] rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs px-1">{convo.unread}</div>}
               </button>
             ))}
           </div>
@@ -152,3 +133,5 @@ export default function MessagesPage() {
     </div>
   );
 }
+
+    

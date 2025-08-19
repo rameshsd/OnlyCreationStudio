@@ -12,17 +12,7 @@ import { ShortsReelCard } from "@/components/shorts-reel-card";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, orderBy, query } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
-
-const stories = [
-    { name: "My Story", avatar: null, isSelf: true, hint: "add story" },
-    { name: "Sullyon", avatar: "https://placehold.co/100x100.png", hint: "portrait" },
-    { name: "Wendy", avatar: "https://placehold.co/100x100.png", hint: "portrait" },
-    { name: "Gaeul", avatar: "https://placehold.co/100x100.png", hint: "portrait" },
-    { name: "Karina", avatar: "https://placehold.co/100x100.png", hint: "portrait" },
-    { name: "Yuna", avatar: "https://placehold.co/100x100.png", hint: "portrait" },
-    { name: "Minji", avatar: "https://placehold.co/100x100.png", hint: "portrait" },
-    { name: "Hanni", avatar: "https://placehold.co/100x100.png", hint: "portrait" },
-];
+import { generateMockPosts, generateMockStories, generateMockSuggestions, generateMockTrendingTopics } from "@/lib/mock-data";
 
 
 const feedFilters = [
@@ -32,11 +22,10 @@ const feedFilters = [
     { label: "Short Videos", icon: Video },
 ]
 
-const trendingTopics = ["#AIinMarketing", "#SustainableFashion", "#CreatorEconomy", "#Web3", "#IndieDev"];
-const suggestedUsers = [
-  { name: "John Doe", username: "@johndoe", avatar: "https://placehold.co/100x100.png?text=JD", hint: "user avatar" },
-  { name: "Jane Smith", username: "@janesmith", avatar: "https://placehold.co/100x100.png?text=JS", hint: "user avatar" },
-];
+const trendingTopics = generateMockTrendingTopics(20);
+const suggestedUsers = generateMockSuggestions(5);
+const stories = generateMockStories(50);
+
 
 const SuggestionsCard = () => (
     <Card>
@@ -101,13 +90,11 @@ export default function DashboardPage() {
         const fetchPosts = async () => {
             setLoading(true);
             try {
-                const postsCollection = collection(db, "posts");
-                const q = query(postsCollection, orderBy("createdAt", "desc"));
-                const postsSnapshot = await getDocs(q);
-                const postsList = postsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
-                setPosts(postsList);
+                // Using mock data for demo purposes
+                const mockPosts = generateMockPosts(100);
+                setPosts(mockPosts);
             } catch (error) {
-                console.error("Error fetching posts: ", error);
+                console.error("Error generating mock posts: ", error);
             } finally {
                 setLoading(false);
             }
@@ -130,8 +117,8 @@ export default function DashboardPage() {
                 </header>
 
                 <div className="flex space-x-4 overflow-x-auto pb-4 -mx-4 px-4">
-                    {stories.map(story => (
-                        <Link href="#" key={story.name} className="flex flex-col items-center gap-2 flex-shrink-0 w-20">
+                    {stories.map((story, index) => (
+                        <Link href="#" key={index} className="flex flex-col items-center gap-2 flex-shrink-0 w-20">
                             <div className="h-20 w-20 rounded-full bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-500 p-1">
                                 <div className="bg-background rounded-full p-1 w-full h-full">
                                     <Avatar className="h-full w-full relative">
@@ -169,15 +156,16 @@ export default function DashboardPage() {
                         <>
                           <PostSkeleton />
                           <PostSkeleton />
+                          <PostSkeleton />
                         </>
                     ) : posts.length > 0 ? (
                         posts.map((post, index) => (
                             <React.Fragment key={post.id}>
                                 <PostCard post={post} />
-                                 { (index + 1) === 2 && (
+                                 { (index + 1) % 5 === 0 && (
                                     <ShortsReelCard />
                                 )}
-                                 { (index + 1) === 4 && (
+                                 { (index + 1) % 8 === 0 && (
                                     <div className="hidden lg:block">
                                         <SuggestionsCard/>
                                     </div>
@@ -222,3 +210,5 @@ export default function DashboardPage() {
     </>
   );
 }
+
+    
