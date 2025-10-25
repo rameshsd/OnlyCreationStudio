@@ -10,6 +10,8 @@ import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/ca
 import { FolderKanban, Plus, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
+import { FirestorePermissionError } from '@/firebase/errors';
+import { errorEmitter } from '@/firebase/error-emitter';
 
 interface Project {
     id: string;
@@ -52,8 +54,12 @@ export default function ProjectsPage() {
             });
             setProjects(projectsData);
             setLoading(false);
-        }, (error) => {
-            console.error("Error fetching projects: ", error);
+        }, (serverError) => {
+            const permissionError = new FirestorePermissionError({
+                path: 'projects',
+                operation: 'list'
+            });
+            errorEmitter.emit('permission-error', permissionError);
             setLoading(false);
         });
 

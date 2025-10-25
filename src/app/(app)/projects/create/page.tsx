@@ -15,6 +15,8 @@ import { GitBranch, Eye, Users, Shield, Rocket, ListChecks, Activity, BrainCircu
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/use-auth';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 
 export default function CreateProjectPage() {
@@ -41,7 +43,7 @@ export default function CreateProjectPage() {
     }
     setLoading(true);
 
-    try {
+    
       const epic1 = { id: 'task-1', title: 'User Authentication Feature', type: 'Epic', assignees: [], tags: [], parentId: null, status: 'New', progress: { current: 1, total: 5 }, areaPath: 'Project Management', comments: 1, updatedAt: '8/19' };
       const feature1 = { id: 'task-2', title: 'Implement OAuth Login', type: 'Feature', assignees: [{name: 'Alexa R', avatar: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?q=80&w=1887&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'}], tags: [], parentId: 'task-1', status: 'Active', progress: { current: 3, total: 10 }, areaPath: 'Project Management', comments: 3, updatedAt: '8/18' };
       const story1 = { id: 'task-3', title: 'Login with Google', type: 'User Story', assignees: [{name: 'John D', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=1887&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'}], tags: [], parentId: 'task-2', status: 'Active', progress: { current: 1, total: 2 }, areaPath: 'Project Management', comments: 5, updatedAt: '8/17' };
@@ -67,20 +69,23 @@ export default function CreateProjectPage() {
         columnOrder: ['todo', 'in-progress', 'in-review', 'done'],
       };
 
-      const docRef = await addDoc(collection(db, "projects"), projectData);
-
-      toast({
-        title: "Project Created!",
-        description: `The project "${projectName}" has been successfully created.`,
-      });
-      
-      router.push(`/projects/${docRef.id}`);
-
-    } catch (error) {
-        console.error("Error creating project: ", error);
-        toast({ title: "Error", description: "Failed to create project. Please try again.", variant: "destructive"});
+      addDoc(collection(db, "projects"), projectData)
+      .then(docRef => {
+        toast({
+            title: "Project Created!",
+            description: `The project "${projectName}" has been successfully created.`,
+        });
+        router.push(`/projects/${docRef.id}`);
+      })
+      .catch(serverError => {
+        const permissionError = new FirestorePermissionError({
+            path: 'projects',
+            operation: 'create',
+            requestResourceData: projectData,
+        });
+        errorEmitter.emit('permission-error', permissionError);
         setLoading(false);
-    }
+      });
   };
 
   return (

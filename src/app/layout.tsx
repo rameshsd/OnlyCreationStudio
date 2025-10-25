@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { ThemeProvider } from '@/components/theme-provider';
 import { Inter } from 'next/font/google';
 import { AuthProvider } from '@/hooks/use-auth';
+import { FirebaseErrorListener } from '@/components/firebase-error-listener';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
@@ -29,6 +30,7 @@ export default function RootLayout({
             >
             {children}
             <Toaster />
+            <FirebaseErrorListener />
             </ThemeProvider>
         </AuthProvider>
       </body>

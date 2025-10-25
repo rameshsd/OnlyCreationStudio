@@ -37,6 +37,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { WorkItemsTable } from '@/components/work-items-table';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { FirestorePermissionError } from '@/firebase/errors';
+import { errorEmitter } from '@/firebase/error-emitter';
 
 
 export type WorkItemType = "Epic" | "Feature" | "User Story" | "Task" | "Bug";
@@ -234,7 +236,12 @@ export default function ProjectWorkspacePage() {
   const [newColumnName, setNewColumnName] = useState('');
   const [addingTaskToColumn, setAddingTaskToColumn] = useState<string | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
   const sensors = useSensors(useSensor(PointerSensor));
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!user || !projectId) return;
@@ -269,9 +276,12 @@ export default function ProjectWorkspacePage() {
             setProject(null);
         }
         setLoading(false);
-    }, (error) => {
-        console.error("Error fetching project:", error);
-        toast({ title: "Error", description: "Failed to fetch project data.", variant: "destructive" });
+    }, (serverError) => {
+        const permissionError = new FirestorePermissionError({
+            path: `projects/${projectId}`,
+            operation: 'get'
+        });
+        errorEmitter.emit('permission-error', permissionError);
         setLoading(false);
     });
 
@@ -281,16 +291,20 @@ export default function ProjectWorkspacePage() {
   const updateProjectInDb = async (updatedProjectData: Partial<Omit<Project, 'id'>>) => {
     if (!projectId) return;
     const docRef = doc(db, "projects", projectId);
-    try {
-        const dataToUpdate: { [key: string]: any } = { ...updatedProjectData };
-        if (updatedProjectData.workItems) {
-            dataToUpdate.workItems = Object.values(updatedProjectData.workItems);
-        }
-        await updateDoc(docRef, dataToUpdate);
-    } catch (error) {
-        console.error("Error updating project:", error);
-        toast({ title: "Update Error", description: "Failed to save changes.", variant: "destructive" });
+
+    const dataToUpdate: { [key: string]: any } = { ...updatedProjectData };
+    if (updatedProjectData.workItems) {
+        dataToUpdate.workItems = Object.values(updatedProjectData.workItems);
     }
+    
+    updateDoc(docRef, dataToUpdate).catch(serverError => {
+        const permissionError = new FirestorePermissionError({
+            path: `projects/${projectId}`,
+            operation: 'update',
+            requestResourceData: dataToUpdate
+        });
+        errorEmitter.emit('permission-error', permissionError);
+    });
   }
 
  const handleDragStart = (event: DragStartEvent) => {
@@ -439,65 +453,67 @@ export default function ProjectWorkspacePage() {
             </TabsList>
             <TabsContent value="board" className="mt-4">
                 <div className="flex-1 overflow-x-auto">
-                   <DndContext
-                        sensors={sensors}
-                        collisionDetection={closestCenter}
-                        onDragStart={handleDragStart}
-                        onDragEnd={handleDragEnd}
-                    >
-                        <div className="flex gap-4 items-start h-full pb-4">
-                        <SortableContext items={project.columnOrder || []} strategy={rectSortingStrategy}>
-                            {(project.columnOrder || []).map((columnId) => {
-                                const column = project.columns[columnId];
-                                if (!column) return null;
-                                
-                                const tasks = column.taskIds.map(id => project.workItems[id]).filter(Boolean);
+                    {isMounted && (
+                        <DndContext
+                            sensors={sensors}
+                            collisionDetection={closestCenter}
+                            onDragStart={handleDragStart}
+                            onDragEnd={handleDragEnd}
+                        >
+                            <div className="flex gap-4 items-start h-full pb-4">
+                            <SortableContext items={project.columnOrder || []} strategy={rectSortingStrategy}>
+                                {(project.columnOrder || []).map((columnId) => {
+                                    const column = project.columns[columnId];
+                                    if (!column) return null;
+                                    
+                                    const tasks = column.taskIds.map(id => project.workItems[id]).filter(Boolean);
 
-                                return (
-                                    <div key={column.id} className="w-80 flex-shrink-0">
-                                        <div className="flex justify-between items-center bg-secondary p-2 rounded-t-lg">
-                                            <div className="flex items-center gap-2">
-                                                <h3 className="font-semibold text-foreground text-sm">{column.title}</h3>
-                                                <Badge variant="secondary" className="text-xs">{tasks.length}/10</Badge>
+                                    return (
+                                        <div key={column.id} className="w-80 flex-shrink-0">
+                                            <div className="flex justify-between items-center bg-secondary p-2 rounded-t-lg">
+                                                <div className="flex items-center gap-2">
+                                                    <h3 className="font-semibold text-foreground text-sm">{column.title}</h3>
+                                                    <Badge variant="secondary" className="text-xs">{tasks.length}/10</Badge>
+                                                </div>
+                                                <div className="flex items-center gap-1">
+                                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setAddingTaskToColumn(column.id)}><Plus className="h-4 w-4" /></Button>
+                                                </div>
                                             </div>
-                                            <div className="flex items-center gap-1">
-                                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setAddingTaskToColumn(column.id)}><Plus className="h-4 w-4" /></Button>
+                                             <div className={`space-y-2 p-2 rounded-b-lg transition-colors min-h-[200px] bg-secondary/70`}>
+                                                <SortableContext items={column.taskIds} strategy={rectSortingStrategy}>
+                                                    {tasks.map(task => (
+                                                        <TaskCard key={task.id} task={task} />
+                                                    ))}
+                                                </SortableContext>
+
+                                                {addingTaskToColumn === column.id && (
+                                                    <AddTaskForm 
+                                                        columnId={column.id} 
+                                                        onAddTask={handleAddTask}
+                                                        onCancel={() => setAddingTaskToColumn(null)}
+                                                    />
+                                                )}
                                             </div>
                                         </div>
-                                         <div className={`space-y-2 p-2 rounded-b-lg transition-colors min-h-[200px] bg-secondary/70`}>
-                                            <SortableContext items={column.taskIds} strategy={rectSortingStrategy}>
-                                                {tasks.map(task => (
-                                                    <TaskCard key={task.id} task={task} />
-                                                ))}
-                                            </SortableContext>
+                                    );
+                                })}
+                              </SortableContext>
 
-                                            {addingTaskToColumn === column.id && (
-                                                <AddTaskForm 
-                                                    columnId={column.id} 
-                                                    onAddTask={handleAddTask}
-                                                    onCancel={() => setAddingTaskToColumn(null)}
-                                                />
-                                            )}
+                                <DragOverlay>
+                                    {activeTask ? <TaskCard task={activeTask} /> : null}
+                                </DragOverlay>
+
+                                <div className="w-72 flex-shrink-0">
+                                    <div className="bg-secondary/50 p-2 rounded-lg">
+                                        <div className="flex gap-2">
+                                            <Input value={newColumnName} onChange={(e) => setNewColumnName(e.target.value)} placeholder="Add new column..." className="bg-background" />
+                                            <Button onClick={handleAddColumn} size="icon"><Plus className="h-4 w-4" /></Button>
                                         </div>
-                                    </div>
-                                );
-                            })}
-                          </SortableContext>
-
-                            <DragOverlay>
-                                {activeTask ? <TaskCard task={activeTask} /> : null}
-                            </DragOverlay>
-
-                            <div className="w-72 flex-shrink-0">
-                                <div className="bg-secondary/50 p-2 rounded-lg">
-                                    <div className="flex gap-2">
-                                        <Input value={newColumnName} onChange={(e) => setNewColumnName(e.target.value)} placeholder="Add new column..." className="bg-background" />
-                                        <Button onClick={handleAddColumn} size="icon"><Plus className="h-4 w-4" /></Button>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    </DndContext>
+                        </DndContext>
+                    )}
                  </div>
             </TabsContent>
             <TabsContent value="work-items">
