@@ -84,6 +84,7 @@ export default function CreateProjectPage() {
             requestResourceData: projectData,
         });
         errorEmitter.emit('permission-error', permissionError);
+      }).finally(() => {
         setLoading(false);
       });
   };

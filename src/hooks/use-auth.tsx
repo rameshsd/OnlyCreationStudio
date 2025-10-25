@@ -6,6 +6,8 @@ import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWith
 import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
 import { app } from '@/lib/firebase';
 import { useRouter, usePathname } from 'next/navigation';
+import { FirestorePermissionError } from '@/firebase/errors';
+import { errorEmitter } from '@/firebase/error-emitter';
 
 const auth = getAuth(app);
 const db = getFirestore(app);
@@ -32,10 +34,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             if (user) {
                 setUser(user);
-                const userDoc = await getDoc(doc(db, "users", user.uid));
-                if (userDoc.exists()) {
-                    setUserData(userDoc.data());
-                }
+                const userDocRef = doc(db, "users", user.uid);
+                getDoc(userDocRef).then(userDoc => {
+                    if (userDoc.exists()) {
+                        setUserData(userDoc.data());
+                    }
+                }).catch(serverError => {
+                    const permissionError = new FirestorePermissionError({
+                        path: userDocRef.path,
+                        operation: 'get',
+                    });
+                    errorEmitter.emit('permission-error', permissionError);
+                });
             } else {
                 setUser(null);
                 setUserData(null);
@@ -64,7 +74,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const signup = async (email: string, pass: string, username: string) => {
         const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
         const user = userCredential.user;
-        await setDoc(doc(db, "users", user.uid), {
+        const userDocRef = doc(db, "users", user.uid);
+        const userData = {
             uid: user.uid,
             email: user.email,
             username: username,
@@ -74,7 +85,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             followers: [],
             following: [],
             isVerified: false,
+        };
+        
+        setDoc(userDocRef, userData).catch(serverError => {
+            const permissionError = new FirestorePermissionError({
+                path: userDocRef.path,
+                operation: 'create',
+                requestResourceData: userData
+            });
+            errorEmitter.emit('permission-error', permissionError);
         });
+        
         return userCredential;
     };
 
