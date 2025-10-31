@@ -19,6 +19,8 @@ function initializeAdmin(): App {
     });
   } catch (e: any) {
     console.error('Failed to initialize Firebase Admin:', e);
+    // In a real app, you might want to handle this more gracefully
+    // For now, we'll re-throw, as the admin features won't work.
     throw new Error(`Failed to initialize Firebase Admin: ${e.message}`);
   }
 }

@@ -35,8 +35,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# studio
-.studio
+# Netlify
+.netlify
 
-# firebase
+# Firebase
 src/lib/service-account.ts
