@@ -1,7 +1,7 @@
 'use client';
 import { getAuth, type User } from 'firebase/auth';
 
-type SecurityRuleContext = {
+export type SecurityRuleContext = {
   path: string;
   operation: 'get' | 'list' | 'create' | 'update' | 'delete' | 'write';
   requestResourceData?: any;
@@ -112,12 +112,12 @@ ${JSON.stringify(requestObject, null, 2)}`;
  * available in Firestore Security Rules.
  */
 export class FirestorePermissionError extends Error {
-  public readonly request: SecurityRuleRequest;
+  public readonly context: SecurityRuleRequest;
 
   constructor(context: SecurityRuleContext) {
     const requestObject = buildRequestObject(context);
     super(buildErrorMessage(requestObject));
-    this.name = 'FirebaseError';
-    this.request = requestObject;
+    this.name = 'FirestoreError';
+    this.context = requestObject;
   }
 }

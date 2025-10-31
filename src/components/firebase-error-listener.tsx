@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect } from 'react';
@@ -11,10 +10,9 @@ export function FirebaseErrorListener() {
 
   useEffect(() => {
     const handleError = (error: FirestorePermissionError) => {
-      console.error(
-        'Firestore Permission Error:',
-        JSON.stringify(error.context, null, 2)
-      );
+      // The full error message with JSON context is now in error.message or error.toString()
+      console.error(error.toString());
+
       toast({
         variant: 'destructive',
         title: 'Firestore Permission Error',
