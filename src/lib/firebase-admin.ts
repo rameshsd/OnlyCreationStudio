@@ -15,7 +15,7 @@ function initializeAdmin(): App {
     // This is a more robust way to handle credentials than env variables.
     return admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
-      storageBucket: 'creator-canvas-w47i3.appspot.com',
+      storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
     });
   } catch (e: any) {
     console.error('Failed to initialize Firebase Admin:', e);
