@@ -36,5 +36,7 @@ yarn-error.log*
 next-env.d.ts
 
 # studio
-.firebase/
+.studio
+
+# firebase
 src/lib/service-account.ts
