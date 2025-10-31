@@ -21,6 +21,9 @@ function initializeAdmin(): App {
     console.error('Failed to initialize Firebase Admin:', e);
     // In a real app, you might want to handle this more gracefully
     // For now, we'll re-throw, as the admin features won't work.
+    if (e.code === 'ENOENT') {
+      throw new Error(`Failed to initialize Firebase Admin: The service account file was not found. Please ensure 'src/lib/service-account.ts' exists and contains your service account key.`);
+    }
     throw new Error(`Failed to initialize Firebase Admin: ${e.message}`);
   }
 }
