@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Star, Link as LinkIcon } from "lucide-react";
 import type { AiMatchmakingOutput } from "@/ai/flows/ai-matchmaking";
 import { Skeleton } from "./ui/skeleton";
-import React, { useState } from 'react';
+import React from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 
 type Creator = AiMatchmakingOutput['matches'][0];
