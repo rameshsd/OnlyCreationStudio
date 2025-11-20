@@ -3,7 +3,7 @@ import admin from 'firebase-admin';
 import { App, getApps } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
-import { serviceAccount } from './service-account';
+import serviceAccount from "./service-account.json";
 
 function initializeAdmin(): App {
   if (getApps().length > 0) {
@@ -14,7 +14,7 @@ function initializeAdmin(): App {
     // The serviceAccount object is imported from a git-ignored file.
     // This is a more robust way to handle credentials than env variables.
     return admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
+      credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
       storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
     });
   } catch (e: any) {
@@ -22,7 +22,7 @@ function initializeAdmin(): App {
     // In a real app, you might want to handle this more gracefully
     // For now, we'll re-throw, as the admin features won't work.
     if (e.code === 'ENOENT') {
-      throw new Error(`Failed to initialize Firebase Admin: The service account file was not found. Please ensure 'src/lib/service-account.ts' exists and contains your service account key.`);
+      throw new Error(`Failed to initialize Firebase Admin: The service account file was not found. Please ensure 'src/lib/service-account.json' exists and contains your service account key.`);
     }
     throw new Error(`Failed to initialize Firebase Admin: ${e.message}`);
   }
