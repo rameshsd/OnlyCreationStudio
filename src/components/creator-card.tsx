@@ -1,12 +1,13 @@
 
 import Image from "next/image";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Star, Link as LinkIcon } from "lucide-react";
 import type { AiMatchmakingOutput } from "@/ai/flows/ai-matchmaking";
 import { Skeleton } from "./ui/skeleton";
 import React, { useState } from 'react';
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 
 type Creator = AiMatchmakingOutput['matches'][0];
 
@@ -77,34 +78,3 @@ export function CreatorCard({ creator, loading }: { creator?: Creator, loading?:
     </Card>
   );
 }
-
-// Re-using Avatar for better fallbacks
-const Avatar = ({ children, className }: { children: React.ReactNode, className?: string }) => (
-  <div className={`relative flex h-10 w-10 shrink-0 overflow-hidden rounded-full ${className}`}>
-    {children}
-  </div>
-);
-
-const AvatarImage = ({ src, alt, ...props }: React.ComponentProps<typeof Image> & { "data-ai-hint": string; }) => {
-  const [error, setError] = useState(false);
-  if (error || !src) return <AvatarFallback>{alt.substring(0, 2).toUpperCase()}</AvatarFallback>;
-  
-  return (
-    <Image
-      src={src}
-      alt={alt}
-      width={64}
-      height={64}
-      className="aspect-square h-full w-full"
-      onError={() => setError(true)}
-      {...props}
-    />
-  );
-};
-
-
-const AvatarFallback = ({ children, ...props }: { children: React.ReactNode }) => (
-  <span className="avatar-fallback flex h-full w-full items-center justify-center rounded-full bg-muted font-bold" {...props}>
-    {children}
-  </span>
-);
