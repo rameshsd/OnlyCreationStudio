@@ -23,7 +23,7 @@
  *  - Strict owner-only access is enforced for user-specific data.
  *  - Public read access is granted for posts, with owner-only write access.
  * @denormalizationForAuthorization
- *  - Posts include `authorId` for direct ownership checks.
+ *  - Posts include `userId` for direct ownership checks.
  *  - Comments include `authorId` for direct ownership checks.
  *  - CollabRequests include `senderId` and `receiverId` for direct access control.
  */
@@ -394,5 +394,3 @@ service cloud.firestore {
     }
   }
 }
-
-    

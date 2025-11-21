@@ -10,9 +10,10 @@ import React, { useState, useEffect } from "react";
 import { PostCard, type Post } from "@/components/post-card";
 import { ShortsReelCard } from "@/components/shorts-reel-card";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, orderBy, query } from "firebase/firestore";
+import { collection, getDocs, orderBy, query, onSnapshot } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
-import { generateMockPosts, generateMockStories, generateMockSuggestions, generateMockTrendingTopics } from "@/lib/mock-data";
+import { generateMockStories, generateMockSuggestions, generateMockTrendingTopics } from "@/lib/mock-data";
+import { useCollection } from "@/firebase";
 
 
 const feedFilters = [
@@ -83,25 +84,9 @@ const PostSkeleton = () => (
 
 export default function DashboardPage() {
     const [activeFilter, setActiveFilter] = useState("All");
-    const [posts, setPosts] = useState<Post[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        const fetchPosts = async () => {
-            setLoading(true);
-            try {
-                // Using mock data for demo purposes
-                const mockPosts = generateMockPosts(100);
-                setPosts(mockPosts);
-            } catch (error) {
-                console.error("Error generating mock posts: ", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchPosts();
-    }, []);
+    
+    const postsQuery = query(collection(db, "posts"), orderBy("createdAt", "desc"));
+    const { data: posts, isLoading: loading } = useCollection<Post>(postsQuery);
 
   return (
     <>
@@ -158,7 +143,7 @@ export default function DashboardPage() {
                           <PostSkeleton />
                           <PostSkeleton />
                         </>
-                    ) : posts.length > 0 ? (
+                    ) : posts && posts.length > 0 ? (
                         posts.map((post, index) => (
                             <React.Fragment key={post.id}>
                                 <PostCard post={post} />
@@ -210,5 +195,3 @@ export default function DashboardPage() {
     </>
   );
 }
-
-    
