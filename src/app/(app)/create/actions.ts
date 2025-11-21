@@ -1,8 +1,17 @@
 
 'use server';
 
-import { adminStorage } from '@/lib/firebase-admin';
+import { v2 as cloudinary } from 'cloudinary';
+import streamifier from 'streamifier';
 import { Buffer } from 'buffer';
+
+// Configure Cloudinary within the server action to ensure environment variables are loaded.
+cloudinary.config({ 
+  cloud_name: 'dkmgby1tc', 
+  api_key: '866268445612429', 
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+  secure: true 
+});
 
 export async function uploadPhoto(formData: FormData): Promise<{ url?: string; error?: string }> {
   try {
@@ -19,30 +28,36 @@ export async function uploadPhoto(formData: FormData): Promise<{ url?: string; e
       return { error: 'No user ID provided.' };
     }
 
-    // Use the default bucket from the initialized adminStorage instance
-    const bucket = adminStorage.bucket();
-    
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    const fileName = `posts/${userId}/${Date.now()}-${file.name}`;
-    const fileRef = bucket.file(fileName);
-
-    await fileRef.save(buffer, {
-      metadata: {
-        contentType: file.type,
-      },
+    const uploadPromise = new Promise<{ url?: string; error?: string }>((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        {
+          folder: `posts/${userId}`,
+          public_id: `${Date.now()}-${file.name}`,
+        },
+        (error, result) => {
+          if (error) {
+            console.error('Cloudinary upload failed:', error);
+            // Reject with a more specific error from Cloudinary
+            reject({ error: `Upload failed: ${error.message}` });
+          } else if (result) {
+            resolve({ url: result.secure_url });
+          } else {
+            reject({ error: 'Cloudinary returned no result.' });
+          }
+        }
+      );
+      streamifier.createReadStream(buffer).pipe(stream);
     });
 
-    const [url] = await fileRef.getSignedUrl({
-      action: 'read',
-      expires: '03-09-2491', 
-    });
+    return await uploadPromise;
 
-    return { url };
   } catch (e: any) {
-    console.error('Upload failed with error:', JSON.stringify(e, null, 2));
-    const errorMessage = e.message || 'An unknown error occurred during upload.';
-    return { error: `Server failed with: ${errorMessage}` };
+    console.error('Upload action failed with error:', JSON.stringify(e, null, 2));
+    // Pass the specific error message from the promise rejection, or a fallback.
+    const errorMessage = e.error || e.message || 'An unknown server error occurred during upload.';
+    return { error: `Server error: ${errorMessage}` };
   }
 }

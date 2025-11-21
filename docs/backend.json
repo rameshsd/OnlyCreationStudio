@@ -92,6 +92,50 @@
         "role"
       ]
     },
+    "PortfolioItem": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "PortfolioItem",
+      "type": "object",
+      "description": "Represents an item in a user's portfolio.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the portfolio item entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "The ID of the user who owns this portfolio item."
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of media (e.g., 'image', 'video').",
+          "enum": [
+            "image",
+            "video"
+          ]
+        },
+        "url": {
+          "type": "string",
+          "description": "URL of the portfolio content.",
+          "format": "uri"
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the portfolio item."
+        },
+        "hint": {
+          "type": "string",
+          "description": "A hint for AI image generation services."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "type",
+        "url",
+        "title"
+      ]
+    },
     "BrandProfile": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "BrandProfile",
@@ -661,6 +705,26 @@
         }
       },
       {
+        "path": "/user_profiles/{userProfileId}/portfolio_items/{portfolioItemId}",
+        "definition": {
+          "entityName": "PortfolioItem",
+          "schema": {
+            "$ref": "#/backend/entities/PortfolioItem"
+          },
+          "description": "Stores portfolio items for a specific user profile.",
+          "params": [
+            {
+              "name": "userProfileId",
+              "description": "The unique identifier for the user profile."
+            },
+            {
+              "name": "portfolioItemId",
+              "description": "The unique identifier for the portfolio item."
+            }
+          ]
+        }
+      },
+      {
         "path": "/brand_profiles/{brandProfileId}",
         "definition": {
           "entityName": "BrandProfile",
@@ -860,3 +924,4 @@
     "reasoning": "The Firestore structure is designed to address the permission error by ensuring authorization independence and simplifying security rules. The core strategy is to use path-based authorization for user-owned data and membership maps for collaborative data, denormalizing authorization data where necessary to avoid `get()` calls in security rules.\n\n1.  **Users and Profiles:** User data is stored under `/users/{userId}` and `/user_profiles/{userProfileId}`, ensuring that only the authenticated user can access their own data. The UserProfile document contains the `role` field which is used for role-based access control.\n2.  **Brand/Creator/Service Provider/Studio Profiles:** These are stored separately in collections named after their entity names. Since these profiles are extensions of user profiles and owned by the user, they are linked to the UserProfile through the `userProfileId`. This allows for easy retrieval and management while keeping the security rules straightforward.\n3.  **Posts and Comments:** Posts are stored in a top-level `/posts` collection, with `authorId` referencing the UserProfile. Comments are stored in a subcollection `/posts/{postId}/comments/{commentId}`. This approach allows for easy querying of posts and comments while maintaining a clear hierarchy.\n4.  **Collab Requests:** Collab requests are stored in a `/collab_requests` collection. Each document includes `senderId` and `receiverId`, both referencing UserProfile IDs. This makes it easy to query requests sent and received by a user.\n5.  **Teams:** Teams are stored in a `/teams` collection with a `memberIds` array. Security rules can check if the authenticated user is in this array for access control.\n6.  **Projects:** Projects are stored in a `/projects` collection, owned by the UserProfile (`creatorId`).\n7.  **Chat Messages:** Chat messages are stored in a `/chat_messages` collection, including `senderId` and `receiverId` to identify participants.\n8.  **Support Tickets:** Support tickets are stored in a `/support_tickets` collection, owned by the User (`userId`).\n9.  **Payments:** Payments are stored in a `/payments` collection, associated with a `projectId` and involving `payerId` and `payeeId` (UserProfile IDs).\n\nTo ensure Authorization Independence, the following denormalization strategies are implemented:\n\n*   *Posts:* The `authorId` which is a reference to `user_profiles/{userProfileId}` can be used to define access rules without needing a `get()` call. This is because rules can directly verify that `request.auth.uid` matches the `authorId`.\n*   *Comments:* Similarly, the `authorId` within the `/posts/{postId}/comments/{commentId}` collection allows rules to validate the creator of the comment without needing to fetch the user profile.\n*   *Collab Requests:* The `senderId` and `receiverId` fields enable secure listing (QAP) of collaboration requests, as rules can limit read access to requests where the user is either the sender or the receiver.\n*   *Teams:* While `memberIds` are used for storing references, for more complex team-based permissions, consider denormalizing a `members` map within each team document, as described in the DBAC strategy. This prevents needing to iterate through the `memberIds` array in rules.\n\nThe structure supports required QAPs:\n\n*   *List Posts:* The flat `/posts` collection, combined with the `authorId` field, enables filtering posts by author without needing to check parent documents. Rules can restrict lists to posts created by the authenticated user.\n*   *List Comments:* By storing comments in subcollections (`/posts/{postId}/comments/{commentId}`), listing comments for a specific post is straightforward. Access can be controlled based on post ownership or comment authorship.\n*   *List Collab Requests:* The `senderId` and `receiverId` fields allow rules to filter collaboration requests to those sent or received by the current user. This ensures users can only see relevant requests.\n\nThis structure avoids hierarchical authorization dependencies, making the security rules simple and efficient. It also supports atomic operations and facilitates easy debugging."
   }
 }
+    
