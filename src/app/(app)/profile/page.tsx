@@ -7,38 +7,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Briefcase, Heart, Mail, MessageCircle, PenSquare, Rss, Star, UserPlus, Users, Video, UserCheck, BarChart2 } from "lucide-react";
-import { useState } from "react";
+import { Briefcase, Heart, Mail, MessageCircle, PenSquare, Rss, Star, UserPlus, Users, Video, UserCheck, BarChart2, Loader2 } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { ResponsiveContainer, BarChart, XAxis, YAxis, Bar } from "recharts";
-
-const user = {
-    name: "Alexa Rodriguez",
-    username: "@alexa_creates",
-    avatarUrl: "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?q=80&w=1887&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-    coverUrl: "https://images.unsplash.com/photo-1501183007986-d0d080b147f9?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-    bio: "Digital storyteller & brand strategist. I help brands build authentic connections with their audience. Passionate about sustainable fashion and minimalist design. Let's create something beautiful together!",
-    isVerified: true,
-    stats: [
-        { label: "Followers", value: "1.2M" },
-        { label: "Following", value: "834" },
-        { label: "Likes", value: "12.8M" },
-    ],
-    skills: ["Brand Strategy", "Content Creation", "Social Media Marketing", "UI/UX Design", "Fashion Styling"],
-};
-
-const posts = [
-  { id: 1, content: "Just dropped a new video on my channel! Check it out and let me know what you think. #newvideo #creatorlife", likes: 1200, comments: 88 },
-  { id: 2, content: "So excited to announce my collaboration with @BrandX! We've been working on something special for you all. ✨", likes: 3500, comments: 241 },
-  { id: 3, content: "My thoughts on the latest design trends. A thread... 🧵", likes: 890, comments: 56 },
-];
-
-const portfolioItems = [
-    { id: 1, type: 'image', url: 'https://images.unsplash.com/photo-1556228724-4ce34b61215c?q=80&w=1887&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D', title: 'Project Alpha', hint: 'portfolio project' },
-    { id: 2, type: 'video', url: 'https://images.unsplash.com/photo-1611156434368-838dec96541f?q=80&w=1887&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D', title: 'Project Beta', hint: 'portfolio project' },
-    { id: 3, type: 'image', url: 'https://images.unsplash.com/photo-1524502397800-2eea8ff322b6?q=80&w=1887&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D', title: 'Project Gamma', hint: 'portfolio project' },
-    { id: 4, type: 'image', url: 'https://images.unsplash.com/photo-1562572159-4efc207f5aff?q=80&w=1935&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D', title: 'Project Delta', hint: 'portfolio project' },
-];
+import { useAuth } from "@/hooks/use-auth";
+import { PostCard, Post } from "@/components/post-card";
+import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { useCollection, useMemoFirebase } from "@/firebase";
 
 const statsData = [
   { month: "Jan", followers: 400 },
@@ -55,17 +32,41 @@ const reviews = [
   { id: 3, author: "AnotherCreator", rating: 4, text: "Great collaborator, very responsive and creative." },
 ];
 
+interface PortfolioItem {
+    id: string;
+    type: 'image' | 'video';
+    url: string;
+    title: string;
+    hint: string;
+}
+
 
 export default function ProfilePage() {
+    const { user, userData, loading: authLoading } = useAuth();
     const { toast } = useToast();
     const [isFollowing, setIsFollowing] = useState(false);
     const [isFavorited, setIsFavorited] = useState(false);
+
+    const userPostsQuery = useMemoFirebase(() => {
+        if (!user) return null;
+        return query(collection(db, "posts"), where("userId", "==", user.uid), orderBy("createdAt", "desc"));
+    }, [user]);
+    const { data: posts, isLoading: postsLoading } = useCollection<Post>(userPostsQuery);
+
+    const userPortfolioQuery = useMemoFirebase(() => {
+        if (!user) return null;
+        // Assuming user profile ID is same as user UID, which might not be correct
+        // but for now we'll stick with it until user profiles are properly implemented
+        return collection(db, "user_profiles", user.uid, "portfolio_items");
+    }, [user]);
+    const { data: portfolioItems, isLoading: portfolioLoading } = useCollection<PortfolioItem>(userPortfolioQuery);
+
 
     const handleFollow = () => {
         setIsFollowing(!isFollowing);
         toast({
             title: isFollowing ? "Unfollowed" : "Followed",
-            description: isFollowing ? `You are no longer following ${user.name}.` : `You are now following ${user.name}.`,
+            description: isFollowing ? `You are no longer following ${userData?.username}.` : `You are now following ${userData?.username}.`,
         });
     };
 
@@ -73,7 +74,7 @@ export default function ProfilePage() {
         setIsFavorited(!isFavorited);
         toast({
             title: isFavorited ? "Removed from Favorites" : "Added to Favorites",
-            description: isFavorited ? `${user.name} has been removed from your favorites.` : `${user.name} has been added to your favorites.`,
+            description: isFavorited ? `${userData?.username} has been removed from your favorites.` : `${userData?.username} has been added to your favorites.`,
         });
     };
 
@@ -84,63 +85,94 @@ export default function ProfilePage() {
         });
     };
 
+    if (authLoading) {
+      return (
+        <div className="flex h-screen items-center justify-center">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+      )
+    }
+
+    if (!user || !userData) {
+      return (
+          <div className="flex h-screen items-center justify-center">
+              <p>Please log in to view your profile.</p>
+          </div>
+      );
+    }
+    
+    const isOwnProfile = true; // For now, assume it's always the user's own profile
+
     return (
         <div className="flex flex-col gap-8">
             <Card className="overflow-hidden">
-                <div className="relative h-48 w-full md:h-64">
-                    <Image
-                        src={user.coverUrl}
-                        alt="Cover photo"
-                        fill
-                        className="object-cover"
-                        data-ai-hint="cover photo abstract"
-                    />
+                <div className="relative h-48 w-full md:h-64 bg-secondary">
+                    {userData.coverUrl && (
+                        <Image
+                            src={userData.coverUrl}
+                            alt="Cover photo"
+                            fill
+                            className="object-cover"
+                            data-ai-hint="cover photo abstract"
+                        />
+                    )}
                 </div>
                 <div className="p-4 sm:p-6">
                     <div className="relative -mt-20 flex w-full flex-col items-center gap-4 sm:-mt-24 sm:flex-row sm:items-end">
                         <Avatar className="h-32 w-32 border-4 border-background">
-                            <AvatarImage src={user.avatarUrl} alt={user.name} data-ai-hint="user avatar" />
-                            <AvatarFallback>{user.name.substring(0, 2)}</AvatarFallback>
+                            <AvatarImage src={userData.avatarUrl} alt={userData.username} data-ai-hint="user avatar" />
+                            <AvatarFallback>{userData.username?.substring(0, 2).toUpperCase()}</AvatarFallback>
                         </Avatar>
                         <div className="flex flex-1 flex-col items-center gap-4 sm:flex-row sm:items-end sm:justify-between">
                             <div className="mt-4 text-center sm:mt-0 sm:text-left">
                                 <div className="flex items-center gap-2">
-                                    <h1 className="text-2xl font-bold">{user.name}</h1>
-                                    {user.isVerified && <Badge className="bg-primary hover:bg-primary text-primary-foreground flex items-center gap-1"><Star className="h-3 w-3" /> Verified</Badge>}
+                                    <h1 className="text-2xl font-bold">{userData.username}</h1>
+                                    {userData.isVerified && <Badge className="bg-primary hover:bg-primary text-primary-foreground flex items-center gap-1"><Star className="h-3 w-3" /> Verified</Badge>}
                                 </div>
-                                <p className="text-muted-foreground">{user.username}</p>
+                                <p className="text-muted-foreground">@{userData.username}</p>
                             </div>
                             <div className="flex flex-wrap gap-2 justify-center">
-                                <Button variant="outline" onClick={handleFollow}>
-                                    {isFollowing ? <UserCheck /> : <UserPlus />} {isFollowing ? "Following" : "Follow"}
-                                </Button>
-                                <Button variant={isFavorited ? 'default' : 'outline'} onClick={handleFavorite}>
-                                    <Heart className={isFavorited ? 'fill-current' : ''} /> {isFavorited ? "Favorited" : "Favorite"}
-                                </Button>
-                                <Button onClick={() => handleComingSoon('Messaging')}><Mail /> Message</Button>
-                                <Button variant="secondary" onClick={() => handleComingSoon('Collab Requests')}><Briefcase /> Collab Request</Button>
-                                <Button variant="ghost" size="icon" onClick={() => handleComingSoon('Edit Profile')}><PenSquare /></Button>
+                                {isOwnProfile ? (
+                                     <Button variant="outline" onClick={() => handleComingSoon('Edit Profile')}><PenSquare /> Edit Profile</Button>
+                                ) : (
+                                    <>
+                                        <Button variant="outline" onClick={handleFollow}>
+                                            {isFollowing ? <UserCheck /> : <UserPlus />} {isFollowing ? "Following" : "Follow"}
+                                        </Button>
+                                        <Button variant={isFavorited ? 'default' : 'outline'} onClick={handleFavorite}>
+                                            <Heart className={isFavorited ? 'fill-current' : ''} /> {isFavorited ? "Favorited" : "Favorite"}
+                                        </Button>
+                                        <Button onClick={() => handleComingSoon('Messaging')}><Mail /> Message</Button>
+                                        <Button variant="secondary" onClick={() => handleComingSoon('Collab Requests')}><Briefcase /> Collab Request</Button>
+                                    </>
+                                )}
                             </div>
                         </div>
                     </div>
 
                     <div className="mt-6">
-                        <p className="text-center sm:text-left text-muted-foreground">{user.bio}</p>
+                        <p className="text-center sm:text-left text-muted-foreground">{userData.bio || "No bio yet."}</p>
                     </div>
 
                     <div className="mt-6 flex flex-wrap justify-center sm:justify-start gap-2">
-                        {user.skills.map((skill) => (
+                        {(userData.skills || ["Brand Strategy", "Content Creation"]).map((skill: string) => (
                             <Badge key={skill} variant="secondary">{skill}</Badge>
                         ))}
                     </div>
 
                      <div className="mt-6 grid grid-cols-3 divide-x rounded-lg border">
-                        {user.stats.map(stat => (
-                            <div key={stat.label} className="px-4 py-2 text-center">
-                                <p className="text-xl font-bold">{stat.value}</p>
-                                <p className="text-sm text-muted-foreground">{stat.label}</p>
-                            </div>
-                        ))}
+                        <div className="px-4 py-2 text-center">
+                            <p className="text-xl font-bold">{userData.followers?.length || 0}</p>
+                            <p className="text-sm text-muted-foreground">Followers</p>
+                        </div>
+                        <div className="px-4 py-2 text-center">
+                            <p className="text-xl font-bold">{userData.following?.length || 0}</p>
+                            <p className="text-sm text-muted-foreground">Following</p>
+                        </div>
+                         <div className="px-4 py-2 text-center">
+                            <p className="text-xl font-bold">{posts?.length || 0}</p>
+                            <p className="text-sm text-muted-foreground">Posts</p>
+                        </div>
                     </div>
                 </div>
             </Card>
@@ -157,15 +189,13 @@ export default function ProfilePage() {
                     <Card>
                         <CardHeader><CardTitle>Recent Posts</CardTitle></CardHeader>
                         <CardContent className="space-y-4">
-                           {posts.map(post => (
-                               <div key={post.id} className="rounded-lg border p-4">
-                                   <p className="text-sm text-foreground">{post.content}</p>
-                                   <div className="flex gap-4 text-muted-foreground text-xs mt-2">
-                                       <span>{post.likes} Likes</span>
-                                       <span>{post.comments} Comments</span>
-                                   </div>
-                               </div>
-                           ))}
+                           {postsLoading ? (
+                               <p>Loading posts...</p>
+                           ) : posts && posts.length > 0 ? (
+                               posts.map(post => <PostCard key={post.id} post={post} />)
+                           ) : (
+                               <p className="text-muted-foreground">No posts yet.</p>
+                           )}
                         </CardContent>
                     </Card>
                 </TabsContent>
@@ -173,14 +203,20 @@ export default function ProfilePage() {
                     <Card>
                         <CardHeader><CardTitle>Portfolio</CardTitle></CardHeader>
                         <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                           {portfolioItems.map(item => (
+                           {portfolioLoading ? (
+                                <p>Loading portfolio...</p>
+                           ): portfolioItems && portfolioItems.length > 0 ? (
+                               portfolioItems.map(item => (
                                <div key={item.id} className="group relative aspect-square overflow-hidden rounded-lg">
                                    <Image src={item.url} alt={item.title} fill className="object-cover transition-transform group-hover:scale-105" data-ai-hint={item.hint}/>
                                    <div className="absolute inset-0 bg-black/40 flex items-end p-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                        <p className="text-white text-sm font-bold">{item.title}</p>
                                    </div>
                                </div>
-                           ))}
+                           ))
+                           ) : (
+                                <p className="text-muted-foreground col-span-full">No portfolio items yet.</p>
+                           )}
                         </CardContent>
                     </Card>
                 </TabsContent>
@@ -233,3 +269,5 @@ export default function ProfilePage() {
         </div>
     );
 }
+
+    

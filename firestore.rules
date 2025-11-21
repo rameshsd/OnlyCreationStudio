@@ -4,6 +4,7 @@
  * @dataStructure
  *  - /users/{userId}: Stores user account information, accessible only by the owning user.
  *  - /user_profiles/{userProfileId}: Stores user profile data, linked 1:1 to users, and accessible only by the owning user.
+ *  - /user_profiles/{userProfileId}/portfolio_items/{portfolioItemId}: Stores portfolio items, accessible only by the owning user.
  *  - /brand_profiles/{brandProfileId}: Stores brand profile data, linked to a user profile.
  *  - /creator_profiles/{creatorProfileId}: Stores creator profile data, linked to a user profile.
  *  - /service_provider_profiles/{serviceProviderProfileId}: Stores service provider profile data, linked to a user profile.
@@ -66,6 +67,11 @@ service cloud.firestore {
       allow create: if isSignedIn(); // allow creating a profile, validation happens below
       allow update: if isExistingOwnerByProfileId();
       allow delete: if isExistingOwnerByProfileId();
+
+      match /portfolio_items/{portfolioItemId} {
+        allow read;
+        allow write: if request.auth != null && request.auth.uid == get(/databases/$(database)/documents/user_profiles/$(userProfileId)).data.userId;
+      }
     }
 
     /**
@@ -380,4 +386,5 @@ service cloud.firestore {
     }
   }
 }
+    
     
