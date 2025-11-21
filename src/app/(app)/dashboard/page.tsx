@@ -13,7 +13,7 @@ import { db } from "@/lib/firebase";
 import { collection, getDocs, orderBy, query, onSnapshot } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
 import { generateMockStories, generateMockSuggestions, generateMockTrendingTopics } from "@/lib/mock-data";
-import { useCollection } from "@/firebase";
+import { useCollection, useMemoFirebase } from "@/firebase";
 
 
 const feedFilters = [
@@ -85,7 +85,7 @@ const PostSkeleton = () => (
 export default function DashboardPage() {
     const [activeFilter, setActiveFilter] = useState("All");
     
-    const postsQuery = query(collection(db, "posts"), orderBy("createdAt", "desc"));
+    const postsQuery = useMemoFirebase(() => query(collection(db, "posts"), orderBy("createdAt", "desc")), []);
     const { data: posts, isLoading: loading } = useCollection<Post>(postsQuery);
 
   return (
