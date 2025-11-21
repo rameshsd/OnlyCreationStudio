@@ -55,8 +55,6 @@ export default function ProfilePage() {
 
     const userPortfolioQuery = useMemoFirebase(() => {
         if (!user) return null;
-        // Assuming user profile ID is same as user UID, which might not be correct
-        // but for now we'll stick with it until user profiles are properly implemented
         return collection(db, "user_profiles", user.uid, "portfolio_items");
     }, [user]);
     const { data: portfolioItems, isLoading: portfolioLoading } = useCollection<PortfolioItem>(userPortfolioQuery);
@@ -269,5 +267,3 @@ export default function ProfilePage() {
         </div>
     );
 }
-
-    
