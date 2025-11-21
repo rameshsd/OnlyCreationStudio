@@ -63,6 +63,7 @@ export default function CreatePostPage() {
       let resourceType = 'image';
 
       if (mediaFile) {
+        resourceType = mediaFile.type.startsWith('video') ? 'video' : 'image';
         const formData = new FormData();
         formData.append('imageFile', mediaFile);
         formData.append('userId', user.uid);
@@ -71,7 +72,6 @@ export default function CreatePostPage() {
           throw new Error(result.error || "Media upload failed.");
         }
         mediaUrl = result.url;
-        resourceType = result.resource_type || 'image';
       }
 
       const postData = {

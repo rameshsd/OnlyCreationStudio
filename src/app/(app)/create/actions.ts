@@ -1,53 +1,40 @@
 'use server';
 
-import { v2 as cloudinary } from 'cloudinary';
-import streamifier from "streamifier";
-import { Buffer } from "buffer";
+import fs from "fs";
+import path from "path";
 
-cloudinary.config({
-  cloud_name: 'dkmgby1tc',
-  api_key: '866268445612429',
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-  secure: true
-});
-
-export async function uploadPhoto(formData: FormData): Promise<{ url?: string; resource_type?: string; error?: string }> {
+export async function uploadPhoto(formData: FormData): Promise<{ url?: string; error?: string }> {
   try {
     const file = formData.get("imageFile") as File;
     const userId = formData.get("userId") as string;
 
-    if (!file) return { error: "No file provided." };
-    if (file.size === 0) return { error: "Cannot upload an empty file." };
+    if (!file) return { error: "No file provided" };
     if (!userId) return { error: "No user ID provided." };
 
+
     const buffer = Buffer.from(await file.arrayBuffer());
+    
+    // In a real VPS environment, you would use a path like this.
+    // For this example, we'll simulate it by writing to the public directory.
+    const relativeUploadDir = "/uploads";
+    const uploadDir = path.join(process.cwd(), "public", relativeUploadDir);
 
-    // 🚀 UPLOAD EVERYTHING THROUGH VIDEO ENDPOINT
-    const uploadOptions: any = {
-      folder: `posts/${userId}`,
-      public_id: `${Date.now()}-${file.name}`,
-      resource_type: "video",   // <-- THE KEY FIX
-      chunk_size: 20_000_000,
-    };
+    // Ensure folder exists
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    
+    const uniqueFilename = `${Date.now()}-${file.name}`;
+    const uploadPath = path.join(uploadDir, uniqueFilename);
 
-    const result = await new Promise((resolve, reject) => {
-      const stream = cloudinary.uploader.upload_stream(
-        uploadOptions,
-        (err, result) => {
-          if (err) reject(err);
-          else resolve(result);
-        }
-      );
-      streamifier.createReadStream(buffer).pipe(stream);
-    });
+    fs.writeFileSync(uploadPath, buffer);
 
-    return {
-      url: (result as any).secure_url,
-      resource_type: (result as any).resource_type
-    };
+    const publicUrl = `${relativeUploadDir}/${uniqueFilename}`;
+
+    return { url: publicUrl };
 
   } catch (e: any) {
-    console.log("UPLOAD ERROR =>", e);
-    return { error: `Server error: ${e.message}` };
+    console.error("Upload Error:", e);
+    return { error: e.message };
   }
 }
