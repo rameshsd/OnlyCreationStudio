@@ -32,9 +32,12 @@ export async function uploadPhoto(formData: FormData): Promise<{ url?: string; e
         (error, result) => {
           if (error) {
             console.error('Cloudinary upload failed:', error);
-            reject({ error: `Cloudinary upload failed: ${error.message}` });
+            // Reject with a more specific error from Cloudinary
+            reject({ error: `Upload failed: ${error.message}` });
           } else if (result) {
             resolve({ url: result.secure_url });
+          } else {
+            reject({ error: 'Cloudinary returned no result.' });
           }
         }
       );
@@ -44,8 +47,9 @@ export async function uploadPhoto(formData: FormData): Promise<{ url?: string; e
     return await uploadPromise;
 
   } catch (e: any) {
-    console.error('Upload failed with error:', JSON.stringify(e, null, 2));
-    const errorMessage = e.message || 'An unknown error occurred during upload.';
-    return { error: `Server failed with: ${errorMessage}` };
+    console.error('Upload action failed with error:', JSON.stringify(e, null, 2));
+    // Pass the specific error message from the promise rejection, or a fallback.
+    const errorMessage = e.error || e.message || 'An unknown server error occurred during upload.';
+    return { error: `Server error: ${errorMessage}` };
   }
 }
