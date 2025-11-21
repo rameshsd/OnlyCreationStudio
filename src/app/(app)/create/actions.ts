@@ -37,14 +37,15 @@ export async function uploadPhoto(formData: FormData): Promise<{ url?: string; r
       folder: `posts/${userId}`,
       public_id: `${Date.now()}-${file.name}`,
       resource_type: resource_type,
+      // Use chunked uploading for large files to bypass 10MB limit
+      chunk_size: 20000000, 
     };
 
     if (isVideo) {
       // For videos, Cloudinary automatically handles compression.
-      // We can specify quality settings if needed, but 'auto' is a good default.
       uploadOptions.quality = 'auto';
     } else {
-      // For images, we can apply auto format and quality.
+      // For images, apply auto format and quality.
       uploadOptions.fetch_format = 'auto';
       uploadOptions.quality = 'auto';
     }
