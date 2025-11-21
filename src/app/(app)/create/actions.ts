@@ -31,21 +31,25 @@ export async function uploadPhoto(formData: FormData): Promise<{ url?: string; r
     const buffer = Buffer.from(bytes);
 
     const isVideo = file.type.startsWith('video/');
-    const resource_type = isVideo ? 'video' : 'image';
+    let resource_type: 'image' | 'video' | 'raw' = isVideo ? 'video' : 'image';
+
+    // If image is larger than 9MB, Cloudinary will reject — upload it as raw
+    if (!isVideo && file.size > 9_000_000) {
+      resource_type = 'raw';
+    }
+
 
     const uploadOptions: any = {
       folder: `posts/${userId}`,
       public_id: `${Date.now()}-${file.name}`,
-      resource_type: resource_type,
-      // Use chunked uploading for large files to bypass 10MB limit
+      resource_type,
       chunk_size: 20000000, 
     };
 
-    if (isVideo) {
-      // For videos, Cloudinary automatically handles compression.
+    if (resource_type === 'video') {
       uploadOptions.quality = 'auto';
-    } else {
-      // For images, apply auto format and quality.
+    }
+    if (resource_type === 'image') {
       uploadOptions.fetch_format = 'auto';
       uploadOptions.quality = 'auto';
     }
