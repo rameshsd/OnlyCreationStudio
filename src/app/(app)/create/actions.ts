@@ -29,7 +29,7 @@ export async function uploadPhoto(formData: FormData): Promise<{ url?: string; e
 
     fs.writeFileSync(uploadPath, buffer);
 
-    const publicUrl = `${relativeUploadDir}/${uniqueFilename}`;
+    const publicUrl = `https://onlycreation.in/uploads/${uniqueFilename}`;
 
     return { url: publicUrl };
 
