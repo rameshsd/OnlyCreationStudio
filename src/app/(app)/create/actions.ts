@@ -1,7 +1,8 @@
 'use server';
 
 import { v2 as cloudinary } from 'cloudinary';
-import { Buffer } from 'buffer';
+import streamifier from "streamifier";
+import { Buffer } from "buffer";
 
 cloudinary.config({
   cloud_name: 'dkmgby1tc',
@@ -12,31 +13,41 @@ cloudinary.config({
 
 export async function uploadPhoto(formData: FormData): Promise<{ url?: string; resource_type?: string; error?: string }> {
   try {
-    const file = formData.get('imageFile') as File;
-    const userId = formData.get('userId') as string;
+    const file = formData.get("imageFile") as File;
+    const userId = formData.get("userId") as string;
 
-    if (!file) return { error: 'No file provided.' };
-    if (file.size === 0) return { error: 'Cannot upload an empty file.' };
-    if (!userId) return { error: 'No user ID provided.' };
+    if (!file) return { error: "No file provided." };
+    if (file.size === 0) return { error: "Cannot upload an empty file." };
+    if (!userId) return { error: "No user ID provided." };
 
     const buffer = Buffer.from(await file.arrayBuffer());
 
-    const base64Data = `data:${file.type};base64,${buffer.toString("base64")}`;
-
-    const result = await cloudinary.uploader.upload(base64Data, {
+    // 🚀 UPLOAD EVERYTHING THROUGH VIDEO ENDPOINT
+    const uploadOptions: any = {
       folder: `posts/${userId}`,
       public_id: `${Date.now()}-${file.name}`,
-      resource_type: "video",   // Force video endpoint for larger limits
-      chunk_size: 20_000_000
+      resource_type: "video",   // <-- THE KEY FIX
+      chunk_size: 20_000_000,
+    };
+
+    const result = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        uploadOptions,
+        (err, result) => {
+          if (err) reject(err);
+          else resolve(result);
+        }
+      );
+      streamifier.createReadStream(buffer).pipe(stream);
     });
 
     return {
-      url: result.secure_url,
-      resource_type: result.resource_type
+      url: (result as any).secure_url,
+      resource_type: (result as any).resource_type
     };
 
-  } catch (error: any) {
-    console.error("Cloudinary upload error:", error);
-    return { error: `Server error: ${error.message}` };
+  } catch (e: any) {
+    console.log("UPLOAD ERROR =>", e);
+    return { error: `Server error: ${e.message}` };
   }
 }
