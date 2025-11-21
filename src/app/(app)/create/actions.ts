@@ -1,15 +1,13 @@
-
 'use server';
 
 import { v2 as cloudinary } from 'cloudinary';
-import streamifier from 'streamifier';
 import { Buffer } from 'buffer';
 
-cloudinary.config({ 
-  cloud_name: 'dkmgby1tc', 
-  api_key: '866268445612429', 
+cloudinary.config({
+  cloud_name: 'dkmgby1tc',
+  api_key: '866268445612429',
   api_secret: process.env.CLOUDINARY_API_SECRET,
-  secure: true 
+  secure: true
 });
 
 export async function uploadPhoto(formData: FormData): Promise<{ url?: string; resource_type?: string; error?: string }> {
@@ -17,15 +15,9 @@ export async function uploadPhoto(formData: FormData): Promise<{ url?: string; r
     const file = formData.get('imageFile') as File;
     const userId = formData.get('userId') as string;
 
-    if (!file) {
-      return { error: 'No file provided.' };
-    }
-     if (file.size === 0) {
-      return { error: 'Cannot upload an empty file.' };
-    }
-    if (!userId) {
-      return { error: 'No user ID provided.' };
-    }
+    if (!file) return { error: 'No file provided.' };
+    if (file.size === 0) return { error: 'Cannot upload an empty file.' };
+    if (!userId) return { error: 'No user ID provided.' };
 
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
@@ -33,17 +25,16 @@ export async function uploadPhoto(formData: FormData): Promise<{ url?: string; r
     const isVideo = file.type.startsWith('video/');
     let resource_type: 'image' | 'video' | 'raw' = isVideo ? 'video' : 'image';
 
-    // If image is larger than 9MB, Cloudinary will reject — upload it as raw
+    // Convert large images to raw to bypass 10MB limit
     if (!isVideo && file.size > 9_000_000) {
       resource_type = 'raw';
     }
-
 
     const uploadOptions: any = {
       folder: `posts/${userId}`,
       public_id: `${Date.now()}-${file.name}`,
       resource_type,
-      chunk_size: 20000000, 
+      chunk_size: 20000000
     };
 
     if (resource_type === 'video') {
@@ -54,29 +45,15 @@ export async function uploadPhoto(formData: FormData): Promise<{ url?: string; r
       uploadOptions.quality = 'auto';
     }
 
+    // Use direct base64 upload to bypass stream-related issues
+    const base64Data = `data:${file.type};base64,${buffer.toString('base64')}`;
 
-    const uploadPromise = new Promise<{ url?: string; resource_type?: string; error?: string }>((resolve, reject) => {
-      const stream = cloudinary.uploader.upload_stream(
-        uploadOptions,
-        (error, result) => {
-          if (error) {
-            console.error('Cloudinary upload failed:', error);
-            reject({ error: `Upload failed: ${error.message}` });
-          } else if (result) {
-            resolve({ url: result.secure_url, resource_type: result.resource_type });
-          } else {
-            reject({ error: 'Cloudinary returned no result.' });
-          }
-        }
-      );
-      streamifier.createReadStream(buffer).pipe(stream);
-    });
+    const result = await cloudinary.uploader.upload(base64Data, uploadOptions);
 
-    return await uploadPromise;
+    return { url: result.secure_url, resource_type: result.resource_type };
 
   } catch (e: any) {
-    console.error('Upload action failed with error:', JSON.stringify(e, null, 2));
-    const errorMessage = e.error || e.message || 'An unknown server error occurred during upload.';
-    return { error: `Server error: ${errorMessage}` };
+    console.error('Upload error:', e);
+    return { error: `Server error: ${e.message}` };
   }
 }
