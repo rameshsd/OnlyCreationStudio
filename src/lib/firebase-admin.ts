@@ -23,13 +23,19 @@ function initializeAdmin(): App {
       storageBucket: firebaseConfig.storageBucket,
     });
   } catch (e: any) {
-    console.error('Failed to initialize Firebase Admin automatically:', e);
-    throw new Error(`Failed to initialize Firebase Admin: ${e.message}`);
+    // If GOOGLE_APPLICATION_CREDENTIALS_JSON is not set, we can ignore the error in dev
+    if (process.env.NODE_ENV !== 'development' || Object.keys(serviceAccount).length > 0) {
+        console.error('Failed to initialize Firebase Admin automatically:', e);
+        throw new Error(`Failed to initialize Firebase Admin: ${e.message}`);
+    }
+    // In dev, with no credentials, we might not need admin sdk, so don't throw
+    console.warn("Firebase Admin SDK not initialized. This is expected in local development without service account credentials.")
+    return {} as App; // Return a dummy app object
   }
 }
 
 const adminApp = initializeAdmin();
-const adminDb = getFirestore(adminApp);
-const adminStorage = getStorage(adminApp);
+const adminDb = getApps().length > 0 ? getFirestore(adminApp) : null;
+const adminStorage = getApps().length > 0 ? getStorage(adminApp) : null;
 
 export { adminDb, adminStorage };
