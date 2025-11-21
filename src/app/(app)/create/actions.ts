@@ -5,14 +5,6 @@ import { v2 as cloudinary } from 'cloudinary';
 import streamifier from 'streamifier';
 import { Buffer } from 'buffer';
 
-// Configure Cloudinary within the server action to ensure environment variables are loaded.
-cloudinary.config({ 
-  cloud_name: 'dkmgby1tc', 
-  api_key: '866268445612429', 
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-  secure: true 
-});
-
 export async function uploadPhoto(formData: FormData): Promise<{ url?: string; error?: string }> {
   try {
     const file = formData.get('imageFile') as File;
@@ -30,6 +22,9 @@ export async function uploadPhoto(formData: FormData): Promise<{ url?: string; e
 
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
+
+    // The config is now handled in lib/cloudinary.ts which is loaded by Next.js
+    // ensuring environment variables are present.
 
     const uploadPromise = new Promise<{ url?: string; error?: string }>((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
