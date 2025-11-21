@@ -1,3 +1,4 @@
+
 'use server';
 
 import { v2 as cloudinary } from 'cloudinary';
@@ -19,41 +20,27 @@ export async function uploadPhoto(formData: FormData): Promise<{ url?: string; r
     if (file.size === 0) return { error: 'Cannot upload an empty file.' };
     if (!userId) return { error: 'No user ID provided.' };
 
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
+    const buffer = Buffer.from(await file.arrayBuffer());
 
-    const isVideo = file.type.startsWith('video/');
-    let resource_type: 'image' | 'video' | 'raw' = isVideo ? 'video' : 'image';
+    // --------- IMPORTANT TRICK ----------
+    // Uploading with fake mime to force RAW upload
+    const base64Data = `data:application/octet-stream;base64,${buffer.toString("base64")}`;
+    // ------------------------------------
 
-    // Convert large images to raw to bypass 10MB limit
-    if (!isVideo && file.size > 9_000_000) {
-      resource_type = 'raw';
-    }
-
-    const uploadOptions: any = {
+    const result = await cloudinary.uploader.upload(base64Data, {
       folder: `posts/${userId}`,
       public_id: `${Date.now()}-${file.name}`,
-      resource_type,
-      chunk_size: 20000000
+      resource_type: "raw",     // force RAW endpoint
+      chunk_size: 20_000_000
+    });
+
+    return {
+      url: result.secure_url,
+      resource_type: result.resource_type
     };
 
-    if (resource_type === 'video') {
-      uploadOptions.quality = 'auto';
-    }
-    if (resource_type === 'image') {
-      uploadOptions.fetch_format = 'auto';
-      uploadOptions.quality = 'auto';
-    }
-
-    // Use direct base64 upload to bypass stream-related issues
-    const base64Data = `data:${file.type};base64,${buffer.toString('base64')}`;
-
-    const result = await cloudinary.uploader.upload(base64Data, uploadOptions);
-
-    return { url: result.secure_url, resource_type: result.resource_type };
-
-  } catch (e: any) {
-    console.error('Upload error:', e);
-    return { error: `Server error: ${e.message}` };
+  } catch (error: any) {
+    console.error("Cloudinary RAW upload error:", error);
+    return { error: `Server error: ${error.message}` };
   }
 }
