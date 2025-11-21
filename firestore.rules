@@ -70,8 +70,7 @@ service cloud.firestore {
       allow delete: if isExistingOwnerByProfileId();
 
       match /portfolio_items/{portfolioItemId} {
-        allow read: if request.auth != null && get(/databases/$(database)/documents/user_profiles/$(userProfileId)).data.userId == request.auth.uid;
-        allow write: if request.auth != null && get(/databases/$(database)/documents/user_profiles/$(userProfileId)).data.userId == request.auth.uid;
+        allow read, write: if request.auth != null && request.auth.uid == userProfileId;
       }
     }
 
@@ -395,3 +394,5 @@ service cloud.firestore {
     }
   }
 }
+
+    
