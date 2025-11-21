@@ -5,7 +5,14 @@ import { v2 as cloudinary } from 'cloudinary';
 import streamifier from 'streamifier';
 import { Buffer } from 'buffer';
 
-export async function uploadPhoto(formData: FormData): Promise<{ url?: string; error?: string }> {
+cloudinary.config({ 
+  cloud_name: 'dkmgby1tc', 
+  api_key: '866268445612429', 
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+  secure: true 
+});
+
+export async function uploadPhoto(formData: FormData): Promise<{ url?: string; resource_type?: string; error?: string }> {
   try {
     const file = formData.get('imageFile') as File;
     const userId = formData.get('userId') as string;
@@ -23,22 +30,35 @@ export async function uploadPhoto(formData: FormData): Promise<{ url?: string; e
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // The config is now handled in lib/cloudinary.ts which is loaded by Next.js
-    // ensuring environment variables are present.
+    const isVideo = file.type.startsWith('video/');
+    const resource_type = isVideo ? 'video' : 'image';
 
-    const uploadPromise = new Promise<{ url?: string; error?: string }>((resolve, reject) => {
+    const uploadOptions: any = {
+      folder: `posts/${userId}`,
+      public_id: `${Date.now()}-${file.name}`,
+      resource_type: resource_type,
+    };
+
+    if (isVideo) {
+      // For videos, Cloudinary automatically handles compression.
+      // We can specify quality settings if needed, but 'auto' is a good default.
+      uploadOptions.quality = 'auto';
+    } else {
+      // For images, we can apply auto format and quality.
+      uploadOptions.fetch_format = 'auto';
+      uploadOptions.quality = 'auto';
+    }
+
+
+    const uploadPromise = new Promise<{ url?: string; resource_type?: string; error?: string }>((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
-        {
-          folder: `posts/${userId}`,
-          public_id: `${Date.now()}-${file.name}`,
-        },
+        uploadOptions,
         (error, result) => {
           if (error) {
             console.error('Cloudinary upload failed:', error);
-            // Reject with a more specific error from Cloudinary
             reject({ error: `Upload failed: ${error.message}` });
           } else if (result) {
-            resolve({ url: result.secure_url });
+            resolve({ url: result.secure_url, resource_type: result.resource_type });
           } else {
             reject({ error: 'Cloudinary returned no result.' });
           }
@@ -51,7 +71,6 @@ export async function uploadPhoto(formData: FormData): Promise<{ url?: string; e
 
   } catch (e: any) {
     console.error('Upload action failed with error:', JSON.stringify(e, null, 2));
-    // Pass the specific error message from the promise rejection, or a fallback.
     const errorMessage = e.error || e.message || 'An unknown server error occurred during upload.';
     return { error: `Server error: ${errorMessage}` };
   }

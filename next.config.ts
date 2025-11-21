@@ -45,7 +45,7 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     serverActions: {
-      bodySizeLimit: '4mb',
+      bodySizeLimit: '100mb',
     },
     // Required for Genkit to work with Next.js
     externalDir: true,

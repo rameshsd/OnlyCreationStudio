@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { Loader2, Image as ImageIcon } from 'lucide-react';
+import { Loader2, Film, ImageIcon } from 'lucide-react';
 import Image from 'next/image';
 import { uploadPhoto } from './actions';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -21,8 +21,9 @@ import { errorEmitter } from '@/firebase/error-emitter';
 export default function CreatePostPage() {
   const { user, userData } = useAuth();
   const [caption, setCaption] = useState('');
-  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isImage, setIsImage] = useState(true);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
@@ -30,17 +31,18 @@ export default function CreatePostPage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setImageFile(file);
+      setMediaFile(file);
       setPreviewUrl(URL.createObjectURL(file));
+      setIsImage(file.type.startsWith('image/'));
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!caption.trim() && !imageFile) {
+    if (!caption.trim() && !mediaFile) {
       toast({
         title: "Nothing to post",
-        description: "Please write a caption or select an image.",
+        description: "Please write a caption or select an image/video.",
         variant: "destructive",
       });
       return;
@@ -57,16 +59,19 @@ export default function CreatePostPage() {
     setLoading(true);
 
     try {
-      let imageUrl = '';
-      if (imageFile) {
+      let mediaUrl = '';
+      let resourceType = 'image';
+
+      if (mediaFile) {
         const formData = new FormData();
-        formData.append('imageFile', imageFile);
+        formData.append('imageFile', mediaFile);
         formData.append('userId', user.uid);
         const result = await uploadPhoto(formData);
         if (result.error || !result.url) {
-          throw new Error(result.error || "Image upload failed.");
+          throw new Error(result.error || "Media upload failed.");
         }
-        imageUrl = result.url;
+        mediaUrl = result.url;
+        resourceType = result.resource_type || 'image';
       }
 
       const postData = {
@@ -75,7 +80,7 @@ export default function CreatePostPage() {
         userAvatar: userData.avatarUrl || '',
         userIsVerified: userData.isVerified || false,
         caption: caption,
-        media: imageUrl ? [{ type: 'image', url: imageUrl }] : [],
+        media: mediaUrl ? [{ type: resourceType, url: mediaUrl }] : [],
         likes: 0,
         comments: 0,
         shares: 0,
@@ -130,16 +135,21 @@ export default function CreatePostPage() {
               disabled={loading}
             />
             {previewUrl && (
-                <div className="relative aspect-video rounded-lg overflow-hidden border">
-                    <Image src={previewUrl} alt="Image preview" fill className="object-contain" />
+                <div className="relative aspect-video rounded-lg overflow-hidden border bg-black">
+                    {isImage ? (
+                        <Image src={previewUrl} alt="Image preview" fill className="object-contain" />
+                    ) : (
+                        <video src={previewUrl} controls className="h-full w-full object-contain" />
+                    )}
                 </div>
             )}
             <div>
               <Label htmlFor="picture" className="flex items-center gap-2 cursor-pointer text-muted-foreground hover:text-primary">
                 <ImageIcon className="h-5 w-5" />
-                <span>Add a photo</span>
+                <Film className="h-5 w-5" />
+                <span>Add a photo or video</span>
               </Label>
-              <Input id="picture" type="file" className="sr-only" onChange={handleFileChange} accept="image/*" disabled={loading} />
+              <Input id="picture" type="file" className="sr-only" onChange={handleFileChange} accept="image/*,video/*" disabled={loading} />
             </div>
           </CardContent>
           <CardFooter className="flex justify-end">
