@@ -3,27 +3,31 @@ import admin from 'firebase-admin';
 import { App, getApps } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
-import serviceAccount from "./service-account.json";
 
 function initializeAdmin(): App {
   if (getApps().length > 0) {
     return getApps()[0];
   }
 
+  // Check if the required environment variables are set.
+  // In a Firebase/Google Cloud environment, these are often set automatically.
+  if (!process.env.GCLOUD_PROJECT && !process.env.FIREBASE_PROJECT_ID) {
+    throw new Error(`
+      Failed to initialize Firebase Admin: The GCLOUD_PROJECT or FIREBASE_PROJECT_ID environment variable is not set.
+      This is required for the Admin SDK to authenticate.
+      If running locally, ensure you have authenticated with the Google Cloud CLI ('gcloud auth application-default login').
+    `);
+  }
+  
   try {
-    // The serviceAccount object is imported from a git-ignored file.
-    // This is a more robust way to handle credentials than env variables.
+    // When deployed in a Google Cloud environment (like Cloud Run, Cloud Functions, App Engine),
+    // or when using 'gcloud auth application-default login' locally,
+    // the Admin SDK can automatically find the credentials.
     return admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
-      storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+        storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
     });
   } catch (e: any) {
-    console.error('Failed to initialize Firebase Admin:', e);
-    // In a real app, you might want to handle this more gracefully
-    // For now, we'll re-throw, as the admin features won't work.
-    if (e.code === 'ENOENT') {
-      throw new Error(`Failed to initialize Firebase Admin: The service account file was not found. Please ensure 'src/lib/service-account.json' exists and contains your service account key.`);
-    }
+    console.error('Failed to initialize Firebase Admin automatically:', e);
     throw new Error(`Failed to initialize Firebase Admin: ${e.message}`);
   }
 }

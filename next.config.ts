@@ -35,6 +35,13 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: '4mb',
     },
+    // Required for Genkit to work with Next.js
+    externalDir: true,
+  },
+  webpack: (config) => {
+    // Required for Genkit to work with Next.js
+    config.externals.push('pino-pretty', 'lokijs', 'encoding', 'handlebars');
+    return config
   },
 };
 
