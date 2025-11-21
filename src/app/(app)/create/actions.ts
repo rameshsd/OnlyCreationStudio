@@ -1,4 +1,3 @@
-
 'use server';
 
 import { v2 as cloudinary } from 'cloudinary';
@@ -22,15 +21,12 @@ export async function uploadPhoto(formData: FormData): Promise<{ url?: string; r
 
     const buffer = Buffer.from(await file.arrayBuffer());
 
-    // --------- IMPORTANT TRICK ----------
-    // Uploading with fake mime to force RAW upload
-    const base64Data = `data:application/octet-stream;base64,${buffer.toString("base64")}`;
-    // ------------------------------------
+    const base64Data = `data:${file.type};base64,${buffer.toString("base64")}`;
 
     const result = await cloudinary.uploader.upload(base64Data, {
       folder: `posts/${userId}`,
       public_id: `${Date.now()}-${file.name}`,
-      resource_type: "raw",     // force RAW endpoint
+      resource_type: "video",   // Force video endpoint for larger limits
       chunk_size: 20_000_000
     });
 
@@ -40,7 +36,7 @@ export async function uploadPhoto(formData: FormData): Promise<{ url?: string; r
     };
 
   } catch (error: any) {
-    console.error("Cloudinary RAW upload error:", error);
+    console.error("Cloudinary upload error:", error);
     return { error: `Server error: ${error.message}` };
   }
 }
