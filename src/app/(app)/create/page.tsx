@@ -15,6 +15,8 @@ import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { Loader2, Image as ImageIcon } from 'lucide-react';
 import Image from 'next/image';
 import { uploadPhoto } from './actions';
+import { FirestorePermissionError } from '@/firebase/errors';
+import { errorEmitter } from '@/firebase/error-emitter';
 
 export default function CreatePostPage() {
   const { user, userData } = useAuth();
@@ -59,7 +61,7 @@ export default function CreatePostPage() {
       if (imageFile) {
         const formData = new FormData();
         formData.append('imageFile', imageFile);
-        formData.append('userId', user.uid); // Pass the user ID to the action
+        formData.append('userId', user.uid);
         const result = await uploadPhoto(formData);
         if (result.error || !result.url) {
           throw new Error(result.error || "Image upload failed.");
@@ -67,7 +69,7 @@ export default function CreatePostPage() {
         imageUrl = result.url;
       }
 
-      await addDoc(collection(db, 'posts'), {
+      const postData = {
         userId: user.uid,
         username: userData.username,
         userAvatar: userData.avatarUrl || '',
@@ -78,6 +80,17 @@ export default function CreatePostPage() {
         comments: 0,
         shares: 0,
         createdAt: serverTimestamp(),
+      };
+
+      await addDoc(collection(db, 'posts'), postData).catch(serverError => {
+        const permissionError = new FirestorePermissionError({
+            path: 'posts',
+            operation: 'create',
+            requestResourceData: postData,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        // Re-throw the original error if you want to see it in the console as well
+        throw serverError;
       });
 
       toast({
@@ -87,11 +100,14 @@ export default function CreatePostPage() {
       router.push('/dashboard');
     } catch (error: any) {
       console.error("Error creating post:", error);
-      toast({
-        title: "Error creating post",
-        description: error.message || "Failed to create post. Please try again.",
-        variant: "destructive",
-      });
+      // Avoid showing a toast if it's a permission error that's already handled globally
+      if (!(error instanceof FirestorePermissionError)) {
+          toast({
+            title: "Error creating post",
+            description: error.message || "Failed to create post. Please try again.",
+            variant: "destructive",
+          });
+      }
     } finally {
       setLoading(false);
     }

@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import Link from "next/link";
@@ -84,7 +85,15 @@ function MobileSidebar() {
         </header>
         <div className="flex-1 overflow-y-auto">
           <SheetTitle className="sr-only">Menu</SheetTitle>
-          <nav className="space-y-2 p-4">
+          <div className="p-4">
+            <Button asChild className="w-full">
+              <Link href="/create">
+                <Plus className="mr-2 h-4 w-4" />
+                Create Post
+              </Link>
+            </Button>
+          </div>
+          <nav className="space-y-2 p-4 pt-0">
             {menuItems.map((item) => {
                const isActive = item.exact 
                 ? pathname === item.href 
@@ -177,7 +186,15 @@ export function AppLayout({ children }: { children: ReactNode }) {
             <div className="flex h-20 items-center border-b px-6">
               <Logo className="w-36" />
             </div>
-            <nav className="flex-1 space-y-2 p-4 overflow-y-auto">
+            <div className="p-4">
+              <Button asChild className="w-full">
+                <Link href="/create">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create Post
+                </Link>
+              </Button>
+            </div>
+            <nav className="flex-1 space-y-2 p-4 pt-0 overflow-y-auto">
               {menuItems.map((item) => {
                  const isActive = item.exact 
                   ? pathname === item.href 
