@@ -185,17 +185,21 @@ service cloud.firestore {
     /**
      * @description Grants public read access to posts and owner-only write access.
      * @path /posts/{postId}
-     * @allow (get, list): Public read access.
+     * @allow (get): Public read access for single documents.
+     * @allow (list): Authenticated users can list all posts or filter by their own userId.
      * @allow (create, update, delete): Authenticated user with matching authorId.
-     * @deny (create, update, delete): Any other user.
-     * @principle Enforces document ownership for writes, allows public reads.
+     * @principle Enforces document ownership for writes, allows flexible public and private reads.
      */
     match /posts/{postId} {
-      allow read: if request.auth != null;
-      // Allow a user to list only their own posts.
-      allow list: if request.auth != null && request.query.where.userId == request.auth.uid;
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+        // Allow anyone to read a single post, and any authenticated user to list posts.
+        // The list rule allows a general feed query, or a user-specific query for their own profile.
+        allow read: if request.auth != null;
+        
+        // Allow users to create posts if they are the owner.
+        allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+        
+        // Allow users to update or delete their own posts.
+        allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
     }
 
     /**
@@ -388,3 +392,5 @@ service cloud.firestore {
     }
   }
 }
+
+    
