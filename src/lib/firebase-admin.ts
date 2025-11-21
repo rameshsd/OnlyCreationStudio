@@ -10,9 +10,15 @@ function initializeAdmin(): App {
     return getApps()[0];
   }
 
+  // When deployed, this will use the GOOGLE_APPLICATION_CREDENTIALS env var.
+  // In local dev, it will use the service account file.
+  const serviceAccount = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON
+    ? JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON)
+    : {};
+
   try {
-    // Use the client-side config for server-side initialization details
     return admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
       projectId: firebaseConfig.projectId,
       storageBucket: firebaseConfig.storageBucket,
     });

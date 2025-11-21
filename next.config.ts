@@ -29,6 +29,12 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'storage.googleapis.com',
+        port: '',
+        pathname: '/**',
+      }
     ],
   },
   experimental: {
@@ -41,6 +47,8 @@ const nextConfig: NextConfig = {
   webpack: (config) => {
     // Required for Genkit to work with Next.js
     config.externals.push('pino-pretty', 'lokijs', 'encoding', 'handlebars');
+    // Required for firebase-admin
+    config.externals.push('firebase-admin');
     return config
   },
 };
