@@ -1,383 +1,101 @@
 
-/**
- * @description This ruleset enforces a strict user-ownership model for personal data and a shared-access model for collaborative data,
- *              leveraging denormalization to ensure authorization independence and efficient security checks.
- * @dataStructure
- *  - /users/{userId}: Stores user account information, accessible only by the owning user.
- *  - /user_profiles/{userProfileId}: Stores user profile data, linked 1:1 to users, and accessible only by the owning user.
- *  - /user_profiles/{userProfileId}/portfolio_items/{portfolioItemId}: Stores portfolio items, accessible only by the owning user.
- *  - /brand_profiles/{brandProfileId}: Stores brand profile data, linked to a user profile.
- *  - /creator_profiles/{creatorProfileId}: Stores creator profile data, linked to a user profile.
- *  - /service_provider_profiles/{serviceProviderProfileId}: Stores service provider profile data, linked to a user profile.
- *  - /studio_profiles/{studioProfileId}: Stores studio profile data, linked to a user profile.
- *  - /posts/{postId}: Stores post data, with public read access and owner-only write access.
- *  - /posts/{postId}/comments/{commentId}: Stores comments on posts, accessible only by the owning user.
- *  - /collab_requests/{collabRequestId}: Stores collaboration requests, accessible only by the sender or receiver.
- *  - /teams/{teamId}: Stores team data, with access controlled by team membership.
- *  - /projects/{projectId}: Stores project data, owned by the project creator.
- *  - /chat_messages/{chatMessageId}: Stores chat messages, accessible to the sender and receiver.
- *  - /support_tickets/{supportTicketId}: Stores support tickets, accessible only by the ticket owner.
- *  - /payments/{paymentId}: Stores payment information, accessible to payer or payee.
- * @keySecurityDecisions
- *  - User listing is disallowed for the base /users collection.
- *  - Strict owner-only access is enforced for user-specific data writes.
- *  - Public read access is granted for posts, with owner-only write access.
- * @denormalizationForAuthorization
- *  - Posts include `userId` for direct ownership checks.
- *  - Comments include `authorId` for direct ownership checks.
- *  - CollabRequests include `senderId` and `receiverId` for direct access control.
- */
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    /**
-     * @description Grants access to user documents only to the owning user.
-     * @path /users/{userId}
-     * @allow (get, create, update, delete): Authenticated user with matching userId.
-     * @deny (get, create, update, delete): Any other user.
-     * @principle Enforces document ownership for all operations.
-     */
+    // Users can only read and write their own user document.
     match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
-    /**
-     * @description Grants read access to any authenticated user, but write access only to the owner.
-     * @path /user_profiles/{userProfileId}
-     * @allow read (get, list): Any authenticated user.
-     * @allow write (create, update, delete): Authenticated user with a matching userProfileId.
-     * @principle Enables features like user search and stories while protecting user data.
-     */
+    // User profiles are publicly readable, but only the owner can write.
+    // This allows users to see each other's profiles.
     match /user_profiles/{userProfileId} {
-      allow read, list: if request.auth != null;
+      allow read: if request.auth != null;
       allow write: if request.auth != null && request.auth.uid == userProfileId;
 
+      // Portfolio items can only be managed by the profile owner.
       match /portfolio_items/{portfolioItemId} {
-        allow read, list, write: if request.auth != null && request.auth.uid == userProfileId;
+        allow read, write: if request.auth != null && request.auth.uid == userProfileId;
       }
-       match /stories/{storyId} {
-        allow read: if request.auth != null;
+
+      // Stories can be created by the profile owner.
+      // Reading is handled by the collection group rule below.
+      match /stories/{storyId} {
         allow write: if request.auth != null && request.auth.uid == userProfileId;
+        // Read is intentionally omitted here to rely on the collection group rule.
       }
     }
     
+    // This rule is crucial for collection group queries on 'stories'.
+    // It allows any authenticated user to list stories from all users.
     match /{path=**}/stories/{storyId} {
-      allow list: if request.auth != null;
+      allow read: if request.auth != null;
     }
 
-    /**
-     * @description Grants access to brand profile documents only to the owning user.
-     * @path /brand_profiles/{brandProfileId}
-     * @allow (get, create, update, delete): Authenticated user with a matching userProfileId.
-     * @deny (get, create, update, delete): Any other user.
-     * @principle Enforces document ownership for all operations.
-     */
+    // Role-specific profiles can be read by anyone, but only created/updated by the owner.
     match /brand_profiles/{brandProfileId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-      
-      function isOwnerByBrandProfileId() {
-          return isSignedIn() && get(/databases/$(database)/documents/user_profiles/$(resource.data.userProfileId)).data.userId == request.auth.uid;
-      }
-
-      function isExistingOwnerByBrandProfileId() {
-        return isOwnerByBrandProfileId() && resource != null;
-      }
-
-      allow get: if isOwnerByBrandProfileId();
-      allow list: if false;
-      allow create: if isSignedIn(); // Additional validation needed for userProfileId
-      allow update: if isExistingOwnerByBrandProfileId();
-      allow delete: if isExistingOwnerByBrandProfileId();
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.resource.data.userProfileId == request.auth.uid;
     }
 
-    /**
-     * @description Grants access to creator profile documents only to the owning user.
-     * @path /creator_profiles/{creatorProfileId}
-     * @allow (get, create, update, delete): Authenticated user with a matching userProfileId.
-     * @deny (get, create, update, delete): Any other user.
-     * @principle Enforces document ownership for all operations.
-     */
     match /creator_profiles/{creatorProfileId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isOwnerByCreatorProfileId() {
-          return isSignedIn() && get(/databases/$(database)/documents/user_profiles/$(resource.data.userProfileId)).data.userId == request.auth.uid;
-      }
-      
-      function isExistingOwnerByCreatorProfileId() {
-        return isOwnerByCreatorProfileId() && resource != null;
-      }
-
-      allow get: if isOwnerByCreatorProfileId();
-      allow list: if false;
-      allow create: if isSignedIn(); // Additional validation needed for userProfileId
-      allow update: if isExistingOwnerByCreatorProfileId();
-      allow delete: if isExistingOwnerByCreatorProfileId();
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.resource.data.userProfileId == request.auth.uid;
     }
 
-    /**
-     * @description Grants access to service provider profile documents only to the owning user.
-     * @path /service_provider_profiles/{serviceProviderProfileId}
-     * @allow (get, create, update, delete): Authenticated user with a matching userProfileId.
-     * @deny (get, create, update, delete): Any other user.
-     * @principle Enforces document ownership for all operations.
-     */
     match /service_provider_profiles/{serviceProviderProfileId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-      
-      function isOwnerByServiceProviderProfileId() {
-        return isSignedIn() && get(/databases/$(database)/documents/user_profiles/$(resource.data.userProfileId)).data.userId == request.auth.uid;
-      }
-
-      function isExistingOwnerByServiceProviderProfileId() {
-        return isOwnerByServiceProviderProfileId() && resource != null;
-      }
-
-      allow get: if isOwnerByServiceProviderProfileId();
-      allow list: if false;
-      allow create: if isSignedIn(); // Additional validation needed for userProfileId
-      allow update: if isExistingOwnerByServiceProviderProfileId();
-      allow delete: if isExistingOwnerByServiceProviderProfileId();
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.resource.data.userProfileId == request.auth.uid;
     }
 
-    /**
-     * @description Grants access to studio profile documents only to the owning user.
-     * @path /studio_profiles/{studioProfileId}
-     * @allow (get, create, update, delete): Authenticated user with a matching userProfileId.
-     * @deny (get, create, update, delete): Any other user.
-     * @principle Enforces document ownership for all operations.
-     */
+    // Studio profiles are publicly readable, but only the owner can write.
     match /studio_profiles/{studioProfileId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-      
-      function isOwnerByStudioProfileId() {
-          return isSignedIn() && get(/databases/$(database)/documents/user_profiles/$(request.resource.data.userProfileId)).data.userId == request.auth.uid;
-      }
-
-      function isExistingOwnerByStudioProfileId() {
-        return isSignedIn() && get(/databases/$(database)/documents/user_profiles/$(resource.data.userProfileId)).data.userId == request.auth.uid;
-      }
-
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-      allow create: if isOwnerByStudioProfileId();
-      allow update: if isExistingOwnerByStudioProfileId();
-      allow delete: if isExistingOwnerByStudioProfileId();
+      allow read: if request.auth != null;
+      // Note: create rule might need to be more robust in a real app, e.g. checking a custom claim
+      allow write: if request.auth != null && request.resource.data.userProfileId == request.auth.uid;
     }
 
-    /**
-     * @description Grants public read access to posts and owner-only write access.
-     * @path /posts/{postId}
-     * @allow (get): Public read access for single documents.
-     * @allow (list): Authenticated users can list all posts or filter by their own userId.
-     * @allow (create, update, delete): Authenticated user with matching authorId.
-     * @principle Enforces document ownership for writes, allows flexible public and private reads.
-     */
+    // Posts are publicly readable, but only the owner can write.
     match /posts/{postId} {
-      allow get: if true;
-      allow list: if request.auth != null;
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.resource.data.userId == request.auth.uid;
+
+       // Comments on posts can be read by anyone, but only the author can write.
+      match /comments/{commentId} {
+        allow read: if request.auth != null;
+        allow write: if request.auth != null && request.resource.data.authorId == request.auth.uid;
+      }
     }
 
-    /**
-     * @description Grants access to comments only to the author
-     * @path /posts/{postId}/comments/{commentId}
-     * @allow (get, create, update, delete): Authenticated user with matching authorId.
-     * @deny (get, create, update, delete): Any other user.
-     * @principle Enforces document ownership for all operations.
-     */
-    match /posts/{postId}/comments/{commentId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isOwner(authorId) {
-        return isSignedIn() && request.auth.uid == authorId;
-      }
-      
-      function isExistingOwner(authorId) {
-        return isOwner(authorId) && resource != null;
-      }
-
-      allow get: if isOwner(resource.data.authorId);
-      allow list: if true;
-      allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
-      allow update: if isExistingOwner(resource.data.authorId);
-      allow delete: if isExistingOwner(resource.data.authorId);
-    }
-
-    /**
-     * @description Grants access to collab requests only to the sender or receiver.
-     * @path /collab_requests/{collabRequestId}
-     * @allow (get, create, update, delete): Authenticated user who is either the sender or receiver.
-     * @deny (get, create, update, delete): Any other user.
-     * @principle Enforces access based on participation in the collaboration request.
-     */
+    // Collab requests are only readable/writeable by the sender or receiver.
     match /collab_requests/{collabRequestId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isSenderOrReceiver(senderId, receiverId) {
-        return isSignedIn() && (request.auth.uid == senderId || request.auth.uid == receiverId);
-      }
-      
-      function isExistingSenderOrReceiver(senderId, receiverId) {
-        return isSenderOrReceiver(senderId, receiverId) && resource != null;
-      }
-
-      allow get: if isSenderOrReceiver(resource.data.senderId, resource.data.receiverId);
-      allow list: if isSignedIn() && (resource.data.senderId == request.auth.uid || resource.data.receiverId == request.auth.uid);
-      allow create: if isSignedIn() && request.resource.data.senderId == request.auth.uid;
-      allow update: if isExistingSenderOrReceiver(resource.data.senderId, resource.data.receiverId);
-      allow delete: if isExistingSenderOrReceiver(resource.data.senderId, resource.data.receiverId);
+      allow read, write: if request.auth != null && (request.auth.uid == resource.data.senderId || request.auth.uid == resource.data.receiverId);
     }
-
-    /**
-     * @description Grants access to teams based on membership.
-     * @path /teams/{teamId}
-     * @allow (get, create, update, delete): Authenticated member of the team.
-     * @deny (get, create, update, delete): Any other user.
-     * @principle Enforces access based on team membership.
-     */
-    match /teams/{teamId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isMember(memberIds) {
-        return isSignedIn() && memberIds.hasAny([request.auth.uid]);
-      }
-      
-      function isExistingMember(memberIds) {
-        return isMember(memberIds) && resource != null;
-      }
-
-      allow get: if isSignedIn() && resource.data.memberIds.hasAny([request.auth.uid]);
-      allow list: if false;
-      allow create: if isSignedIn(); // Additional validation needed to ensure user is added as a member
-      allow update: if isExistingMember(resource.data.memberIds);
-      allow delete: if isExistingMember(resource.data.memberIds);
-    }
-
-    /**
-     * @description Grants access to projects only to the creator.
-     * @path /projects/{projectId}
-     * @allow (get, create, update, delete): Authenticated user who is the project creator.
-     * @deny (get, create, update, delete): Any other user.
-     * @principle Enforces document ownership for all operations.
-     */
+    
+    // Projects are readable by any authenticated user, but only the owner can write.
     match /projects/{projectId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isOwner(ownerId) {
-        return isSignedIn() && request.auth.uid == ownerId;
-      }
-      
-      function isExistingOwner(ownerId) {
-        return isOwner(ownerId) && resource != null;
-      }
-
-      allow get: if isOwner(resource.data.ownerId);
-      allow list: if isSignedIn();
-      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
-      allow update: if isExistingOwner(resource.data.ownerId);
-      allow delete: if isExistingOwner(resource.data.ownerId);
+        allow read: if request.auth != null;
+        allow write: if request.auth != null && request.resource.data.ownerId == request.auth.uid;
     }
 
-    /**
-     * @description Grants access to chat messages only to the sender or receiver.
-     * @path /chat_messages/{chatMessageId}
-     * @allow (get, create, update, delete): Authenticated user who is either the sender or receiver.
-     * @deny (get, create, update, delete): Any other user.
-     * @principle Enforces access based on participation in the chat.
-     */
+    // --- Other rules from the original file - left for completeness ---
+    
+    match /teams/{teamId} {
+      allow read, write: if request.auth != null && request.auth.uid in resource.data.memberIds;
+    }
+
     match /chat_messages/{chatMessageId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isSenderOrReceiver(senderId, receiverId) {
-        return isSignedIn() && (request.auth.uid == senderId || request.auth.uid == receiverId);
-      }
-      
-      function isExistingSenderOrReceiver(senderId, receiverId) {
-        return isSenderOrReceiver(senderId, receiverId) && resource != null;
-      }
-
-      allow get: if isSenderOrReceiver(resource.data.senderId, resource.data.receiverId);
-      allow list: if isSignedIn() && (resource.data.senderId == request.auth.uid || resource.data.receiverId == request.auth.uid);
-      allow create: if isSignedIn() && request.resource.data.senderId == request.auth.uid;
-      allow update: if isExistingSenderOrReceiver(resource.data.senderId, resource.data.receiverId);
-      allow delete: if isExistingSenderOrReceiver(resource.data.senderId, resource.data.receiverId);
+      allow read, write: if request.auth != null && (request.auth.uid == resource.data.senderId || request.auth.uid == resource.data.receiverId);
     }
 
-    /**
-     * @description Grants access to support tickets only to the ticket owner.
-     * @path /support_tickets/{supportTicketId}
-     * @allow (get, create, update, delete): Authenticated user who owns the ticket.
-     * @deny (get, create, update, delete): Any other user.
-     * @principle Enforces document ownership for all operations.
-     */
     match /support_tickets/{supportTicketId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isOwner(userId) {
-        return isSignedIn() && request.auth.uid == userId;
-      }
-      
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-
-      allow get: if isOwner(resource.data.userId);
-      allow list: if isOwner(resource.data.userId);
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update: if isExistingOwner(resource.data.userId);
-      allow delete: if isExistingOwner(resource.data.userId);
+      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
     }
-
-    /**
-     * @description Grants access to payments to payer and payee only.
-     * @path /payments/{paymentId}
-     * @allow (get, create, update, delete): Authenticated user who is either the payer or payee.
-     * @deny (get, create, update, delete): Any other user.
-     * @principle Enforces access based on participation in the payment.
-     */
+    
     match /payments/{paymentId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isPayerOrPayee(payerId, payeeId) {
-        return isSignedIn() && (request.auth.uid == payerId || request.auth.uid == payeeId);
-      }
-      
-      function isExistingPayerOrPayee(payerId, payeeId) {
-        return isPayerOrPayee(payerId, payeeId) && resource != null;
-      }
-
-      allow get: if isPayerOrPayee(resource.data.payerId, resource.data.payeeId);
-      allow list: if false;
-      allow create: if isSignedIn(); // Validation is required to verify the creator.
-      allow update: if isExistingPayerOrPayee(resource.data.payerId, resource.data.payeeId);
-      allow delete: if isExistingPayerOrPayee(resource.data.payerId, resource.data.payeeId);
+      allow read, write: if request.auth != null && (request.auth.uid == resource.data.payerId || request.auth.uid == resource.data.payeeId);
     }
   }
 }
-
-    
