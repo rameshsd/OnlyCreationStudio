@@ -75,7 +75,7 @@ const MediaContent = ({ mediaItem }: { mediaItem: Media }) => {
             </div>
         )
     }
-    return <Image src={mediaItem.url} alt="Post media" width={600} height={800} className="rounded-lg object-cover" data-ai-hint={mediaItem.hint} />;
+    return <Image src={mediaItem.url} alt="Post media" fill className="object-contain" data-ai-hint={mediaItem.hint} />;
 }
 
 export function PostCard({ post }: { post: Post }) {
@@ -99,7 +99,7 @@ export function PostCard({ post }: { post: Post }) {
                         <AvatarFallback>{post.username?.substring(0, 2).toUpperCase()}</AvatarFallback>
                     </Avatar>
                     <div>
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1.5">
                             <p className="font-bold">{post.username}</p>
                             {post.userIsVerified && <Star className="h-4 w-4 text-blue-500 fill-current" />}
                         </div>
@@ -108,7 +108,7 @@ export function PostCard({ post }: { post: Post }) {
                 </div>
                 <Button variant="ghost" size="icon"><MoreHorizontal className="h-5 w-5" /></Button>
             </CardHeader>
-            <CardContent className="px-4 pb-2 space-y-3">
+            <CardContent className="px-4 pb-2 space-y-4">
                 <ExpandableText text={post.caption} />
                 {post.media && post.media.length > 0 && (
                     <div className="relative -mx-4">
@@ -117,7 +117,7 @@ export function PostCard({ post }: { post: Post }) {
                                 <CarouselContent>
                                 {post.media.map((item, index) => (
                                     <CarouselItem key={index} className="pl-4">
-                                        <div className="relative aspect-square md:aspect-video bg-secondary rounded-lg overflow-hidden">
+                                        <div className="relative aspect-[4/3] bg-black/5 backdrop-blur-sm rounded-lg overflow-hidden">
                                            <MediaContent mediaItem={item} />
                                         </div>
                                     </CarouselItem>
@@ -127,7 +127,7 @@ export function PostCard({ post }: { post: Post }) {
                                 <CarouselNext className="right-6"/>
                             </Carousel>
                         ) : (
-                             <div className="relative aspect-square md:aspect-[4/3] bg-secondary rounded-lg overflow-hidden mx-4">
+                             <div className="relative aspect-[4/3] bg-black/5 backdrop-blur-sm rounded-lg overflow-hidden mx-4">
                                 <MediaContent mediaItem={post.media[0]} />
                             </div>
                         )}
@@ -135,26 +135,33 @@ export function PostCard({ post }: { post: Post }) {
                 )}
             </CardContent>
             <CardFooter className="p-4 pt-2 flex flex-col items-start gap-2">
-                 <div className="flex items-center gap-2 text-muted-foreground text-xs">
-                    <span>{post.likes + (isLiked ? 1 : 0)} Likes</span>
-                    &middot;
-                    <span>{post.comments} Comments</span>
-                    &middot;
-                    <span>{post.shares} Shares</span>
+                 <div className="flex items-center gap-4 text-muted-foreground text-sm">
+                    <div className="flex items-center gap-1">
+                        <Heart className="h-4 w-4" />
+                        <span>{post.likes + (isLiked ? 1 : 0)}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                        <MessageCircle className="h-4 w-4" />
+                        <span>{post.comments}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                        <Share2 className="h-4 w-4" />
+                        <span>{post.shares}</span>
+                    </div>
                 </div>
                 <div className="w-full h-px bg-border my-1"></div>
                 <div className="w-full grid grid-cols-4">
-                    <Button variant="ghost" className="text-muted-foreground" onClick={() => setIsLiked(!isLiked)}>
-                        <Heart className={cn("mr-2", isLiked ? "text-red-500 fill-current" : "")} /> Like
+                    <Button variant="ghost" className="text-muted-foreground font-semibold" onClick={() => setIsLiked(!isLiked)}>
+                        <Heart className={cn("mr-2 h-5 w-5", isLiked ? "text-red-500 fill-current" : "")} /> Like
                     </Button>
-                    <Button variant="ghost" className="text-muted-foreground">
-                        <MessageCircle className="mr-2" /> Comment
+                    <Button variant="ghost" className="text-muted-foreground font-semibold">
+                        <MessageCircle className="mr-2 h-5 w-5" /> Comment
                     </Button>
-                    <Button variant="ghost" className="text-muted-foreground">
-                        <Share2 className="mr-2" /> Share
+                    <Button variant="ghost" className="text-muted-foreground font-semibold">
+                        <Share2 className="mr-2 h-5 w-5" /> Share
                     </Button>
-                    <Button variant="ghost" className="text-muted-foreground" onClick={() => setIsSaved(!isSaved)}>
-                        <Bookmark className={cn("mr-2", isSaved ? "text-yellow-500 fill-current" : "")} /> Save
+                    <Button variant="ghost" className="text-muted-foreground font-semibold" onClick={() => setIsSaved(!isSaved)}>
+                        <Bookmark className={cn("mr-2 h-5 w-5", isSaved ? "text-yellow-500 fill-current" : "")} /> Save
                     </Button>
                 </div>
             </CardFooter>
