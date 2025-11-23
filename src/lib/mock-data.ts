@@ -79,20 +79,6 @@ export const generateMockPosts = (count: number): Post[] => {
     return posts;
 };
 
-export const generateMockStories = (count: number) => {
-    const stories = [{ name: "My Story", avatar: null, isSelf: true, hint: "add story" }];
-    for (let i = 0; i < count; i++) {
-        const name = getRandomElement(firstNames);
-        stories.push({
-            name,
-            avatar: getRandomElement(avatarPool),
-            isSelf: false,
-            hint: "portrait",
-        });
-    }
-    return stories;
-}
-
 export const generateMockTrendingTopics = (count: number) => {
     const topics = ["#AIinMarketing", "#SustainableFashion", "#CreatorEconomy", "#Web3", "#IndieDev", "#DigitalNomad", "#FutureOfWork", "#UIUX", "#NextJSTrends", "#Firebase"];
     const generatedTopics: string[] = [];

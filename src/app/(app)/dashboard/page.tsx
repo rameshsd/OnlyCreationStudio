@@ -4,7 +4,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardFooter } from "@/components/ui/card";
-import { Plus, Search, Bell, Rss, TrendingUp, Users, Video, Send, Bookmark, Heart, MessageCircle, MapPin } from "lucide-react";
+import { Plus, Search, Bell, Rss, TrendingUp, Users, Video, Send, Bookmark, Heart, MessageCircle, MapPin, Share2 } from "lucide-react";
 import Link from "next/link";
 import React, { useState, useEffect } from "react";
 import { PostCard, type Post } from "@/components/post-card";
@@ -12,10 +12,11 @@ import { ShortsReelCard } from "@/components/shorts-reel-card";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, orderBy, query, onSnapshot, Timestamp } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
-import { generateMockStories, generateMockSuggestions, generateMockTrendingTopics } from "@/lib/mock-data";
+import { generateMockSuggestions, generateMockTrendingTopics } from "@/lib/mock-data";
 import { useCollection, useMemoFirebase } from "@/firebase";
 import type { StudioProfile } from "../studios/[id]/page";
 import { StudioPostCard } from "@/components/studio-post-card";
+import { useAuth } from "@/hooks/use-auth";
 
 
 const feedFilters = [
@@ -27,7 +28,12 @@ const feedFilters = [
 
 const trendingTopics = generateMockTrendingTopics(20);
 const suggestedUsers = generateMockSuggestions(5);
-const stories = generateMockStories(50);
+
+interface UserProfile {
+    id: string;
+    username: string;
+    avatarUrl: string;
+}
 
 
 const SuggestionsCard = () => (
@@ -56,38 +62,39 @@ const SuggestionsCard = () => (
 );
 
 const PostSkeleton = () => (
-  <Card className="bg-card border-none rounded-2xl overflow-hidden shadow-sm">
-    <CardHeader className="p-4 flex flex-row items-center gap-3">
-        <Skeleton className="h-11 w-11 rounded-full" />
-        <div className="space-y-2">
-            <Skeleton className="h-4 w-24" />
-            <Skeleton className="h-3 w-20" />
-        </div>
-    </CardHeader>
-    <CardContent className="p-0">
-        <Skeleton className="relative aspect-[4/3] w-full" />
-    </CardContent>
-    <CardFooter className="p-4 flex flex-col items-start gap-3">
-        <div className="w-full flex justify-between items-center">
-            <div className="flex items-center gap-4">
-                <Skeleton className="h-5 w-12" />
-                <Skeleton className="h-5 w-12" />
-                <Skeleton className="h-5 w-5" />
-            </div>
-            <Skeleton className="h-8 w-8" />
-        </div>
-        <div className="w-full h-px bg-border"></div>
-        <div className="w-full flex justify-between items-center">
-            <Skeleton className="h-5 w-1/3" />
-            <Skeleton className="h-8 w-1/4" />
-        </div>
-    </CardFooter>
-  </Card>
-)
+    <Card className="bg-card border-none rounded-2xl overflow-hidden shadow-sm">
+      <CardHeader className="p-4 flex flex-row items-center gap-3">
+          <Skeleton className="h-11 w-11 rounded-full" />
+          <div className="space-y-2">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-3 w-20" />
+          </div>
+      </CardHeader>
+      <CardContent className="p-0">
+          <Skeleton className="relative aspect-[4/3] w-full" />
+      </CardContent>
+       <CardFooter className="p-4 flex flex-col items-start gap-3">
+          <div className="w-full flex justify-between items-center text-muted-foreground">
+              <div className="flex items-center gap-4">
+                  <Skeleton className="h-5 w-12" />
+                  <Skeleton className="h-5 w-12" />
+                  <Skeleton className="h-5 w-5" />
+              </div>
+              <Skeleton className="h-8 w-8" />
+          </div>
+           <div className="w-full h-px bg-border my-1"></div>
+           <div className="w-full flex justify-between items-center">
+              <Skeleton className="h-5 w-1/3" />
+              <Skeleton className="h-8 w-1/4" />
+           </div>
+      </CardFooter>
+    </Card>
+  )
 
 type FeedItem = (Post & { type: 'post' }) | (StudioProfile & { type: 'studio' });
 
 export default function DashboardPage() {
+    const { userData } = useAuth();
     const [activeFilter, setActiveFilter] = useState("All");
     const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
     const [loading, setLoading] = useState(true);
@@ -97,6 +104,18 @@ export default function DashboardPage() {
 
     const studiosQuery = useMemoFirebase(() => query(collection(db, "studio_profiles"), orderBy("createdAt", "desc")), []);
     const { data: studios, isLoading: studiosLoading } = useCollection<StudioProfile>(studiosQuery);
+
+    const usersQuery = useMemoFirebase(() => query(collection(db, "user_profiles")), []);
+    const { data: users, isLoading: usersLoading } = useCollection<UserProfile>(usersQuery);
+
+    const stories = useMemoFirebase(() => {
+        if (!users || !userData) return [];
+        const otherUsers = users.filter(u => u.id !== userData.userId);
+        return [
+            { id: userData.userId, username: "My Story", avatarUrl: userData.avatarUrl, isSelf: true },
+            ...otherUsers
+        ];
+    }, [users, userData]);
 
 
     useEffect(() => {
@@ -135,24 +154,33 @@ export default function DashboardPage() {
             <div className="lg:col-span-8">
                 <div className="flex flex-col gap-8 text-foreground">
                     <div className="flex space-x-4 overflow-x-auto pb-4 -mx-4 px-4">
-                        {stories.map((story, index) => (
-                            <Link href="#" key={index} className="flex flex-col items-center gap-2 flex-shrink-0 w-20">
-                                <div className="h-20 w-20 rounded-full bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-500 p-1">
-                                    <div className="bg-background rounded-full p-1 w-full h-full">
-                                        <Avatar className="h-full w-full relative">
-                                            {story.avatar && <AvatarImage src={story.avatar} alt={story.name} data-ai-hint={story.hint} />}
-                                            <AvatarFallback className="text-xs">{story.name.substring(0,2)}</AvatarFallback>
-                                            {story.isSelf && (
-                                                <div className="absolute bottom-0 right-0 bg-primary text-primary-foreground rounded-full h-6 w-6 flex items-center justify-center border-2 border-background">
-                                                    <Plus className="h-4 w-4" />
-                                                </div>
-                                            )}
-                                        </Avatar>
-                                    </div>
+                        {usersLoading ? (
+                             [...Array(10)].map((_, index) => (
+                                <div key={index} className="flex flex-col items-center gap-2 flex-shrink-0 w-20">
+                                    <Skeleton className="h-20 w-20 rounded-full" />
+                                    <Skeleton className="h-3 w-16" />
                                 </div>
-                                <span className="text-xs font-medium truncate w-full text-center">{story.name}</span>
-                            </Link>
-                        ))}
+                            ))
+                        ) : (
+                            stories.map((story: any) => (
+                                <Link href="#" key={story.id} className="flex flex-col items-center gap-2 flex-shrink-0 w-20">
+                                    <div className="h-20 w-20 rounded-full bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-500 p-1">
+                                        <div className="bg-background rounded-full p-1 w-full h-full">
+                                            <Avatar className="h-full w-full relative">
+                                                {story.avatarUrl && <AvatarImage src={story.avatarUrl} alt={story.username} data-ai-hint="user avatar" />}
+                                                <AvatarFallback className="text-xs">{story.username?.substring(0,2)}</AvatarFallback>
+                                                {story.isSelf && (
+                                                    <div className="absolute bottom-0 right-0 bg-primary text-primary-foreground rounded-full h-6 w-6 flex items-center justify-center border-2 border-background">
+                                                        <Plus className="h-4 w-4" />
+                                                    </div>
+                                                )}
+                                            </Avatar>
+                                        </div>
+                                    </div>
+                                    <span className="text-xs font-medium truncate w-full text-center">{story.username}</span>
+                                </Link>
+                            ))
+                        )}
                     </div>
 
                     <div className="flex items-center gap-2 overflow-x-auto pb-2 -mx-4 px-4">
