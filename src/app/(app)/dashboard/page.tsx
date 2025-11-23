@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -17,6 +18,7 @@ import { useCollection, useMemoFirebase } from "@/firebase";
 import type { StudioProfile } from "../studios/[id]/page";
 import { StudioPostCard } from "@/components/studio-post-card";
 import { useAuth } from "@/hooks/use-auth";
+import { AddStoryDialog } from "@/components/add-story-dialog";
 
 
 const feedFilters = [
@@ -94,10 +96,11 @@ const PostSkeleton = () => (
 type FeedItem = (Post & { type: 'post' }) | (StudioProfile & { type: 'studio' });
 
 export default function DashboardPage() {
-    const { userData } = useAuth();
+    const { user, userData } = useAuth();
     const [activeFilter, setActiveFilter] = useState("All");
     const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isAddStoryOpen, setIsAddStoryOpen] = useState(false);
     
     const postsQuery = useMemoFirebase(() => query(collection(db, "posts"), orderBy("createdAt", "desc")), []);
     const { data: posts, isLoading: postsLoading } = useCollection<Post>(postsQuery);
@@ -139,8 +142,18 @@ export default function DashboardPage() {
             setLoading(false);
         }
     }, [posts, studios, postsLoading, studiosLoading]);
+    
+  if (!user || !userData) {
+      return (
+          <div className="flex h-screen items-center justify-center">
+              <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          </div>
+      );
+  }
 
   return (
+    <>
+    <AddStoryDialog open={isAddStoryOpen} onOpenChange={setIsAddStoryOpen} />
     <div className="space-y-8">
         <header className="flex justify-between items-center md:hidden">
             <h1 className="text-2xl font-bold">OnlyCreation</h1>
@@ -163,7 +176,11 @@ export default function DashboardPage() {
                             ))
                         ) : (
                             stories.map((story: any) => (
-                                <Link href="#" key={story.id} className="flex flex-col items-center gap-2 flex-shrink-0 w-20">
+                                <button
+                                    key={story.id}
+                                    className="flex flex-col items-center gap-2 flex-shrink-0 w-20"
+                                    onClick={() => story.isSelf && setIsAddStoryOpen(true)}
+                                >
                                     <div className="h-20 w-20 rounded-full bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-500 p-1">
                                         <div className="bg-background rounded-full p-1 w-full h-full">
                                             <Avatar className="h-full w-full relative">
@@ -178,7 +195,7 @@ export default function DashboardPage() {
                                         </div>
                                     </div>
                                     <span className="text-xs font-medium truncate w-full text-center">{story.username}</span>
-                                </Link>
+                                </button>
                             ))
                         )}
                     </div>
@@ -258,5 +275,8 @@ export default function DashboardPage() {
             </Link>
          </Button>
     </div>
+    </>
   );
 }
+
+    
