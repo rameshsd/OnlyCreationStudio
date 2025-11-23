@@ -16,7 +16,7 @@ import { Trash2, Info, Percent, Upload, Plus, X, Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { addDoc, collection } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { uploadPhoto } from '@/app/(app)/create/actions';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -120,6 +120,7 @@ export default function StudioOnboardingPage() {
                 size: 'Medium',
                 qualityGrade: 'A',
                 services: ['Photography', 'Videography'],
+                createdAt: serverTimestamp(),
             };
 
             await addDoc(collection(db, 'studio_profiles'), studioData)
@@ -494,5 +495,3 @@ export default function StudioOnboardingPage() {
         </div>
     );
 }
-
-    

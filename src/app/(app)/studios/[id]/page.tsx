@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Star, MapPin, Camera, Mic, Lightbulb, Users, Clock, Loader2, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useDoc, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { doc, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -24,7 +24,7 @@ const staticStudioData = {
   ]
 };
 
-interface StudioProfile {
+export interface StudioProfile {
     id: string;
     studioName: string;
     location: string;
@@ -41,6 +41,9 @@ interface StudioProfile {
     size: string;
     qualityGrade: string;
     services: string[];
+    createdAt: Timestamp;
+    rating?: number;
+    reviewCount?: number;
 }
 
 const StudioDetailSkeleton = () => (

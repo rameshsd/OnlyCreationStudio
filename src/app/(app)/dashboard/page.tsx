@@ -3,17 +3,19 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Plus, Search, Bell, Rss, TrendingUp, Users, Video } from "lucide-react";
 import Link from "next/link";
 import React, { useState, useEffect } from "react";
 import { PostCard, type Post } from "@/components/post-card";
 import { ShortsReelCard } from "@/components/shorts-reel-card";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, orderBy, query, onSnapshot } from "firebase/firestore";
+import { collection, getDocs, orderBy, query, onSnapshot, Timestamp } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
 import { generateMockStories, generateMockSuggestions, generateMockTrendingTopics } from "@/lib/mock-data";
 import { useCollection, useMemoFirebase } from "@/firebase";
+import type { StudioProfile } from "../studios/[id]/page";
+import { StudioPostCard } from "@/components/studio-post-card";
 
 
 const feedFilters = [
@@ -81,12 +83,41 @@ const PostSkeleton = () => (
   </Card>
 )
 
+type FeedItem = (Post & { type: 'post' }) | (StudioProfile & { type: 'studio' });
 
 export default function DashboardPage() {
     const [activeFilter, setActiveFilter] = useState("All");
+    const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
+    const [loading, setLoading] = useState(true);
     
     const postsQuery = useMemoFirebase(() => query(collection(db, "posts"), orderBy("createdAt", "desc")), []);
-    const { data: posts, isLoading: loading } = useCollection<Post>(postsQuery);
+    const { data: posts, isLoading: postsLoading } = useCollection<Post>(postsQuery);
+
+    const studiosQuery = useMemoFirebase(() => query(collection(db, "studio_profiles"), orderBy("createdAt", "desc")), []);
+    const { data: studios, isLoading: studiosLoading } = useCollection<StudioProfile>(studiosQuery);
+
+
+    useEffect(() => {
+        if (!postsLoading && !studiosLoading) {
+            const combinedFeed: FeedItem[] = [];
+            if (posts) {
+                combinedFeed.push(...posts.map(p => ({ ...p, type: 'post' as const })));
+            }
+            if (studios) {
+                combinedFeed.push(...studios.map(s => ({ ...s, type: 'studio' as const })));
+            }
+
+            // Sort by createdAt timestamp
+            combinedFeed.sort((a, b) => {
+                const dateA = a.createdAt ? (a.createdAt as Timestamp).toMillis() : 0;
+                const dateB = b.createdAt ? (b.createdAt as Timestamp).toMillis() : 0;
+                return dateB - dateA;
+            });
+
+            setFeedItems(combinedFeed);
+            setLoading(false);
+        }
+    }, [posts, studios, postsLoading, studiosLoading]);
 
   return (
     <>
@@ -143,10 +174,14 @@ export default function DashboardPage() {
                           <PostSkeleton />
                           <PostSkeleton />
                         </>
-                    ) : posts && posts.length > 0 ? (
-                        posts.map((post, index) => (
-                            <React.Fragment key={post.id}>
-                                <PostCard post={post} />
+                    ) : feedItems && feedItems.length > 0 ? (
+                        feedItems.map((item, index) => (
+                            <React.Fragment key={item.id}>
+                                {item.type === 'post' ? (
+                                    <PostCard post={item} />
+                                ) : (
+                                    <StudioPostCard studio={item} />
+                                )}
                                  { (index + 1) % 5 === 0 && (
                                     <ShortsReelCard />
                                 )}
