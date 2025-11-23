@@ -2,10 +2,11 @@
 "use client";
 
 import Image from 'next/image';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardFooter } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { PlayCircle, Star } from 'lucide-react';
+import { PlayCircle, Star, Heart, MessageCircle, Send, Bookmark } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { Button } from './ui/button';
 
 interface Media {
     type: 'image' | 'video';
@@ -69,15 +70,37 @@ export function PostCard({ post }: { post: Post }) {
                     <p className="text-xs text-muted-foreground">@{post.username} &middot; {formatTimestamp(post.createdAt)}</p>
                 </div>
             </CardHeader>
-            <CardContent className="px-4 pb-4 space-y-4">
+            <CardContent className="px-4 pb-0 space-y-4">
                 {post.caption && <p className="text-sm whitespace-pre-line">{post.caption}</p>}
                 
                 {post.media && post.media.length > 0 && (
-                    <div className="relative">
+                     <div className="relative aspect-[4/3] bg-secondary rounded-lg overflow-hidden">
                         <MediaContent mediaItem={post.media[0]} />
                     </div>
                 )}
             </CardContent>
+             <CardFooter className="p-4 flex flex-col items-start gap-3">
+                <div className="w-full flex justify-between items-center text-muted-foreground">
+                    <div className="flex items-center gap-4">
+                        <button className="flex items-center gap-1.5 hover:text-primary transition-colors">
+                            <Heart className="h-5 w-5" />
+                            <span className="text-sm font-medium">{post.likes}</span>
+                        </button>
+                        <button className="flex items-center gap-1.5 hover:text-primary transition-colors">
+                            <MessageCircle className="h-5 w-5" />
+                            <span className="text-sm font-medium">{post.comments}</span>
+                        </button>
+                        <button className="flex items-center gap-1.5 hover:text-primary transition-colors">
+                            <Send className="h-5 w-5" />
+                        </button>
+                    </div>
+                    <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary">
+                        <Bookmark className="h-5 w-5" />
+                    </Button>
+                </div>
+            </CardFooter>
         </Card>
     );
 }
+
+    

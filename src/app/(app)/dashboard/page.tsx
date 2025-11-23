@@ -4,7 +4,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardFooter } from "@/components/ui/card";
-import { Plus, Search, Bell, Rss, TrendingUp, Users, Video } from "lucide-react";
+import { Plus, Search, Bell, Rss, TrendingUp, Users, Video, Send, Bookmark, Heart, MessageCircle, MapPin } from "lucide-react";
 import Link from "next/link";
 import React, { useState, useEffect } from "react";
 import { PostCard, type Post } from "@/components/post-card";
@@ -57,28 +57,31 @@ const SuggestionsCard = () => (
 
 const PostSkeleton = () => (
   <Card className="bg-card border-none rounded-2xl overflow-hidden shadow-sm">
-    <CardHeader className="p-4 flex flex-row justify-between items-center">
-      <div className="flex items-center gap-3">
+    <CardHeader className="p-4 flex flex-row items-center gap-3">
         <Skeleton className="h-11 w-11 rounded-full" />
         <div className="space-y-2">
-          <Skeleton className="h-4 w-24" />
-          <Skeleton className="h-3 w-20" />
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-3 w-20" />
         </div>
-      </div>
-      <Skeleton className="h-8 w-8" />
     </CardHeader>
-    <CardContent className="px-4 pb-2 space-y-3">
-      <Skeleton className="h-4 w-full" />
-      <Skeleton className="h-4 w-5/6" />
-      <Skeleton className="relative aspect-video w-full rounded-lg" />
+    <CardContent className="px-4 pb-0 space-y-3">
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="relative aspect-[4/3] w-full rounded-lg" />
     </CardContent>
-    <CardFooter className="p-4 pt-2">
-      <div className="w-full grid grid-cols-4 gap-2">
-        <Skeleton className="h-8 w-full" />
-        <Skeleton className="h-8 w-full" />
-        <Skeleton className="h-8 w-full" />
-        <Skeleton className="h-8 w-full" />
-      </div>
+    <CardFooter className="p-4 flex flex-col items-start gap-3">
+        <div className="w-full flex justify-between items-center">
+            <div className="flex items-center gap-4">
+                <Skeleton className="h-5 w-12" />
+                <Skeleton className="h-5 w-12" />
+                <Skeleton className="h-5 w-5" />
+            </div>
+            <Skeleton className="h-8 w-8" />
+        </div>
+        <div className="w-full h-px bg-border"></div>
+        <div className="w-full flex justify-between items-center">
+            <Skeleton className="h-5 w-1/3" />
+            <Skeleton className="h-8 w-1/4" />
+        </div>
     </CardFooter>
   </Card>
 )
@@ -230,3 +233,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    

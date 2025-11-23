@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Heart, MessageCircle, Send, Bookmark, Clock, MapPin, Star } from 'lucide-react';
 import type { StudioProfile } from '@/app/(app)/studios/[id]/page';
-import { cn } from '@/lib/utils';
 
 export function StudioPostCard({ studio }: { studio: StudioProfile }) {
     
@@ -22,50 +21,54 @@ export function StudioPostCard({ studio }: { studio: StudioProfile }) {
                 <div className="flex justify-between items-start">
                     <div className="flex items-center gap-3">
                         <Avatar className="h-11 w-11 bg-primary/20 text-primary font-bold">
-                            <AvatarFallback>{studio.studioName?.substring(0, 1).toUpperCase()}</AvatarFallback>
+                             <AvatarFallback>{studio.studioName?.substring(0, 1).toUpperCase()}</AvatarFallback>
                         </Avatar>
                         <div>
                             <Link href={`/studios/${studio.id}`} className="font-bold hover:underline">{studio.studioName}</Link>
                             <p className="text-xs text-muted-foreground flex items-center gap-1">{studio.location}</p>
                         </div>
                     </div>
-                     <div className="flex items-center gap-2 flex-shrink-0">
+                     <div className="flex items-center gap-2 flex-shrink-0 text-xs text-muted-foreground">
                         <Badge variant="outline" className="font-normal">{studio.type || 'Photography Studio'}</Badge>
-                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <span>&middot;</span>
+                        <Clock className="h-3 w-3" />
+                        <span>Featured</span>
                     </div>
                 </div>
             </CardHeader>
             <CardContent className="p-0">
-                <div className="relative aspect-[4/3] bg-secondary">
-                     {studio.photos?.[0] ? (
-                        <Image src={studio.photos[0]} alt={studio.studioName} fill className="object-cover" data-ai-hint="studio interior" />
-                    ) : (
-                        <div className="flex items-center justify-center h-full">
-                            <p className="text-muted-foreground text-2xl font-bold">Studio Photo</p>
-                        </div>
-                    )}
-                    <Badge className="absolute top-3 right-3 bg-black/70 text-white border-none">
-                        <Star className="h-3 w-3 mr-1.5 fill-yellow-400 text-yellow-400" />
-                       {rating} ({reviewCount})
-                    </Badge>
-                </div>
+                <Link href={`/studios/${studio.id}`} className="block">
+                    <div className="relative aspect-[4/3] bg-secondary">
+                        {studio.photos?.[0] ? (
+                            <Image src={studio.photos[0]} alt={studio.studioName} fill className="object-cover" data-ai-hint="studio interior" />
+                        ) : (
+                            <div className="flex items-center justify-center h-full">
+                                <p className="text-muted-foreground text-2xl font-bold">Studio Photo</p>
+                            </div>
+                        )}
+                        <Badge className="absolute top-3 right-3 bg-black/70 text-white border-none">
+                            <Star className="h-3 w-3 mr-1.5 fill-yellow-400 text-yellow-400" />
+                           {rating} ({reviewCount})
+                        </Badge>
+                    </div>
+                </Link>
             </CardContent>
             <CardFooter className="p-4 flex flex-col items-start gap-3">
                 <div className="w-full flex justify-between items-center text-muted-foreground">
                     <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-1.5">
+                        <button className="flex items-center gap-1.5 hover:text-primary transition-colors">
                             <Heart className="h-5 w-5" />
                             <span className="text-sm font-medium">324</span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
+                        </button>
+                        <button className="flex items-center gap-1.5 hover:text-primary transition-colors">
                             <MessageCircle className="h-5 w-5" />
                             <span className="text-sm font-medium">24</span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
+                        </button>
+                        <button className="flex items-center gap-1.5 hover:text-primary transition-colors">
                             <Send className="h-5 w-5" />
-                        </div>
+                        </button>
                     </div>
-                    <Button variant="ghost" size="icon" className="text-muted-foreground">
+                    <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary">
                         <Bookmark className="h-5 w-5" />
                     </Button>
                 </div>
@@ -77,9 +80,14 @@ export function StudioPostCard({ studio }: { studio: StudioProfile }) {
                     </div>
                     <div className="flex items-center gap-4">
                         <p className="text-primary font-bold text-lg">₹{studio.price}/hour</p>
+                        <Button size="sm" asChild>
+                           <Link href={`/studios/${studio.id}`}>Book Now</Link>
+                        </Button>
                     </div>
                  </div>
             </CardFooter>
         </Card>
     );
 }
+
+    
