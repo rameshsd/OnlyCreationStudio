@@ -3,7 +3,7 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardFooter } from "@/components/ui/card";
 import { Plus, Search, Bell, Rss, TrendingUp, Users, Video, Loader2 } from "lucide-react";
 import Link from "next/link";
 import React, { useState, useEffect, useMemo, useCallback } from "react";
@@ -121,48 +121,46 @@ export default function DashboardPage() {
     const studiosQuery = useMemoFirebase(() => query(collection(db, "studio_profiles"), orderBy("createdAt", "desc")), []);
     const { data: studios, isLoading: studiosLoading } = useCollection<StudioProfile>(studiosQuery);
     
-    const [stories, setStories] = useState<UserProfile[]>([]);
-    const [storiesLoading, setStoriesLoading] = useState(true);
+    const usersWithStoriesQuery = useMemoFirebase(() => query(collection(db, "user_profiles")), []);
+    const { data: userProfiles, isLoading: storiesLoading } = useCollection<UserProfile>(usersWithStoriesQuery);
+
+    const storiesCollectionQuery = useMemoFirebase(() => query(collectionGroup(db, 'stories'), orderBy('createdAt', 'asc')), []);
+    const { data: allStories, isLoading: allStoriesLoading } = useCollection<Story>(storiesCollectionQuery);
+
+    const stories = useMemo(() => {
+        if (!userProfiles || !userData) return [];
+        
+        const storiesByUserId = allStories?.reduce((acc, story) => {
+            if (!acc[story.userId]) {
+                acc[story.userId] = [];
+            }
+            acc[story.userId].push(story);
+            return acc;
+        }, {} as Record<string, Story[]>);
+
+        const usersWithStories = userProfiles.map(profile => ({
+            ...profile,
+            stories: storiesByUserId?.[profile.id] || []
+        })).filter(p => p.stories.length > 0);
+
+        const currentUserStoryData = {
+             id: userData.userId, 
+             username: "My Story", 
+             avatarUrl: userData.avatarUrl, 
+             isSelf: true, 
+             stories: storiesByUserId?.[userData.userId] || []
+        };
+        
+        return [
+            currentUserStoryData,
+            ...usersWithStories.filter(u => u.id !== userData.userId)
+        ] as UserProfile[];
+    }, [userProfiles, allStories, userData]);
+
+
     const [storyViewerOpen, setStoryViewerOpen] = useState(false);
     const [storyViewerStartIndex, setStoryViewerStartIndex] = useState(0);
     const [seenStories, setSeenStories] = useState<Set<string>>(new Set());
-
-    useEffect(() => {
-        if (!userData) return;
-
-        const fetchStories = async () => {
-            setStoriesLoading(true);
-            const usersSnapshot = await getDocs(collection(db, "user_profiles"));
-            const usersWithStories: UserProfile[] = [];
-
-            for (const userDoc of usersSnapshot.docs) {
-                const userProfile = { id: userDoc.id, ...userDoc.data() } as UserProfile;
-                const storiesSnapshot = await getDocs(query(collection(db, "user_profiles", userDoc.id, "stories"), orderBy("createdAt", "asc")));
-                const userStories: Story[] = [];
-                storiesSnapshot.forEach(storyDoc => {
-                    userStories.push({ id: storyDoc.id, ...storyDoc.data() } as Story);
-                });
-                
-                if (userStories.length > 0) {
-                    userProfile.stories = userStories;
-                    usersWithStories.push(userProfile);
-                }
-            }
-            
-            const currentUserStories = usersWithStories.find(u => u.id === userData.userId)?.stories || [];
-
-            const storyData = [
-                { id: "MyStory", username: "My Story", avatarUrl: userData.avatarUrl, isSelf: true, stories: currentUserStories },
-                ...usersWithStories.filter(u => u.id !== userData.userId)
-            ];
-
-            setStories(storyData as UserProfile[]);
-            setStoriesLoading(false);
-        };
-
-        fetchStories();
-    }, [userData]);
-
 
     useEffect(() => {
         if (!postsLoading && !studiosLoading) {
@@ -231,7 +229,7 @@ export default function DashboardPage() {
             <div className="lg:col-span-8">
                 <div className="flex flex-col gap-8 text-foreground">
                     <div className="flex space-x-4 overflow-x-auto pb-4 -mx-4 px-4">
-                        {storiesLoading ? (
+                        {storiesLoading || allStoriesLoading ? (
                              [...Array(10)].map((_, index) => (
                                 <div key={index} className="flex flex-col items-center gap-2 flex-shrink-0 w-20">
                                     <Skeleton className="h-20 w-20 rounded-full" />
