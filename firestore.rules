@@ -4,43 +4,51 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Allow all authenticated users to READ all collections
+    // WILDCARD: read everything when authenticated
     match /{document=**} {
       allow read: if request.auth != null;
     }
 
     // POSTS
     match /posts/{postId} {
-      allow write: 
+      allow read: if request.auth != null;
+      allow write:
         if request.auth != null && request.auth.uid == request.resource.data.userId;
     }
 
     // STUDIOS
     match /studio_profiles/{studioId} {
+      allow read: if request.auth != null;
       allow write:
         if request.auth != null && request.auth.uid == request.resource.data.userProfileId;
     }
 
     // USER PROFILES
     match /user_profiles/{userId} {
+      allow read: if request.auth != null;
       allow write:
         if request.auth != null && request.auth.uid == userId;
     }
 
-    // STORIES (collectionGroup write)
+    // STORIES (collectionGroup)
     match /{path=**}/stories/{storyId} {
+      allow read: if request.auth != null;
       allow write:
         if request.auth != null && request.auth.uid == request.resource.data.userId;
     }
 
     // PROJECTS
     match /projects/{projectId} {
-        allow write: if request.auth != null && request.auth.uid == request.resource.data.ownerId;
+       allow read: if request.auth != null;
+       allow write:
+         if request.auth != null && request.auth.uid == request.resource.data.ownerId;
     }
 
-     // PORTFOLIO
+    // PORTFOLIO ITEMS
     match /user_profiles/{userId}/portfolio_items/{itemId} {
-       allow write: if request.auth != null && request.auth.uid == userId;
+      allow read: if request.auth != null;
+      allow write:
+        if request.auth != null && request.auth.uid == userId;
     }
   }
 }
