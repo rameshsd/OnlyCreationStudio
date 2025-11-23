@@ -34,12 +34,12 @@ export function StudioPostCard({ studio }: { studio: StudioProfile }) {
                 </div>
             </CardHeader>
             <CardContent className="p-0">
-                <div className="relative aspect-[4/3] bg-secondary">
+                <div className="relative aspect-video bg-secondary">
                      {studio.photos?.[0] ? (
                         <Image src={studio.photos[0]} alt={studio.studioName} fill className="object-cover" data-ai-hint="studio interior" />
                     ) : (
                         <div className="flex items-center justify-center h-full">
-                            <p className="text-muted-foreground">Studio Photo</p>
+                            <p className="text-muted-foreground text-2xl font-bold">Studio Photo</p>
                         </div>
                     )}
                     <Badge className="absolute top-3 right-3 bg-black/70 text-white border-none">
@@ -49,20 +49,24 @@ export function StudioPostCard({ studio }: { studio: StudioProfile }) {
                 </div>
             </CardContent>
             <CardFooter className="p-4 flex flex-col items-start gap-2">
-                 <div className="w-full grid grid-cols-4 gap-2 text-muted-foreground">
-                    <div className="flex items-center gap-1.5">
+                 <div className="w-full grid grid-cols-12 gap-2 text-muted-foreground">
+                    <div className="col-span-1 flex items-center gap-1.5">
                         <Heart className="h-5 w-5" />
                         <span className="text-sm font-medium">324</span>
                     </div>
-                     <div className="flex items-center gap-1.5">
+                     <div className="col-span-1 flex items-center gap-1.5">
                         <MessageCircle className="h-5 w-5" />
                         <span className="text-sm font-medium">24</span>
                     </div>
-                     <div className="flex items-center gap-1.5">
+                     <div className="col-span-1 flex items-center gap-1.5">
                         <Share2 className="h-5 w-5" />
                     </div>
+                    <div className="col-span-9 flex justify-end">
+                        <Button variant="ghost" size="icon" className="text-muted-foreground">
+                            <Bookmark className="h-5 w-5" />
+                        </Button>
+                    </div>
                 </div>
-                 <div className="w-full h-px bg-border my-1"></div>
                  <div className="w-full flex justify-between items-center">
                     <div className="flex items-center gap-2 text-muted-foreground">
                         <MapPin className="h-4 w-4" />
@@ -70,13 +74,9 @@ export function StudioPostCard({ studio }: { studio: StudioProfile }) {
                     </div>
                     <div className="flex items-center gap-4">
                         <p className="text-primary font-bold text-lg">₹{studio.price}/hour</p>
-                         <Button variant="ghost" size="icon" className="text-muted-foreground">
-                            <Bookmark className="h-5 w-5" />
-                        </Button>
                     </div>
                  </div>
             </CardFooter>
         </Card>
     );
 }
-
