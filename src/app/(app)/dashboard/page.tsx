@@ -1,4 +1,3 @@
-
 "use client";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -117,31 +116,31 @@ export default function DashboardPage() {
     const [isAddStoryOpen, setIsAddStoryOpen] = useState(false);
     
     const postsQuery = useMemoFirebase(() => {
-      if (authLoading || !user) return null;
+      if (!user) return null;
       return query(collection(db, "posts"), orderBy("createdAt", "desc"));
-    }, [authLoading, user]);
+    }, [user]);
     const { data: posts, isLoading: postsLoading } = useCollection<Post>(postsQuery);
 
     const studiosQuery = useMemoFirebase(() => {
-      if (authLoading || !user) return null;
+      if (!user) return null;
       return query(collection(db, "studio_profiles"), orderBy("createdAt", "desc"));
-    }, [authLoading, user]);
+    }, [user]);
     const { data: studios, isLoading: studiosLoading } = useCollection<StudioProfile>(studiosQuery);
     
     const usersWithStoriesQuery = useMemoFirebase(() => {
-      if (authLoading || !user) return null;
+      if (!user) return null;
       return query(collection(db, "user_profiles"));
-    }, [authLoading, user]);
+    }, [user]);
     const { data: userProfiles, isLoading: storiesLoading } = useCollection<UserProfile>(usersWithStoriesQuery);
 
     const allStoriesCollectionQuery = useMemoFirebase(() => {
-      if (authLoading || !user) return null;
+      if (!user) return null;
       return query(collectionGroup(db, 'stories'), orderBy('createdAt', 'asc'))
-    }, [authLoading, user]);
+    }, [user]);
     const { data: allStories, isLoading: allStoriesLoading } = useCollection<Story>(allStoriesCollectionQuery);
 
     const stories = useMemo(() => {
-        if (!userProfiles || !allStories || !userData) return [];
+        if (!userProfiles || !allStories) return [];
         
         const storiesByUserId = allStories.reduce((acc, story) => {
             if (!acc[story.userId]) {
