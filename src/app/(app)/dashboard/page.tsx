@@ -1,17 +1,16 @@
 
-
 "use client";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardFooter } from "@/components/ui/card";
-import { Plus, Search, Bell, Rss, TrendingUp, Users, Video, Send, Bookmark, Heart, MessageCircle, MapPin, Share2, Loader2 } from "lucide-react";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Plus, Search, Bell, Rss, TrendingUp, Users, Video, Loader2 } from "lucide-react";
 import Link from "next/link";
 import React, { useState, useEffect, useMemo } from "react";
 import { PostCard, type Post } from "@/components/post-card";
 import { ShortsReelCard } from "@/components/shorts-reel-card";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, orderBy, query, onSnapshot, Timestamp } from "firebase/firestore";
+import { collection, getDocs, orderBy, query, Timestamp, collectionGroup } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
 import { generateMockSuggestions, generateMockTrendingTopics } from "@/lib/mock-data";
 import { useCollection, useMemoFirebase } from "@/firebase";
@@ -19,7 +18,8 @@ import type { StudioProfile } from "../studios/[id]/page";
 import { StudioPostCard } from "@/components/studio-post-card";
 import { useAuth } from "@/hooks/use-auth";
 import { AddStoryDialog } from "@/components/add-story-dialog";
-
+import { StoryViewer } from "@/components/story-viewer";
+import { cn } from "@/lib/utils";
 
 const feedFilters = [
     { label: "All", icon: Rss },
@@ -35,8 +35,17 @@ interface UserProfile {
     id: string;
     username: string;
     avatarUrl: string;
+    stories?: Story[];
 }
 
+interface Story {
+    id: string;
+    userId: string;
+    mediaUrl: string;
+    mediaType: 'image' | 'video';
+    createdAt: Timestamp;
+    expiresAt: Timestamp;
+}
 
 const SuggestionsCard = () => (
     <Card>
@@ -73,6 +82,10 @@ const PostSkeleton = () => (
           </div>
       </CardHeader>
       <CardContent className="p-0">
+          <p className="text-sm whitespace-pre-line px-4 mb-4">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-2/3 mt-2" />
+          </p>
           <Skeleton className="relative aspect-[4/3] w-full" />
       </CardContent>
        <CardFooter className="p-4 flex flex-col items-start gap-3">
@@ -107,18 +120,48 @@ export default function DashboardPage() {
 
     const studiosQuery = useMemoFirebase(() => query(collection(db, "studio_profiles"), orderBy("createdAt", "desc")), []);
     const { data: studios, isLoading: studiosLoading } = useCollection<StudioProfile>(studiosQuery);
+    
+    const [stories, setStories] = useState<UserProfile[]>([]);
+    const [storiesLoading, setStoriesLoading] = useState(true);
+    const [storyViewerOpen, setStoryViewerOpen] = useState(false);
+    const [storyViewerStartIndex, setStoryViewerStartIndex] = useState(0);
+    const [seenStories, setSeenStories] = useState<Set<string>>(new Set());
 
-    const usersQuery = useMemoFirebase(() => query(collection(db, "user_profiles")), []);
-    const { data: users, isLoading: usersLoading } = useCollection<UserProfile>(usersQuery);
+    useEffect(() => {
+        if (!userData) return;
 
-    const stories = useMemo(() => {
-        if (!users || !userData) return [];
-        const otherUsers = users.filter(u => u.id !== userData.userId);
-        return [
-            { id: "MyStory", username: "My Story", avatarUrl: userData.avatarUrl, isSelf: true },
-            ...otherUsers
-        ];
-    }, [users, userData]);
+        const fetchStories = async () => {
+            setStoriesLoading(true);
+            const usersSnapshot = await getDocs(collection(db, "user_profiles"));
+            const usersWithStories: UserProfile[] = [];
+
+            for (const userDoc of usersSnapshot.docs) {
+                const userProfile = { id: userDoc.id, ...userDoc.data() } as UserProfile;
+                const storiesSnapshot = await getDocs(query(collection(db, "user_profiles", userDoc.id, "stories"), orderBy("createdAt", "asc")));
+                const userStories: Story[] = [];
+                storiesSnapshot.forEach(storyDoc => {
+                    userStories.push({ id: storyDoc.id, ...storyDoc.data() } as Story);
+                });
+                
+                if (userStories.length > 0) {
+                    userProfile.stories = userStories;
+                    usersWithStories.push(userProfile);
+                }
+            }
+            
+            const currentUserStories = usersWithStories.find(u => u.id === userData.userId)?.stories || [];
+
+            const storyData = [
+                { id: "MyStory", username: "My Story", avatarUrl: userData.avatarUrl, isSelf: true, stories: currentUserStories },
+                ...usersWithStories.filter(u => u.id !== userData.userId)
+            ];
+
+            setStories(storyData as UserProfile[]);
+            setStoriesLoading(false);
+        };
+
+        fetchStories();
+    }, [userData]);
 
 
     useEffect(() => {
@@ -131,7 +174,6 @@ export default function DashboardPage() {
                 combinedFeed.push(...studios.map(s => ({ ...s, type: 'studio' as const })));
             }
 
-            // Sort by createdAt timestamp
             combinedFeed.sort((a, b) => {
                 const dateA = a.createdAt ? (a.createdAt as Timestamp).toMillis() : 0;
                 const dateB = b.createdAt ? (b.createdAt as Timestamp).toMillis() : 0;
@@ -142,6 +184,20 @@ export default function DashboardPage() {
             setLoading(false);
         }
     }, [posts, studios, postsLoading, studiosLoading]);
+
+    const handleStoryClick = (index: number) => {
+        const clickedStory = stories[index];
+        if (clickedStory.isSelf && (!clickedStory.stories || clickedStory.stories.length === 0)) {
+            setIsAddStoryOpen(true);
+        } else {
+            setStoryViewerStartIndex(index);
+            setStoryViewerOpen(true);
+        }
+    };
+    
+    const handleStoryViewed = (userId: string) => {
+        setSeenStories(prev => new Set(prev).add(userId));
+    }
     
   if (!user || !userData) {
       return (
@@ -154,6 +210,14 @@ export default function DashboardPage() {
   return (
     <>
     <AddStoryDialog open={isAddStoryOpen} onOpenChange={setIsAddStoryOpen} />
+    {storyViewerOpen && (
+        <StoryViewer
+            stories={stories}
+            startIndex={storyViewerStartIndex}
+            onClose={() => setStoryViewerOpen(false)}
+            onStoryViewed={handleStoryViewed}
+        />
+    )}
     <div className="space-y-8">
         <header className="flex justify-between items-center md:hidden">
             <h1 className="text-2xl font-bold">OnlyCreation</h1>
@@ -167,7 +231,7 @@ export default function DashboardPage() {
             <div className="lg:col-span-8">
                 <div className="flex flex-col gap-8 text-foreground">
                     <div className="flex space-x-4 overflow-x-auto pb-4 -mx-4 px-4">
-                        {usersLoading ? (
+                        {storiesLoading ? (
                              [...Array(10)].map((_, index) => (
                                 <div key={index} className="flex flex-col items-center gap-2 flex-shrink-0 w-20">
                                     <Skeleton className="h-20 w-20 rounded-full" />
@@ -175,28 +239,35 @@ export default function DashboardPage() {
                                 </div>
                             ))
                         ) : (
-                            stories.map((story: any) => (
-                                <button
-                                    key={story.id}
-                                    className="flex flex-col items-center gap-2 flex-shrink-0 w-20"
-                                    onClick={() => story.isSelf && setIsAddStoryOpen(true)}
-                                >
-                                    <div className="h-20 w-20 rounded-full bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-500 p-1">
-                                        <div className="bg-background rounded-full p-1 w-full h-full">
-                                            <Avatar className="h-full w-full relative">
-                                                {story.avatarUrl && <AvatarImage src={story.avatarUrl} alt={story.username} data-ai-hint="user avatar" />}
-                                                <AvatarFallback className="text-xs">{story.username?.substring(0,2)}</AvatarFallback>
-                                                {story.isSelf && (
-                                                    <div className="absolute bottom-0 right-0 bg-primary text-primary-foreground rounded-full h-6 w-6 flex items-center justify-center border-2 border-background">
-                                                        <Plus className="h-4 w-4" />
-                                                    </div>
-                                                )}
-                                            </Avatar>
+                            stories.map((story: any, index: number) => {
+                                const hasUnseenStories = story.stories && story.stories.length > 0 && !seenStories.has(story.id);
+                                const isMyEmptyStory = story.isSelf && (!story.stories || story.stories.length === 0);
+
+                                return (
+                                    <button
+                                        key={story.id}
+                                        className="flex flex-col items-center gap-2 flex-shrink-0 w-20"
+                                        onClick={() => handleStoryClick(index)}
+                                    >
+                                        <div className={cn("h-20 w-20 rounded-full p-1",
+                                            hasUnseenStories ? "bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-500" : "bg-gray-300 dark:bg-gray-600"
+                                        )}>
+                                            <div className="bg-background rounded-full p-1 w-full h-full">
+                                                <Avatar className="h-full w-full relative">
+                                                    {story.avatarUrl && <AvatarImage src={story.avatarUrl} alt={story.username} data-ai-hint="user avatar" />}
+                                                    <AvatarFallback className="text-xs">{story.username?.substring(0,2)}</AvatarFallback>
+                                                    {isMyEmptyStory && (
+                                                        <div className="absolute bottom-0 right-0 bg-primary text-primary-foreground rounded-full h-6 w-6 flex items-center justify-center border-2 border-background">
+                                                            <Plus className="h-4 w-4" />
+                                                        </div>
+                                                    )}
+                                                </Avatar>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <span className="text-xs font-medium truncate w-full text-center">{story.username}</span>
-                                </button>
-                            ))
+                                        <span className="text-xs font-medium truncate w-full text-center">{story.username}</span>
+                                    </button>
+                                );
+                            })
                         )}
                     </div>
 
