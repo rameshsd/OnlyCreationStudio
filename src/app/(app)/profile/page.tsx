@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ResponsiveContainer, BarChart, XAxis, YAxis, Bar } from "recharts";
 import { useAuth } from "@/hooks/use-auth";
 import { PostCard, Post } from "@/components/post-card";
-import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
+import { collection, query, where, getDocs, orderBy, collectionGroup } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useCollection, useMemoFirebase } from "@/firebase";
 
@@ -58,6 +58,12 @@ export default function ProfilePage() {
         return collection(db, "user_profiles", user.uid, "portfolio_items");
     }, [user]);
     const { data: portfolioItems, isLoading: portfolioLoading } = useCollection<PortfolioItem>(userPortfolioQuery);
+    
+    const userStoriesQuery = useMemoFirebase(() => {
+        if (!user) return null;
+        return query(collection(db, "user_profiles", user.uid, "stories"), orderBy("createdAt", "desc"));
+    }, [user]);
+    const { data: stories, isLoading: storiesLoading } = useCollection<any>(userStoriesQuery);
 
 
     const handleFollow = () => {
@@ -267,3 +273,5 @@ export default function ProfilePage() {
         </div>
     );
 }
+
+    
