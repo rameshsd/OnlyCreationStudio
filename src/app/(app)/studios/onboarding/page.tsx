@@ -21,6 +21,9 @@ const amenitiesList = [
     "Sound Proofing", "Client Lounge",
     "Equipment Storage", "Loading Dock",
     "Elevator Access", "Wheelchair Accessible",
+    "Private Restroom", "Bluetooth Speaker",
+    "Backdrops", "Lighting Equipment",
+    "Props", "Coffee & Tea",
 ];
 
 export default function StudioOnboardingPage() {
