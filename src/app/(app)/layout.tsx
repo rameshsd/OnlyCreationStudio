@@ -8,9 +8,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   // In a production app, this might have performance implications.
   return (
     <AppLayout key={Math.random()}>
-      <div className="w-full max-w-7xl mx-auto">
-        {children}
-      </div>
+      {children}
     </AppLayout>
   );
 }
