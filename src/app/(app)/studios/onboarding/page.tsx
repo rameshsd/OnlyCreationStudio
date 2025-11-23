@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Info } from 'lucide-react';
 
 const amenitiesList = [
     "High-speed WiFi", "Air Conditioning",
@@ -42,6 +42,11 @@ export default function StudioOnboardingPage() {
     // Step 3
     const [equipmentInput, setEquipmentInput] = useState('');
     const [equipment, setEquipment] = useState<string[]>([]);
+    // Step 4
+    const [price, setPrice] = useState('');
+    const [priceUnit, setPriceUnit] = useState('hour');
+    const [contactNumber, setContactNumber] = useState('');
+
 
     const nextStep = () => setStep(prev => (prev < totalSteps ? prev + 1 : prev));
     const prevStep = () => setStep(prev => (prev > 1 ? prev - 1 : prev));
@@ -169,6 +174,45 @@ export default function StudioOnboardingPage() {
                                             ))}
                                         </ul>
                                     )}
+                                </div>
+                            </div>
+                        </CardContent>
+                    )}
+                    
+                    {step === 4 && (
+                        <CardContent className="pt-6">
+                            <h2 className="text-xl font-semibold mb-6">Pricing &amp; Contact</h2>
+                            <div className="space-y-6">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="price">Price *</Label>
+                                        <Input id="price" type="number" placeholder="0.00" value={price} onChange={(e) => setPrice(e.target.value)} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="price-unit">Per *</Label>
+                                        <Select value={priceUnit} onValueChange={setPriceUnit}>
+                                            <SelectTrigger id="price-unit">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="hour">Per Hour</SelectItem>
+                                                <SelectItem value="day">Per Day</SelectItem>
+                                                <SelectItem value="session">Per Session</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="whatsapp-number">WhatsApp Contact Number *</Label>
+                                    <Input id="whatsapp-number" placeholder="+91 (555) 123-4567" value={contactNumber} onChange={(e) => setContactNumber(e.target.value)} />
+                                    <p className="text-xs text-muted-foreground">This number will be used for direct booking inquiries and communications</p>
+                                </div>
+                                <div className="bg-secondary rounded-lg p-4">
+                                    <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                                        <Info className="h-5 w-5 text-primary" />
+                                        <span>Pricing Preview</span>
+                                    </div>
+                                    <p className="text-2xl font-bold mt-2 text-primary">₹{price || '0'} <span className="text-lg font-medium text-muted-foreground">/ {priceUnit}</span></p>
                                 </div>
                             </div>
                         </CardContent>
