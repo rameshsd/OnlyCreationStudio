@@ -19,18 +19,18 @@ export function StudioPostCard({ studio }: { studio: StudioProfile }) {
     return (
         <Card className="bg-card border-none rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
             <CardHeader className="p-4">
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-start">
                     <div className="flex items-center gap-3">
                         <Avatar className="h-11 w-11 bg-primary/20 text-primary font-bold">
                             <AvatarFallback>{studio.studioName?.substring(0, 1).toUpperCase()}</AvatarFallback>
                         </Avatar>
                         <div>
                             <Link href={`/studios/${studio.id}`} className="font-bold hover:underline">{studio.studioName}</Link>
-                            <p className="text-xs text-muted-foreground flex items-center gap-1"><MapPin className="h-3 w-3" /> {studio.location}</p>
+                            <p className="text-xs text-muted-foreground flex items-center gap-1">{studio.location}</p>
                         </div>
                     </div>
-                     <div className="flex items-center gap-2">
-                        <Badge variant="outline">{studio.type || 'Photography Studio'}</Badge>
+                     <div className="flex items-center gap-2 flex-shrink-0">
+                        <Badge variant="outline" className="font-normal">{studio.type || 'Photography Studio'}</Badge>
                         <Clock className="h-4 w-4 text-muted-foreground" />
                     </div>
                 </div>
