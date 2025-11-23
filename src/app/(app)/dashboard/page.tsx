@@ -3,7 +3,7 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardFooter } from "@/components/ui/card";
 import { Plus, Search, Bell, Rss, TrendingUp, Users, Video } from "lucide-react";
 import Link from "next/link";
 import React, { useState, useEffect } from "react";
@@ -120,113 +120,113 @@ export default function DashboardPage() {
     }, [posts, studios, postsLoading, studiosLoading]);
 
   return (
-    <>
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        <div className="lg:col-span-8">
-            <div className="flex flex-col gap-8 text-foreground">
-                <header className="flex justify-between items-center md:hidden">
-                    <h1 className="text-2xl font-bold">OnlyCreation</h1>
-                    <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="icon"><Search className="h-6 w-6" /></Button>
-                        <Button variant="ghost" size="icon"><Bell className="h-6 w-6" /></Button>
-                    </div>
-                </header>
-
-                <div className="flex space-x-4 overflow-x-auto pb-4 -mx-4 px-4">
-                    {stories.map((story, index) => (
-                        <Link href="#" key={index} className="flex flex-col items-center gap-2 flex-shrink-0 w-20">
-                            <div className="h-20 w-20 rounded-full bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-500 p-1">
-                                <div className="bg-background rounded-full p-1 w-full h-full">
-                                    <Avatar className="h-full w-full relative">
-                                        {story.avatar && <AvatarImage src={story.avatar} alt={story.name} data-ai-hint={story.hint} />}
-                                        <AvatarFallback className="text-xs">{story.name.substring(0,2)}</AvatarFallback>
-                                        {story.isSelf && (
-                                            <div className="absolute bottom-0 right-0 bg-primary text-primary-foreground rounded-full h-6 w-6 flex items-center justify-center border-2 border-background">
-                                                <Plus className="h-4 w-4" />
-                                            </div>
-                                        )}
-                                    </Avatar>
-                                </div>
-                            </div>
-                            <span className="text-xs font-medium truncate w-full text-center">{story.name}</span>
-                        </Link>
-                    ))}
-                </div>
-
-                <div className="flex items-center gap-2 overflow-x-auto pb-2 -mx-4 px-4">
-                    {feedFilters.map(filter => (
-                        <Button 
-                            key={filter.label} 
-                            variant={activeFilter === filter.label ? "default" : "secondary"}
-                            onClick={() => setActiveFilter(filter.label)}
-                            className="rounded-full flex-shrink-0"
-                        >
-                            <filter.icon className="mr-2 h-4 w-4" />
-                            {filter.label}
-                        </Button>
-                    ))}
-                </div>
-
-                <main className="space-y-6">
-                    {loading ? (
-                        <>
-                          <PostSkeleton />
-                          <PostSkeleton />
-                          <PostSkeleton />
-                        </>
-                    ) : feedItems && feedItems.length > 0 ? (
-                        feedItems.map((item, index) => (
-                            <React.Fragment key={item.id}>
-                                {item.type === 'post' ? (
-                                    <PostCard post={item} />
-                                ) : (
-                                    <StudioPostCard studio={item} />
-                                )}
-                                 { (index + 1) % 5 === 0 && (
-                                    <ShortsReelCard />
-                                )}
-                                 { (index + 1) % 8 === 0 && (
-                                    <div className="hidden lg:block">
-                                        <SuggestionsCard/>
-                                    </div>
-                                )}
-                            </React.Fragment>
-                        ))
-                    ) : (
-                      <Card className="text-center p-12">
-                        <CardContent>
-                          <p className="text-muted-foreground">No posts yet. Be the first to share something!</p>
-                        </CardContent>
-                      </Card>
-                    )}
-                </main>
+    <div className="space-y-8">
+        <header className="flex justify-between items-center md:hidden">
+            <h1 className="text-2xl font-bold">OnlyCreation</h1>
+            <div className="flex items-center gap-2">
+                <Button variant="ghost" size="icon"><Search className="h-6 w-6" /></Button>
+                <Button variant="ghost" size="icon"><Bell className="h-6 w-6" /></Button>
             </div>
-        </div>
+        </header>
 
-        <aside className="hidden lg:block lg:col-span-4 space-y-6">
-             <Card>
-                <CardHeader>
-                    <h3 className="font-bold">Trending Topics</h3>
-                </CardHeader>
-                <CardContent>
-                    <ul className="space-y-2">
-                        {trendingTopics.map(topic => (
-                           <li key={topic}>
-                             <Button variant="link" className="p-0 h-auto text-muted-foreground hover:text-primary">{topic}</Button>
-                           </li>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <div className="lg:col-span-8">
+                <div className="flex flex-col gap-8 text-foreground">
+                    <div className="flex space-x-4 overflow-x-auto pb-4 -mx-4 px-4">
+                        {stories.map((story, index) => (
+                            <Link href="#" key={index} className="flex flex-col items-center gap-2 flex-shrink-0 w-20">
+                                <div className="h-20 w-20 rounded-full bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-500 p-1">
+                                    <div className="bg-background rounded-full p-1 w-full h-full">
+                                        <Avatar className="h-full w-full relative">
+                                            {story.avatar && <AvatarImage src={story.avatar} alt={story.name} data-ai-hint={story.hint} />}
+                                            <AvatarFallback className="text-xs">{story.name.substring(0,2)}</AvatarFallback>
+                                            {story.isSelf && (
+                                                <div className="absolute bottom-0 right-0 bg-primary text-primary-foreground rounded-full h-6 w-6 flex items-center justify-center border-2 border-background">
+                                                    <Plus className="h-4 w-4" />
+                                                </div>
+                                            )}
+                                        </Avatar>
+                                    </div>
+                                </div>
+                                <span className="text-xs font-medium truncate w-full text-center">{story.name}</span>
+                            </Link>
                         ))}
-                    </ul>
-                </CardContent>
-             </Card>
-             <SuggestionsCard/>
-        </aside>
+                    </div>
+
+                    <div className="flex items-center gap-2 overflow-x-auto pb-2 -mx-4 px-4">
+                        {feedFilters.map(filter => (
+                            <Button 
+                                key={filter.label} 
+                                variant={activeFilter === filter.label ? "default" : "secondary"}
+                                onClick={() => setActiveFilter(filter.label)}
+                                className="rounded-full flex-shrink-0"
+                            >
+                                <filter.icon className="mr-2 h-4 w-4" />
+                                {filter.label}
+                            </Button>
+                        ))}
+                    </div>
+
+                    <main className="space-y-6">
+                        {loading ? (
+                            <>
+                              <PostSkeleton />
+                              <PostSkeleton />
+                              <PostSkeleton />
+                            </>
+                        ) : feedItems && feedItems.length > 0 ? (
+                            feedItems.map((item, index) => (
+                                <React.Fragment key={item.id}>
+                                    {item.type === 'post' ? (
+                                        <PostCard post={item} />
+                                    ) : (
+                                        <StudioPostCard studio={item} />
+                                    )}
+                                     { (index + 1) % 5 === 0 && (
+                                        <ShortsReelCard />
+                                    )}
+                                     { (index + 1) % 8 === 0 && (
+                                        <div className="hidden lg:block">
+                                            <SuggestionsCard/>
+                                        </div>
+                                    )}
+                                </React.Fragment>
+                            ))
+                        ) : (
+                          <Card className="text-center p-12">
+                            <CardContent>
+                              <p className="text-muted-foreground">No posts yet. Be the first to share something!</p>
+                            </CardContent>
+                          </Card>
+                        )}
+                    </main>
+                </div>
+            </div>
+
+            <aside className="hidden lg:block lg:col-span-4 space-y-6">
+                 <Card>
+                    <CardHeader>
+                        <h3 className="font-bold">Trending Topics</h3>
+                    </CardHeader>
+                    <CardContent>
+                        <ul className="space-y-2">
+                            {trendingTopics.map(topic => (
+                               <li key={topic}>
+                                 <Button variant="link" className="p-0 h-auto text-muted-foreground hover:text-primary">{topic}</Button>
+                               </li>
+                            ))}
+                        </ul>
+                    </CardContent>
+                 </Card>
+                 <SuggestionsCard/>
+            </aside>
+        </div>
+         <Button asChild className="fixed bottom-24 right-4 h-14 w-14 rounded-full shadow-lg z-20 lg:hidden">
+            <Link href="/create">
+                <Plus className="h-6 w-6"/>
+                <span className="sr-only">Create Post</span>
+            </Link>
+         </Button>
     </div>
-     <Button asChild className="fixed bottom-24 right-4 h-14 w-14 rounded-full shadow-lg z-20 lg:hidden">
-        <Link href="/create">
-            <Plus className="h-6 w-6"/>
-            <span className="sr-only">Create Post</span>
-        </Link>
-     </Button>
-    </>
   );
 }
