@@ -56,7 +56,7 @@ export function StoryViewer({ stories, startIndex, onClose, onStoryViewed }: Sto
         onClose();
       }
     }
-  }, [currentStoryIndex, currentUserIndex, stories.length, currentUser?.stories, onClose]);
+  }, [currentStoryIndex, currentUserIndex, stories, currentUser?.stories, onClose]);
 
   const goToPrevStory = useCallback(() => {
     if (currentStoryIndex > 0) {
@@ -72,16 +72,17 @@ export function StoryViewer({ stories, startIndex, onClose, onStoryViewed }: Sto
   }, [currentStoryIndex, currentUserIndex, stories]);
 
   useEffect(() => {
+    onStoryViewed(currentUser.id);
+  }, [currentUser.id, onStoryViewed]);
+
+  useEffect(() => {
     setIsLoading(true);
     setProgress(0);
-    onStoryViewed(currentUser.id);
-
-    // Clear any existing timer
+    
     if (timerRef.current) {
       clearInterval(timerRef.current);
     }
     
-    // Don't start timer for videos until they are loaded
     if (currentStory?.mediaType === 'image') {
         const startTime = Date.now();
         timerRef.current = setInterval(() => {
@@ -95,8 +96,6 @@ export function StoryViewer({ stories, startIndex, onClose, onStoryViewed }: Sto
             }
           }
         }, 50);
-    } else {
-      // For videos, loading is handled by onCanPlay
     }
     
     return () => {
@@ -104,7 +103,7 @@ export function StoryViewer({ stories, startIndex, onClose, onStoryViewed }: Sto
         clearInterval(timerRef.current);
       }
     };
-  }, [currentStory, isPaused, goToNextStory, onStoryViewed, currentUser.id]);
+  }, [currentStory, isPaused, goToNextStory]);
   
   const handleVideoTimeUpdate = () => {
       if (videoRef.current) {
