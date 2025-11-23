@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Plus, Search, Bell, Rss, TrendingUp, Users, Video, Loader2 } from "lucide-react";
 import Link from "next/link";
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { PostCard, type Post } from "@/components/post-card";
 import { ShortsReelCard } from "@/components/shorts-reel-card";
 import { db } from "@/lib/firebase";
@@ -195,9 +195,9 @@ export default function DashboardPage() {
         }
     };
     
-    const handleStoryViewed = (userId: string) => {
+    const handleStoryViewed = useCallback((userId: string) => {
         setSeenStories(prev => new Set(prev).add(userId));
-    }
+    }, []);
     
   if (!user || !userData) {
       return (
