@@ -249,7 +249,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
         </aside>
 
         {/* Mobile Header */}
-        <header className="fixed top-0 left-0 right-0 z-20 flex items-center justify-between border-b bg-background/80 backdrop-blur-sm p-4 h-20 lg:hidden">
+        <header className="fixed top-0 left-0 right-0 z-20 flex items-center justify-between border-b bg-background/80 backdrop-blur-sm px-4 h-20 lg:hidden">
             <MobileSidebar />
             <Logo className="w-32" />
             <ModeToggle />
@@ -260,7 +260,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
             'w-full lg:ml-64',
             isShortsPage
               ? 'h-screen pt-20 lg:h-screen lg:pt-0'
-              : 'pt-20 lg:pt-0 lg:p-6 p-4 pb-24'
+              : 'pt-20 lg:pt-0 p-4 lg:p-6 pb-24'
           )}
         >
           {children}
