@@ -46,6 +46,7 @@ export function AddStoryDialog({ open, onOpenChange }: AddStoryDialogProps) {
   const handleClose = () => {
     setMediaFile(null);
     setPreviewUrl(null);
+    setLoading(false);
     if(onOpenChange) {
       onOpenChange(false);
     }
@@ -108,7 +109,6 @@ export function AddStoryDialog({ open, onOpenChange }: AddStoryDialogProps) {
             description: error.message || "An unexpected error occurred.",
             variant: "destructive"
         });
-    } finally {
         setLoading(false);
     }
   };
@@ -125,7 +125,7 @@ export function AddStoryDialog({ open, onOpenChange }: AddStoryDialogProps) {
         <div className="py-4">
           <Label
             htmlFor="story-file"
-            className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer bg-secondary/50 hover:bg-secondary"
+            className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer bg-secondary/50 hover:bg-secondary relative"
           >
             {previewUrl ? (
               mediaFile?.type.startsWith('image/') ? (
@@ -142,7 +142,7 @@ export function AddStoryDialog({ open, onOpenChange }: AddStoryDialogProps) {
                 <p className="text-xs text-muted-foreground">Image or Video</p>
               </div>
             )}
-            <Input id="story-file" type="file" className="hidden" onChange={handleFileChange} accept="image/*,video/*" />
+            <Input id="story-file" type="file" className="hidden" onChange={handleFileChange} accept="image/*,video/*" disabled={loading}/>
           </Label>
         </div>
         <DialogFooter>
