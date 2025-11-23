@@ -30,9 +30,7 @@ export function StudioPostCard({ studio }: { studio: StudioProfile }) {
                     </div>
                      <div className="flex items-center gap-2 flex-shrink-0 text-xs text-muted-foreground">
                         <Badge variant="outline" className="font-normal">{studio.type || 'Photography Studio'}</Badge>
-                        <span>&middot;</span>
-                        <Clock className="h-3 w-3" />
-                        <span>Featured</span>
+                        <Clock className="h-4 w-4" />
                     </div>
                 </div>
             </CardHeader>
@@ -42,8 +40,8 @@ export function StudioPostCard({ studio }: { studio: StudioProfile }) {
                         {studio.photos?.[0] ? (
                             <Image src={studio.photos[0]} alt={studio.studioName} fill className="object-cover" data-ai-hint="studio interior" />
                         ) : (
-                            <div className="flex items-center justify-center h-full">
-                                <p className="text-muted-foreground text-2xl font-bold">Studio Photo</p>
+                            <div className="flex items-center justify-center h-full bg-purple-500">
+                                <p className="text-white text-3xl font-bold">Studio Photo</p>
                             </div>
                         )}
                         <Badge className="absolute top-3 right-3 bg-black/70 text-white border-none">
@@ -72,22 +70,17 @@ export function StudioPostCard({ studio }: { studio: StudioProfile }) {
                         <Bookmark className="h-5 w-5" />
                     </Button>
                 </div>
-                 <div className="w-full h-px bg-border"></div>
+                 <div className="w-full h-px bg-border my-1"></div>
                  <div className="w-full flex justify-between items-center">
-                    <div className="flex items-center gap-2 text-muted-foreground">
+                    <div className="flex items-center gap-2 text-muted-foreground text-sm">
                         <MapPin className="h-4 w-4" />
-                        <span className="text-sm">{studio.location}</span>
+                        <span>{studio.location}</span>
                     </div>
-                    <div className="flex items-center gap-4">
-                        <p className="text-primary font-bold text-lg">₹{studio.price}/hour</p>
-                        <Button size="sm" asChild>
-                           <Link href={`/studios/${studio.id}`}>Book Now</Link>
-                        </Button>
+                    <div className="text-lg font-bold text-primary">
+                        ₹{studio.price}/hour
                     </div>
                  </div>
             </CardFooter>
         </Card>
     );
 }
-
-    

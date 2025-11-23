@@ -64,9 +64,8 @@ const PostSkeleton = () => (
             <Skeleton className="h-3 w-20" />
         </div>
     </CardHeader>
-    <CardContent className="px-4 pb-0 space-y-3">
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="relative aspect-[4/3] w-full rounded-lg" />
+    <CardContent className="p-0">
+        <Skeleton className="relative aspect-[4/3] w-full" />
     </CardContent>
     <CardFooter className="p-4 flex flex-col items-start gap-3">
         <div className="w-full flex justify-between items-center">
@@ -233,5 +232,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    

@@ -2,9 +2,10 @@
 "use client";
 
 import Image from 'next/image';
+import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardFooter } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { PlayCircle, Star, Heart, MessageCircle, Send, Bookmark } from 'lucide-react';
+import { PlayCircle, Star, Heart, MessageCircle, Send, Bookmark, MapPin } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Button } from './ui/button';
 
@@ -36,15 +37,15 @@ export interface Post {
 const MediaContent = ({ mediaItem }: { mediaItem: Media }) => {
     if (mediaItem.type === 'video') {
         return (
-            <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
-                <video src={mediaItem.url} className="w-full h-full object-contain" controls />
+            <div className="relative aspect-[4/3] bg-black rounded-lg overflow-hidden">
+                <video src={mediaItem.url} className="w-full h-full object-cover" controls />
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <PlayCircle className="w-16 h-16 text-white/70" />
                 </div>
             </div>
         )
     }
-    return <Image src={mediaItem.url} alt="Post media" width={600} height={400} className="rounded-lg object-cover w-full h-auto" data-ai-hint={mediaItem.hint} />;
+    return <Image src={mediaItem.url} alt="Post media" fill className="object-cover" data-ai-hint={mediaItem.hint} />;
 }
 
 export function PostCard({ post }: { post: Post }) {
@@ -57,24 +58,26 @@ export function PostCard({ post }: { post: Post }) {
 
     return (
         <Card className="bg-card border-none rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-            <CardHeader className="p-4 flex flex-row items-center gap-3">
-                <Avatar className="h-11 w-11">
-                    <AvatarImage src={post.userAvatar} alt={post.username} data-ai-hint="user avatar" />
-                    <AvatarFallback>{post.username?.substring(0, 2).toUpperCase()}</AvatarFallback>
-                </Avatar>
-                <div>
-                    <div className="flex items-center gap-1.5">
-                        <p className="font-bold">{post.username}</p>
-                        {post.userIsVerified && <Star className="h-4 w-4 text-blue-500 fill-current" />}
+            <CardHeader className="p-4">
+                 <div className="flex items-center gap-3">
+                    <Avatar className="h-11 w-11">
+                        <AvatarImage src={post.userAvatar} alt={post.username} data-ai-hint="user avatar" />
+                        <AvatarFallback>{post.username?.substring(0, 2).toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                    <div>
+                        <div className="flex items-center gap-1.5">
+                            <p className="font-bold">{post.username}</p>
+                            {post.userIsVerified && <Star className="h-4 w-4 text-blue-500 fill-current" />}
+                        </div>
+                        <p className="text-xs text-muted-foreground">@{post.username} &middot; {formatTimestamp(post.createdAt)}</p>
                     </div>
-                    <p className="text-xs text-muted-foreground">@{post.username} &middot; {formatTimestamp(post.createdAt)}</p>
                 </div>
             </CardHeader>
-            <CardContent className="px-4 pb-0 space-y-4">
-                {post.caption && <p className="text-sm whitespace-pre-line">{post.caption}</p>}
+            <CardContent className="p-0">
+                {post.caption && <p className="text-sm whitespace-pre-line px-4 mb-4">{post.caption}</p>}
                 
                 {post.media && post.media.length > 0 && (
-                     <div className="relative aspect-[4/3] bg-secondary rounded-lg overflow-hidden">
+                     <div className="relative aspect-[4/3] bg-secondary">
                         <MediaContent mediaItem={post.media[0]} />
                     </div>
                 )}
@@ -98,9 +101,16 @@ export function PostCard({ post }: { post: Post }) {
                         <Bookmark className="h-5 w-5" />
                     </Button>
                 </div>
+                 <div className="w-full h-px bg-border my-1"></div>
+                 <div className="w-full flex justify-between items-center">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                       {/* Placeholder for location if available on post */}
+                    </div>
+                    <Button asChild>
+                           <Link href={`/posts/${post.id}`}>View Post</Link>
+                    </Button>
+                 </div>
             </CardFooter>
         </Card>
     );
 }
-
-    
