@@ -1,105 +1,109 @@
 
+"use client";
+
+import { useState, useEffect } from 'react';
 import { StudioCard } from "@/components/studio-card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Search } from "lucide-react";
+import { Search, Loader2 } from "lucide-react";
+import { useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { Skeleton } from '@/components/ui/skeleton';
 
-const studios = [
-  {
-    id: "1",
-    name: "Visionary Vibes Studio",
-    location: "Brooklyn, NY",
-    price: 75,
-    imageUrl: "https://images.unsplash.com/photo-1554236372-d0e4c7e4a836?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-    rating: 4.9,
-    reviewCount: 128,
-    tags: ["Photography", "Video", "Podcast"],
-  },
-  {
-    id: "2",
-    name: "Golden Hour Loft",
-    location: "Los Angeles, CA",
-    price: 120,
-    imageUrl: "https://images.unsplash.com/photo-1596205252870-d02802f7411d?q=80&w=1887&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-    rating: 5.0,
-    reviewCount: 92,
-    tags: ["Natural Light", "Lifestyle", "Video"],
-  },
-  {
-    id: "3",
-    name: "The Sound Stage",
-    location: "Nashville, TN",
-    price: 90,
-    imageUrl: "https://images.unsplash.com/photo-1594223193433-f7129523a5c3?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-    rating: 4.8,
-    reviewCount: 210,
-    tags: ["Podcast", "Music", "Audio Recording"],
-  },
-  {
-    id: "4",
-    name: "Urban Exposure",
-    location: "Chicago, IL",
-    price: 80,
-    imageUrl: "https://images.unsplash.com/photo-1516222338279-a7e6f34a5e3d?q=80&w=1969&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-    rating: 4.7,
-    reviewCount: 78,
-    tags: ["Photography", "Urban", "Fashion"],
-  },
-   {
-    id: "5",
-    name: "The Green Screen Room",
-    location: "Austin, TX",
-    price: 150,
-    imageUrl: "https://images.unsplash.com/photo-1595152758217-d67b2d5f8a05?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-    rating: 4.9,
-    reviewCount: 55,
-    tags: ["Video", "VFX", "Green Screen"],
-  },
-  {
-    id: "6",
-    name: "Creator's Corner",
-    location: "Miami, FL",
-    price: 65,
-    imageUrl: "https://images.unsplash.com/photo-1563903530908-992f8ce5467a?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-    rating: 4.6,
-    reviewCount: 150,
-    tags: ["Podcast", "YouTube", "Streaming"],
-  },
-];
+interface StudioProfile {
+    id: string;
+    studioName: string;
+    location: string;
+    price: number;
+    photos: string[];
+    // These are placeholders, adapt as needed from your actual data
+    rating?: number;
+    reviewCount?: number;
+    amenities?: string[];
+}
+
+const StudioCardSkeleton = () => (
+    <Card>
+        <Skeleton className="h-48 w-full" />
+        <CardContent className="p-4 space-y-2">
+            <Skeleton className="h-4 w-2/4" />
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-4 w-1/4" />
+            <div className="flex justify-between items-center mt-2">
+                <Skeleton className="h-5 w-1/3" />
+                <Skeleton className="h-6 w-1/4" />
+            </div>
+        </CardContent>
+    </Card>
+);
 
 export default function StudiosPage() {
-  return (
-    <div className="flex flex-col gap-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Find a Studio</h1>
-        <p className="text-muted-foreground">Discover and book creative spaces near you.</p>
-      </div>
+    const studiosQuery = useMemoFirebase(() => query(collection(db, "studio_profiles")), []);
+    const { data: studios, isLoading } = useCollection<StudioProfile>(studiosQuery);
 
-      <div className="flex flex-col md:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-          <Input placeholder="Search by name or location..." className="pl-10" />
+    const adaptedStudios = studios?.map(studio => ({
+        id: studio.id,
+        name: studio.studioName,
+        location: studio.location,
+        price: studio.price || 0,
+        imageUrl: studio.photos?.[0] || 'https://placehold.co/600x400',
+        rating: studio.rating || 4.5,
+        reviewCount: studio.reviewCount || 0,
+        tags: studio.amenities?.slice(0, 3) || ["New Studio"],
+    })) || [];
+
+    return (
+        <div className="flex flex-col gap-8">
+            <div>
+                <h1 className="text-3xl font-bold tracking-tight">Find a Studio</h1>
+                <p className="text-muted-foreground">Discover and book creative spaces near you.</p>
+            </div>
+
+            <div className="flex flex-col md:flex-row gap-4">
+                <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                    <Input placeholder="Search by name or location..." className="pl-10" />
+                </div>
+                <Select>
+                    <SelectTrigger className="w-full md:w-48">
+                        <SelectValue placeholder="Sort by" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="recommended">Recommended</SelectItem>
+                        <SelectItem value="price_asc">Price: Low to High</SelectItem>
+                        <SelectItem value="price_desc">Price: High to Low</SelectItem>
+                        <SelectItem value="rating">Top Rated</SelectItem>
+                    </SelectContent>
+                </Select>
+                <Button>Search</Button>
+            </div>
+
+            {isLoading ? (
+                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {[...Array(6)].map((_, i) => (
+                        <div key={i} className="group overflow-hidden transition-all">
+                            <Skeleton className="h-48 w-full" />
+                            <div className="p-4 space-y-3 bg-card border border-t-0 rounded-b-lg">
+                                <Skeleton className="h-4 w-20" />
+                                <Skeleton className="h-5 w-3/4" />
+                                <Skeleton className="h-4 w-1/2" />
+                                <div className="flex justify-between items-center pt-2">
+                                    <Skeleton className="h-5 w-1/3" />
+                                    <Skeleton className="h-6 w-1/4" />
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {adaptedStudios.map(studio => (
+                        <StudioCard key={studio.id} studio={studio} />
+                    ))}
+                </div>
+            )}
         </div>
-        <Select>
-          <SelectTrigger className="w-full md:w-48">
-            <SelectValue placeholder="Sort by" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="recommended">Recommended</SelectItem>
-            <SelectItem value="price_asc">Price: Low to High</SelectItem>
-            <SelectItem value="price_desc">Price: High to Low</SelectItem>
-            <SelectItem value="rating">Top Rated</SelectItem>
-          </SelectContent>
-        </Select>
-        <Button>Search</Button>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {studios.map(studio => (
-          <StudioCard key={studio.id} studio={studio} />
-        ))}
-      </div>
-    </div>
-  );
+    );
 }
