@@ -12,7 +12,15 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
-import { Trash2, Info, Percent, Upload, Plus, X } from 'lucide-react';
+import { Trash2, Info, Percent, Upload, Plus, X, Loader2 } from 'lucide-react';
+import { useAuth } from '@/hooks/use-auth';
+import { useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
+import { addDoc, collection } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { uploadPhoto } from '@/app/(app)/create/actions';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 const amenitiesList = [
     "High-speed WiFi", "Air Conditioning",
@@ -31,6 +39,10 @@ const amenitiesList = [
 export default function StudioOnboardingPage() {
     const [step, setStep] = useState(1);
     const totalSteps = 5;
+    const [loading, setLoading] = useState(false);
+    const { user } = useAuth();
+    const router = useRouter();
+    const { toast } = useToast();
 
     // --- State for all form fields ---
     // Step 1
@@ -58,6 +70,84 @@ export default function StudioOnboardingPage() {
 
     const nextStep = () => setStep(prev => (prev < totalSteps ? prev + 1 : prev));
     const prevStep = () => setStep(prev => (prev > 1 ? prev - 1 : prev));
+    
+    const handleSubmit = async () => {
+        if (!user) {
+            toast({ title: "Not authenticated", description: "You must be logged in to list a studio.", variant: "destructive" });
+            return;
+        }
+        setLoading(true);
+
+        try {
+            let profilePhotoUrl = '';
+            if (profilePhoto) {
+                const formData = new FormData();
+                formData.append('imageFile', profilePhoto);
+                formData.append('userId', user.uid);
+                const result = await uploadPhoto(formData);
+                if (result.error || !result.url) throw new Error(result.error || 'Profile photo upload failed.');
+                profilePhotoUrl = result.url;
+            }
+
+            const galleryPhotoUrls = await Promise.all(
+                galleryPhotos.map(async (file) => {
+                    const formData = new FormData();
+                    formData.append('imageFile', file);
+                    formData.append('userId', user.uid);
+                    const result = await uploadPhoto(formData);
+                    if (result.error || !result.url) throw new Error(result.error || `Gallery photo upload failed for ${file.name}.`);
+                    return result.url;
+                })
+            );
+            
+            const allPhotos = [profilePhotoUrl, ...galleryPhotoUrls].filter(Boolean);
+
+            const studioData = {
+                userProfileId: user.uid,
+                studioName,
+                location: address,
+                description,
+                type: studioType,
+                amenities,
+                rentableGear: equipment,
+                price: parseFloat(price),
+                priceUnit,
+                contactNumber,
+                isDiscounted,
+                discountPercentage: isDiscounted ? parseFloat(discountPercentage) : 0,
+                photos: allPhotos,
+                // These are placeholders as they are not in the form
+                size: 'Medium',
+                qualityGrade: 'A',
+                services: ['Photography', 'Videography'],
+            };
+
+            await addDoc(collection(db, 'studio_profiles'), studioData)
+                .catch(serverError => {
+                    const permissionError = new FirestorePermissionError({
+                        path: 'studio_profiles',
+                        operation: 'create',
+                        requestResourceData: studioData,
+                    });
+                    errorEmitter.emit('permission-error', permissionError);
+                    throw serverError; // Re-throw to be caught by outer catch
+                });
+
+            toast({ title: "Studio Listed!", description: "Your studio is now available for bookings." });
+            router.push('/studios');
+
+        } catch (error: any) {
+             toast({
+                title: "Submission Error",
+                description: error.message || "Failed to list your studio. Please try again.",
+                variant: "destructive",
+            });
+        } finally {
+             setLoading(false);
+        }
+
+    }
+
 
     const handleAmenityChange = (amenity: string) => {
         setAmenities(prev => 
@@ -105,6 +195,8 @@ export default function StudioOnboardingPage() {
             setGalleryPhotos(combinedFiles);
 
             const newPreviews = combinedFiles.map(file => URL.createObjectURL(file));
+            // To prevent memory leaks, revoke old object URLs before creating new ones if needed,
+            // but for simplicity, we are re-generating them all here.
             setGalleryPreviews(newPreviews);
         }
     };
@@ -115,7 +207,10 @@ export default function StudioOnboardingPage() {
         setGalleryPhotos(newPhotos);
 
         const newPreviews = [...galleryPreviews];
-        newPreviews.splice(index, 1);
+        const removedUrl = newPreviews.splice(index, 1);
+        if (removedUrl[0]) {
+            URL.revokeObjectURL(removedUrl[0]);
+        }
         setGalleryPreviews(newPreviews);
     };
 
@@ -142,19 +237,19 @@ export default function StudioOnboardingPage() {
                             <div className="space-y-6">
                                 <div className="space-y-2">
                                     <Label htmlFor="studio-name">Studio Name *</Label>
-                                    <Input id="studio-name" placeholder="Enter your studio name" value={studioName} onChange={(e) => setStudioName(e.target.value)} />
+                                    <Input id="studio-name" placeholder="Enter your studio name" value={studioName} onChange={(e) => setStudioName(e.target.value)} disabled={loading} />
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="address">Address *</Label>
-                                    <Textarea id="address" rows={4} value={address} onChange={(e) => setAddress(e.target.value)} />
+                                    <Textarea id="address" rows={4} value={address} onChange={(e) => setAddress(e.target.value)} disabled={loading}/>
                                 </div>
                                  <div className="space-y-2">
                                     <Label htmlFor="description">Description *</Label>
-                                    <Textarea id="description" rows={4} value={description} onChange={(e) => setDescription(e.target.value)} />
+                                    <Textarea id="description" rows={4} value={description} onChange={(e) => setDescription(e.target.value)} disabled={loading} />
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="studio-type">Studio Type *</Label>
-                                     <Select value={studioType} onValueChange={setStudioType}>
+                                     <Select value={studioType} onValueChange={setStudioType} disabled={loading}>
                                         <SelectTrigger id="studio-type">
                                             <SelectValue placeholder="Select studio type" />
                                         </SelectTrigger>
@@ -181,12 +276,14 @@ export default function StudioOnboardingPage() {
                                         key={amenity}
                                         className={cn(
                                             "flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition-colors",
-                                            amenities.includes(amenity) ? "bg-primary/10 border-primary" : "hover:bg-accent"
+                                            amenities.includes(amenity) ? "bg-primary/10 border-primary" : "hover:bg-accent",
+                                            loading && "cursor-not-allowed opacity-50"
                                         )}
                                     >
                                         <Checkbox 
                                             checked={amenities.includes(amenity)}
                                             onCheckedChange={() => handleAmenityChange(amenity)}
+                                            disabled={loading}
                                         />
                                         <span>{amenity}</span>
                                     </Label>
@@ -208,8 +305,9 @@ export default function StudioOnboardingPage() {
                                         placeholder="e.g. Canon 5D Mark IV, Softbox Lighting Kit" 
                                         value={equipmentInput}
                                         onChange={(e) => setEquipmentInput(e.target.value)}
+                                        disabled={loading}
                                     />
-                                    <Button onClick={handleAddEquipment}>Add</Button>
+                                    <Button onClick={handleAddEquipment} disabled={loading}>Add</Button>
                                 </div>
                                 <div className="border rounded-lg p-4 min-h-[150px]">
                                     {equipment.length === 0 ? (
@@ -219,7 +317,7 @@ export default function StudioOnboardingPage() {
                                             {equipment.map((item, index) => (
                                                 <li key={index} className="flex justify-between items-center bg-secondary p-2 rounded-md">
                                                     <span>{item}</span>
-                                                    <Button variant="ghost" size="icon" onClick={() => handleRemoveEquipment(item)}>
+                                                    <Button variant="ghost" size="icon" onClick={() => handleRemoveEquipment(item)} disabled={loading}>
                                                         <Trash2 className="h-4 w-4 text-destructive" />
                                                     </Button>
                                                 </li>
@@ -238,11 +336,11 @@ export default function StudioOnboardingPage() {
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <Label htmlFor="price">Price *</Label>
-                                        <Input id="price" type="number" placeholder="0.00" value={price} onChange={(e) => setPrice(e.target.value)} />
+                                        <Input id="price" type="number" placeholder="0.00" value={price} onChange={(e) => setPrice(e.target.value)} disabled={loading} />
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="price-unit">Per *</Label>
-                                        <Select value={priceUnit} onValueChange={setPriceUnit}>
+                                        <Select value={priceUnit} onValueChange={setPriceUnit} disabled={loading}>
                                             <SelectTrigger id="price-unit">
                                                 <SelectValue />
                                             </SelectTrigger>
@@ -257,7 +355,7 @@ export default function StudioOnboardingPage() {
                                 
                                 <div className="space-y-4">
                                     <div className="flex items-center space-x-2">
-                                        <Checkbox id="discount-check" checked={isDiscounted} onCheckedChange={(checked) => setIsDiscounted(checked as boolean)} />
+                                        <Checkbox id="discount-check" checked={isDiscounted} onCheckedChange={(checked) => setIsDiscounted(checked as boolean)} disabled={loading} />
                                         <Label htmlFor="discount-check">Offer a discount</Label>
                                     </div>
                                     {isDiscounted && (
@@ -269,6 +367,7 @@ export default function StudioOnboardingPage() {
                                                 value={discountPercentage} 
                                                 onChange={(e) => setDiscountPercentage(e.target.value)}
                                                 className="pl-8"
+                                                disabled={loading}
                                             />
                                             <Percent className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                         </div>
@@ -277,7 +376,7 @@ export default function StudioOnboardingPage() {
 
                                 <div className="space-y-2">
                                     <Label htmlFor="whatsapp-number">WhatsApp Contact Number *</Label>
-                                    <Input id="whatsapp-number" placeholder="+91 (555) 123-4567" value={contactNumber} onChange={(e) => setContactNumber(e.target.value)} />
+                                    <Input id="whatsapp-number" placeholder="+91 (555) 123-4567" value={contactNumber} onChange={(e) => setContactNumber(e.target.value)} disabled={loading} />
                                     <p className="text-xs text-muted-foreground">This number will be used for direct booking inquiries and communications</p>
                                 </div>
 
@@ -313,7 +412,10 @@ export default function StudioOnboardingPage() {
                                     <Label>Profile Photo *</Label>
                                     <Label 
                                         htmlFor="profile-photo-input"
-                                        className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer hover:bg-accent"
+                                        className={cn(
+                                            "flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer hover:bg-accent",
+                                            loading && "cursor-not-allowed opacity-50"
+                                        )}
                                     >
                                         {profilePhotoPreview ? (
                                             <Image src={profilePhotoPreview} alt="Profile preview" width={192} height={192} className="h-full w-full object-contain p-2" />
@@ -326,7 +428,7 @@ export default function StudioOnboardingPage() {
                                                 <p className="text-xs text-muted-foreground">This will be the main photo for your studio</p>
                                             </div>
                                         )}
-                                        <Input id="profile-photo-input" type="file" className="hidden" accept="image/*" onChange={handleProfilePhotoChange} />
+                                        <Input id="profile-photo-input" type="file" className="hidden" accept="image/*" onChange={handleProfilePhotoChange} disabled={loading} />
                                     </Label>
                                 </div>
                                 <div className="space-y-2">
@@ -341,6 +443,7 @@ export default function StudioOnboardingPage() {
                                                     size="icon"
                                                     className="absolute top-1 right-1 h-6 w-6"
                                                     onClick={() => handleRemoveGalleryPhoto(index)}
+                                                    disabled={loading}
                                                 >
                                                     <X className="h-4 w-4" />
                                                 </Button>
@@ -349,7 +452,10 @@ export default function StudioOnboardingPage() {
                                         {galleryPhotos.length < 5 && (
                                             <Label 
                                                 htmlFor="gallery-photos-input"
-                                                className="flex flex-col items-center justify-center w-full aspect-square border-2 border-dashed rounded-lg cursor-pointer hover:bg-accent"
+                                                className={cn(
+                                                    "flex flex-col items-center justify-center w-full aspect-square border-2 border-dashed rounded-lg cursor-pointer hover:bg-accent",
+                                                    (loading || galleryPhotos.length >= 5) && "cursor-not-allowed opacity-50"
+                                                )}
                                             >
                                                 <div className="flex items-center justify-center h-12 w-12 rounded-lg bg-secondary mb-2">
                                                     <Plus className="h-6 w-6 text-muted-foreground" />
@@ -362,7 +468,7 @@ export default function StudioOnboardingPage() {
                                                     accept="image/*" 
                                                     multiple 
                                                     onChange={handleGalleryPhotosChange}
-                                                    disabled={galleryPhotos.length >= 5}
+                                                    disabled={loading || galleryPhotos.length >= 5}
                                                 />
                                             </Label>
                                         )}
@@ -374,12 +480,13 @@ export default function StudioOnboardingPage() {
 
                     <CardFooter className="flex justify-between">
                         {step > 1 ? (
-                            <Button variant="outline" onClick={prevStep}>Previous</Button>
+                            <Button variant="outline" onClick={prevStep} disabled={loading}>Previous</Button>
                         ) : (
                             <div></div> // Placeholder to keep "Next" button on the right
                         )}
-                        <Button onClick={step === totalSteps ? () => {} : nextStep}>
-                            {step === totalSteps ? 'List My Studio' : 'Next Step'}
+                        <Button onClick={step === totalSteps ? handleSubmit : nextStep} disabled={loading}>
+                            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            {step === totalSteps ? (loading ? 'Listing...' : 'List My Studio') : 'Next Step'}
                         </Button>
                     </CardFooter>
                 </Card>
