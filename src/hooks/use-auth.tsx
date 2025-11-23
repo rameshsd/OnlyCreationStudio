@@ -36,36 +36,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             if (user) {
                 setUser(user);
                 const userDocRef = doc(db, "user_profiles", user.uid);
-                getDoc(userDocRef).then(userDoc => {
+                try {
+                    const userDoc = await getDoc(userDocRef);
                     if (userDoc.exists()) {
                         setUserData(userDoc.data());
                     } else {
-                        // if user_profile doesn't exist, try to get from users collection for backward compatibility
-                         const oldUserDocRef = doc(db, "users", user.uid);
-                         getDoc(oldUserDocRef).then(oldUserDoc => {
-                            if (oldUserDoc.exists()) {
-                                setUserData(oldUserDoc.data())
-                            }
-                         }).catch(serverError => {
-                            const permissionError = new FirestorePermissionError({
-                                path: oldUserDocRef.path,
-                                operation: 'get',
-                            });
-                            errorEmitter.emit('permission-error', permissionError);
-                         })
+                        // Fallback for older data structure
+                        const oldUserDocRef = doc(db, "users", user.uid);
+                        const oldUserDoc = await getDoc(oldUserDocRef);
+                        if (oldUserDoc.exists()) {
+                            setUserData(oldUserDoc.data());
+                        }
                     }
-                }).catch(serverError => {
-                    const permissionError = new FirestorePermissionError({
+                } catch (serverError) {
+                     const permissionError = new FirestorePermissionError({
                         path: userDocRef.path,
                         operation: 'get',
                     });
                     errorEmitter.emit('permission-error', permissionError);
-                });
+                } finally {
+                    setLoading(false);
+                }
             } else {
                 setUser(null);
                 setUserData(null);
+                setLoading(false);
             }
-            setLoading(false);
         });
 
         return () => unsubscribe();

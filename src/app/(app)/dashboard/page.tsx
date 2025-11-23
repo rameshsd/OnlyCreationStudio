@@ -212,7 +212,7 @@ export default function DashboardPage() {
         setSeenStories(prev => new Set(prev).add(userId));
     }, []);
     
-    if (authLoading || !user) {
+    if (authLoading) {
       return (
           <div className="flex h-screen items-center justify-center">
               <Loader2 className="h-12 w-12 animate-spin text-primary" />
