@@ -1,4 +1,3 @@
-
 "use client";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -213,11 +212,48 @@ export default function DashboardPage() {
     }, []);
     
     if (authLoading) {
-      return (
-          <div className="flex h-screen items-center justify-center">
-              <Loader2 className="h-12 w-12 animate-spin text-primary" />
-          </div>
-      );
+        return (
+            <div className="space-y-8">
+                <header className="flex justify-between items-center md:hidden">
+                    <h1 className="text-2xl font-bold">OnlyCreation</h1>
+                    <div className="flex items-center gap-2">
+                        <Button variant="ghost" size="icon"><Search className="h-6 w-6" /></Button>
+                        <Button variant="ghost" size="icon"><Bell className="h-6 w-6" /></Button>
+                    </div>
+                </header>
+    
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                    <div className="lg:col-span-8">
+                        <div className="flex flex-col gap-8 text-foreground">
+                            <div className="flex space-x-4 overflow-x-auto pb-4 -mx-4 px-4">
+                                {[...Array(10)].map((_, index) => (
+                                    <div key={index} className="flex flex-col items-center gap-2 flex-shrink-0 w-20">
+                                        <Skeleton className="h-20 w-20 rounded-full" />
+                                        <Skeleton className="h-3 w-16" />
+                                    </div>
+                                ))}
+                            </div>
+                            <main className="space-y-6">
+                                <PostSkeleton />
+                                <PostSkeleton />
+                                <PostSkeleton />
+                            </main>
+                        </div>
+                    </div>
+                     <aside className="hidden lg:block lg:col-span-4 space-y-6">
+                        <Card>
+                            <CardHeader>
+                                <Skeleton className="h-6 w-3/4" />
+                            </CardHeader>
+                            <CardContent className="space-y-2">
+                                {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-4 w-full" />)}
+                            </CardContent>
+                        </Card>
+                        <SuggestionsCard/>
+                    </aside>
+                </div>
+            </div>
+        );
     }
 
   return (
@@ -362,5 +398,3 @@ export default function DashboardPage() {
     </>
   );
 }
-
-    
