@@ -25,7 +25,7 @@ import { FirestorePermissionError } from '@/firebase/errors';
 
 interface AddStoryDialogProps {
   open: boolean;
-  onOpenChange: (open: boolean) => void;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export function AddStoryDialog({ open, onOpenChange }: AddStoryDialogProps) {
@@ -46,7 +46,9 @@ export function AddStoryDialog({ open, onOpenChange }: AddStoryDialogProps) {
   const handleClose = () => {
     setMediaFile(null);
     setPreviewUrl(null);
-    onOpenChange(false);
+    if(onOpenChange) {
+      onOpenChange(false);
+    }
   }
 
   const handleSubmit = async () => {
@@ -154,5 +156,3 @@ export function AddStoryDialog({ open, onOpenChange }: AddStoryDialogProps) {
     </Dialog>
   );
 }
-
-    
