@@ -117,27 +117,27 @@ export default function DashboardPage() {
     const [isAddStoryOpen, setIsAddStoryOpen] = useState(false);
     
     const postsQuery = useMemoFirebase(() => {
-      if (authLoading) return null;
+      if (authLoading || !user) return null;
       return query(collection(db, "posts"), orderBy("createdAt", "desc"));
-    }, [authLoading]);
+    }, [authLoading, user]);
     const { data: posts, isLoading: postsLoading } = useCollection<Post>(postsQuery);
 
     const studiosQuery = useMemoFirebase(() => {
-      if (authLoading) return null;
+      if (authLoading || !user) return null;
       return query(collection(db, "studio_profiles"), orderBy("createdAt", "desc"));
-    }, [authLoading]);
+    }, [authLoading, user]);
     const { data: studios, isLoading: studiosLoading } = useCollection<StudioProfile>(studiosQuery);
     
     const usersWithStoriesQuery = useMemoFirebase(() => {
-      if (authLoading) return null;
+      if (authLoading || !user) return null;
       return query(collection(db, "user_profiles"));
-    }, [authLoading]);
+    }, [authLoading, user]);
     const { data: userProfiles, isLoading: storiesLoading } = useCollection<UserProfile>(usersWithStoriesQuery);
 
     const allStoriesCollectionQuery = useMemoFirebase(() => {
-      if (authLoading) return null;
+      if (authLoading || !user) return null;
       return query(collectionGroup(db, 'stories'), orderBy('createdAt', 'asc'))
-    }, [authLoading]);
+    }, [authLoading, user]);
     const { data: allStories, isLoading: allStoriesLoading } = useCollection<Story>(allStoriesCollectionQuery);
 
     const stories = useMemo(() => {
@@ -362,3 +362,5 @@ export default function DashboardPage() {
     </>
   );
 }
+
+    
