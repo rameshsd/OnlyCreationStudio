@@ -5,9 +5,9 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardFooter } from "@/components/ui/card";
-import { Plus, Search, Bell, Rss, TrendingUp, Users, Video, Send, Bookmark, Heart, MessageCircle, MapPin, Share2 } from "lucide-react";
+import { Plus, Search, Bell, Rss, TrendingUp, Users, Video, Send, Bookmark, Heart, MessageCircle, MapPin, Share2, Loader2 } from "lucide-react";
 import Link from "next/link";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { PostCard, type Post } from "@/components/post-card";
 import { ShortsReelCard } from "@/components/shorts-reel-card";
 import { db } from "@/lib/firebase";
@@ -111,7 +111,7 @@ export default function DashboardPage() {
     const usersQuery = useMemoFirebase(() => query(collection(db, "user_profiles")), []);
     const { data: users, isLoading: usersLoading } = useCollection<UserProfile>(usersQuery);
 
-    const stories = useMemoFirebase(() => {
+    const stories = useMemo(() => {
         if (!users || !userData) return [];
         const otherUsers = users.filter(u => u.id !== userData.userId);
         return [
@@ -278,5 +278,3 @@ export default function DashboardPage() {
     </>
   );
 }
-
-    
