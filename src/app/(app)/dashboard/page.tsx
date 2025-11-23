@@ -36,6 +36,7 @@ interface UserProfile {
     username: string;
     avatarUrl: string;
     stories?: Story[];
+    isSelf?: boolean;
 }
 
 interface Story {
@@ -82,10 +83,10 @@ const PostSkeleton = () => (
           </div>
       </CardHeader>
       <CardContent className="p-0">
-          <p className="text-sm whitespace-pre-line px-4 mb-4">
+          <div className="text-sm whitespace-pre-line px-4 mb-4">
             <Skeleton className="h-4 w-full" />
             <Skeleton className="h-4 w-2/3 mt-2" />
-          </p>
+          </div>
           <Skeleton className="relative aspect-[4/3] w-full" />
       </CardContent>
        <CardFooter className="p-4 flex flex-col items-start gap-3">
@@ -124,13 +125,13 @@ export default function DashboardPage() {
     const usersWithStoriesQuery = useMemoFirebase(() => query(collection(db, "user_profiles")), []);
     const { data: userProfiles, isLoading: storiesLoading } = useCollection<UserProfile>(usersWithStoriesQuery);
 
-    const storiesCollectionQuery = useMemoFirebase(() => query(collectionGroup(db, 'stories'), orderBy('createdAt', 'asc')), []);
-    const { data: allStories, isLoading: allStoriesLoading } = useCollection<Story>(storiesCollectionQuery);
+    const allStoriesCollectionQuery = useMemoFirebase(() => query(collectionGroup(db, 'stories'), orderBy('createdAt', 'asc')), []);
+    const { data: allStories, isLoading: allStoriesLoading } = useCollection<Story>(allStoriesCollectionQuery);
 
     const stories = useMemo(() => {
-        if (!userProfiles || !userData) return []; // Guard against null/undefined data
+        if (!userProfiles || !allStories || !userData) return [];
         
-        const storiesByUserId = allStories?.reduce((acc, story) => {
+        const storiesByUserId = allStories.reduce((acc, story) => {
             if (!acc[story.userId]) {
                 acc[story.userId] = [];
             }
@@ -143,7 +144,7 @@ export default function DashboardPage() {
             stories: storiesByUserId?.[profile.id] || []
         })).filter(p => p.stories.length > 0);
 
-        const currentUserStoryData = {
+        const currentUserStoryData: UserProfile = {
              id: userData.userId, 
              username: "My Story", 
              avatarUrl: userData.avatarUrl, 
@@ -154,7 +155,7 @@ export default function DashboardPage() {
         return [
             currentUserStoryData,
             ...usersWithStories.filter(u => u.id !== userData.userId)
-        ] as UserProfile[];
+        ];
     }, [userProfiles, allStories, userData]);
 
 
@@ -237,7 +238,7 @@ export default function DashboardPage() {
                                 </div>
                             ))
                         ) : (
-                            stories.map((story: any, index: number) => {
+                            stories.map((story, index) => {
                                 const hasUnseenStories = story.stories && story.stories.length > 0 && !seenStories.has(story.id);
                                 const isMyEmptyStory = story.isSelf && (!story.stories || story.stories.length === 0);
 
