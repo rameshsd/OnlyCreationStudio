@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
-import { Trash2, Info } from 'lucide-react';
+import { Trash2, Info, Percent } from 'lucide-react';
 
 const amenitiesList = [
     "High-speed WiFi", "Air Conditioning",
@@ -46,7 +46,8 @@ export default function StudioOnboardingPage() {
     const [price, setPrice] = useState('');
     const [priceUnit, setPriceUnit] = useState('hour');
     const [contactNumber, setContactNumber] = useState('');
-
+    const [isDiscounted, setIsDiscounted] = useState(false);
+    const [discountPercentage, setDiscountPercentage] = useState('');
 
     const nextStep = () => setStep(prev => (prev < totalSteps ? prev + 1 : prev));
     const prevStep = () => setStep(prev => (prev > 1 ? prev - 1 : prev));
@@ -69,6 +70,17 @@ export default function StudioOnboardingPage() {
     const handleRemoveEquipment = (itemToRemove: string) => {
         setEquipment(prev => prev.filter(item => item !== itemToRemove));
     };
+    
+    const calculateDiscountedPrice = () => {
+        const originalPrice = parseFloat(price);
+        const discount = parseFloat(discountPercentage);
+        if (!isNaN(originalPrice) && !isNaN(discount) && isDiscounted) {
+            const discounted = originalPrice - (originalPrice * (discount / 100));
+            return discounted.toFixed(2);
+        }
+        return null;
+    }
+    const discountedPrice = calculateDiscountedPrice();
 
 
     return (
@@ -202,17 +214,52 @@ export default function StudioOnboardingPage() {
                                         </Select>
                                     </div>
                                 </div>
+                                
+                                <div className="space-y-4">
+                                    <div className="flex items-center space-x-2">
+                                        <Checkbox id="discount-check" checked={isDiscounted} onCheckedChange={(checked) => setIsDiscounted(checked as boolean)} />
+                                        <Label htmlFor="discount-check">Offer a discount</Label>
+                                    </div>
+                                    {isDiscounted && (
+                                        <div className="relative">
+                                            <Input 
+                                                id="discount" 
+                                                type="number" 
+                                                placeholder="e.g., 15" 
+                                                value={discountPercentage} 
+                                                onChange={(e) => setDiscountPercentage(e.target.value)}
+                                                className="pl-8"
+                                            />
+                                            <Percent className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                        </div>
+                                    )}
+                                </div>
+
                                 <div className="space-y-2">
                                     <Label htmlFor="whatsapp-number">WhatsApp Contact Number *</Label>
                                     <Input id="whatsapp-number" placeholder="+91 (555) 123-4567" value={contactNumber} onChange={(e) => setContactNumber(e.target.value)} />
                                     <p className="text-xs text-muted-foreground">This number will be used for direct booking inquiries and communications</p>
                                 </div>
+
                                 <div className="bg-secondary rounded-lg p-4">
                                     <div className="flex items-center gap-2 text-muted-foreground text-sm">
                                         <Info className="h-5 w-5 text-primary" />
                                         <span>Pricing Preview</span>
                                     </div>
-                                    <p className="text-2xl font-bold mt-2 text-primary">₹{price || '0'} <span className="text-lg font-medium text-muted-foreground">/ {priceUnit}</span></p>
+                                    {discountedPrice ? (
+                                        <div className="mt-2">
+                                            <p className="text-xl font-bold text-muted-foreground line-through">
+                                                ₹{price || '0'} <span className="text-base font-medium">/ {priceUnit}</span>
+                                            </p>
+                                            <p className="text-3xl font-bold mt-1 text-primary">
+                                                ₹{discountedPrice} <span className="text-xl font-medium">/ {priceUnit}</span>
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        <p className="text-3xl font-bold mt-2 text-primary">
+                                            ₹{price || '0'} <span className="text-xl font-medium text-muted-foreground">/ {priceUnit}</span>
+                                        </p>
+                                    )}
                                 </div>
                             </div>
                         </CardContent>
@@ -232,3 +279,5 @@ export default function StudioOnboardingPage() {
         </div>
     );
 }
+
+    
