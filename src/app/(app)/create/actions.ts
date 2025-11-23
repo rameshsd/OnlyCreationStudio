@@ -21,11 +21,10 @@ export async function uploadPhoto(formData: FormData): Promise<{ url?: string; r
 
     const buffer = Buffer.from(await file.arrayBuffer());
 
-    // 🚀 UPLOAD EVERYTHING THROUGH VIDEO ENDPOINT
     const uploadOptions: any = {
       folder: `posts/${userId}`,
       public_id: `${Date.now()}-${file.name}`,
-      resource_type: "video",   // <-- THE KEY FIX
+      resource_type: "auto",
       chunk_size: 20_000_000,
       quality: "auto",
       fetch_format: "auto"
