@@ -128,7 +128,7 @@ export default function DashboardPage() {
     const { data: allStories, isLoading: allStoriesLoading } = useCollection<Story>(storiesCollectionQuery);
 
     const stories = useMemo(() => {
-        if (!userProfiles || !userData) return [];
+        if (!userProfiles || !userData) return []; // Guard against null/undefined data
         
         const storiesByUserId = allStories?.reduce((acc, story) => {
             if (!acc[story.userId]) {
@@ -243,7 +243,7 @@ export default function DashboardPage() {
 
                                 return (
                                     <button
-                                        key={story.id}
+                                        key={story.isSelf ? 'MyStory' : story.id}
                                         className="flex flex-col items-center gap-2 flex-shrink-0 w-20"
                                         onClick={() => handleStoryClick(index)}
                                     >
