@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
+import { Trash2 } from 'lucide-react';
 
 const amenitiesList = [
     "High-speed WiFi", "Air Conditioning",
@@ -38,6 +39,9 @@ export default function StudioOnboardingPage() {
     const [studioType, setStudioType] = useState('');
     // Step 2
     const [amenities, setAmenities] = useState<string[]>([]);
+    // Step 3
+    const [equipmentInput, setEquipmentInput] = useState('');
+    const [equipment, setEquipment] = useState<string[]>([]);
 
     const nextStep = () => setStep(prev => (prev < totalSteps ? prev + 1 : prev));
     const prevStep = () => setStep(prev => (prev > 1 ? prev - 1 : prev));
@@ -49,6 +53,18 @@ export default function StudioOnboardingPage() {
                 : [...prev, amenity]
         );
     };
+
+    const handleAddEquipment = () => {
+        if (equipmentInput.trim()) {
+            setEquipment(prev => [...prev, equipmentInput.trim()]);
+            setEquipmentInput('');
+        }
+    };
+
+    const handleRemoveEquipment = (itemToRemove: string) => {
+        setEquipment(prev => prev.filter(item => item !== itemToRemove));
+    };
+
 
     return (
         <div className="min-h-screen bg-secondary/40 flex flex-col items-center justify-center p-4">
@@ -124,6 +140,40 @@ export default function StudioOnboardingPage() {
                             </div>
                         </CardContent>
                     )}
+                    
+                    {step === 3 && (
+                        <CardContent className="pt-6">
+                            <h2 className="text-xl font-semibold mb-2">Equipment</h2>
+                            <p className="text-muted-foreground mb-6">Add equipment available for use at your studio</p>
+                            <div className="space-y-4">
+                                <div className="flex gap-2">
+                                    <Input 
+                                        placeholder="e.g. Canon 5D Mark IV, Softbox Lighting Kit" 
+                                        value={equipmentInput}
+                                        onChange={(e) => setEquipmentInput(e.target.value)}
+                                    />
+                                    <Button onClick={handleAddEquipment}>Add</Button>
+                                </div>
+                                <div className="border rounded-lg p-4 min-h-[150px]">
+                                    {equipment.length === 0 ? (
+                                        <p className="text-muted-foreground text-center pt-10">No equipment added yet. Add equipment that creators can use at your studio.</p>
+                                    ) : (
+                                        <ul className="space-y-2">
+                                            {equipment.map((item, index) => (
+                                                <li key={index} className="flex justify-between items-center bg-secondary p-2 rounded-md">
+                                                    <span>{item}</span>
+                                                    <Button variant="ghost" size="icon" onClick={() => handleRemoveEquipment(item)}>
+                                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                                    </Button>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
+                                </div>
+                            </div>
+                        </CardContent>
+                    )}
+
 
                     <CardFooter className="flex justify-between">
                         {step > 1 ? (
