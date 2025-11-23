@@ -27,7 +27,7 @@ const roles = [
     icon: Camera,
     title: "Studio",
     description: "List your space, manage bookings, and attract clients.",
-    href: "/signup",
+    href: "/studios/onboarding",
   },
 ];
 
