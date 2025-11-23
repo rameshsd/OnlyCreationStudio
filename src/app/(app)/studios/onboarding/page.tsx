@@ -2,6 +2,7 @@
 "use client";
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
-import { Trash2, Info, Percent } from 'lucide-react';
+import { Trash2, Info, Percent, Upload, Plus, X } from 'lucide-react';
 
 const amenitiesList = [
     "High-speed WiFi", "Air Conditioning",
@@ -48,6 +49,12 @@ export default function StudioOnboardingPage() {
     const [contactNumber, setContactNumber] = useState('');
     const [isDiscounted, setIsDiscounted] = useState(false);
     const [discountPercentage, setDiscountPercentage] = useState('');
+    // Step 5
+    const [profilePhoto, setProfilePhoto] = useState<File | null>(null);
+    const [galleryPhotos, setGalleryPhotos] = useState<File[]>([]);
+    const [profilePhotoPreview, setProfilePhotoPreview] = useState<string | null>(null);
+    const [galleryPreviews, setGalleryPreviews] = useState<string[]>([]);
+
 
     const nextStep = () => setStep(prev => (prev < totalSteps ? prev + 1 : prev));
     const prevStep = () => setStep(prev => (prev > 1 ? prev - 1 : prev));
@@ -82,11 +89,44 @@ export default function StudioOnboardingPage() {
     }
     const discountedPrice = calculateDiscountedPrice();
 
+    const handleProfilePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setProfilePhoto(file);
+            setProfilePhotoPreview(URL.createObjectURL(file));
+        }
+    };
+
+    const handleGalleryPhotosChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files;
+        if (files) {
+            const newFiles = Array.from(files);
+            const combinedFiles = [...galleryPhotos, ...newFiles].slice(0, 5);
+            setGalleryPhotos(combinedFiles);
+
+            const newPreviews = combinedFiles.map(file => URL.createObjectURL(file));
+            setGalleryPreviews(newPreviews);
+        }
+    };
+    
+    const handleRemoveGalleryPhoto = (index: number) => {
+        const newPhotos = [...galleryPhotos];
+        newPhotos.splice(index, 1);
+        setGalleryPhotos(newPhotos);
+
+        const newPreviews = [...galleryPreviews];
+        newPreviews.splice(index, 1);
+        setGalleryPreviews(newPreviews);
+    };
+
 
     return (
         <div className="min-h-screen bg-secondary/40 flex flex-col items-center justify-center p-4">
             <div className="w-full max-w-3xl">
-                <p className="text-center text-muted-foreground mb-4">List your studio space</p>
+                <div className="text-center mb-4">
+                    <h1 className="text-3xl font-bold text-primary">Only Creation</h1>
+                    <p className="text-muted-foreground">List your studio space</p>
+                </div>
                 <Card className="w-full">
                     <CardHeader>
                         <div className="flex justify-between items-center mb-2">
@@ -265,6 +305,72 @@ export default function StudioOnboardingPage() {
                         </CardContent>
                     )}
 
+                    {step === 5 && (
+                         <CardContent className="pt-6">
+                            <h2 className="text-xl font-semibold mb-6">Photos</h2>
+                             <div className="space-y-8">
+                                <div className="space-y-2">
+                                    <Label>Profile Photo *</Label>
+                                    <Label 
+                                        htmlFor="profile-photo-input"
+                                        className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer hover:bg-accent"
+                                    >
+                                        {profilePhotoPreview ? (
+                                            <Image src={profilePhotoPreview} alt="Profile preview" width={192} height={192} className="h-full w-full object-contain p-2" />
+                                        ) : (
+                                            <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                                <div className="flex items-center justify-center h-12 w-12 rounded-lg bg-secondary mb-4">
+                                                    <Upload className="h-6 w-6 text-muted-foreground" />
+                                                </div>
+                                                <p className="mb-2 text-sm font-semibold">Upload Profile Photo</p>
+                                                <p className="text-xs text-muted-foreground">This will be the main photo for your studio</p>
+                                            </div>
+                                        )}
+                                        <Input id="profile-photo-input" type="file" className="hidden" accept="image/*" onChange={handleProfilePhotoChange} />
+                                    </Label>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Gallery Photos (Optional)</Label>
+                                    <p className="text-sm text-muted-foreground">Upload up to 5 additional photos showcasing your studio.</p>
+                                    <div className="grid grid-cols-3 gap-4">
+                                        {galleryPreviews.map((src, index) => (
+                                            <div key={index} className="relative aspect-square">
+                                                <Image src={src} alt={`Gallery preview ${index + 1}`} fill className="rounded-lg object-cover" />
+                                                <Button
+                                                    variant="destructive"
+                                                    size="icon"
+                                                    className="absolute top-1 right-1 h-6 w-6"
+                                                    onClick={() => handleRemoveGalleryPhoto(index)}
+                                                >
+                                                    <X className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        ))}
+                                        {galleryPhotos.length < 5 && (
+                                            <Label 
+                                                htmlFor="gallery-photos-input"
+                                                className="flex flex-col items-center justify-center w-full aspect-square border-2 border-dashed rounded-lg cursor-pointer hover:bg-accent"
+                                            >
+                                                <div className="flex items-center justify-center h-12 w-12 rounded-lg bg-secondary mb-2">
+                                                    <Plus className="h-6 w-6 text-muted-foreground" />
+                                                </div>
+                                                <p className="text-xs text-center">Add Gallery Photos</p>
+                                                <Input 
+                                                    id="gallery-photos-input" 
+                                                    type="file" 
+                                                    className="hidden" 
+                                                    accept="image/*" 
+                                                    multiple 
+                                                    onChange={handleGalleryPhotosChange}
+                                                    disabled={galleryPhotos.length >= 5}
+                                                />
+                                            </Label>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </CardContent>
+                    )}
 
                     <CardFooter className="flex justify-between">
                         {step > 1 ? (
@@ -272,7 +378,9 @@ export default function StudioOnboardingPage() {
                         ) : (
                             <div></div> // Placeholder to keep "Next" button on the right
                         )}
-                        <Button onClick={nextStep}>{step === totalSteps ? 'Finish' : 'Next Step'}</Button>
+                        <Button onClick={step === totalSteps ? () => {} : nextStep}>
+                            {step === totalSteps ? 'List My Studio' : 'Next Step'}
+                        </Button>
                     </CardFooter>
                 </Card>
             </div>
