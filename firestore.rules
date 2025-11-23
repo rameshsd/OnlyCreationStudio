@@ -4,98 +4,45 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Users can only read and write their own user document.
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-
-    // User profiles are publicly readable, but only the owner can write.
-    // This allows users to see each other's profiles.
-    match /user_profiles/{userProfileId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == userProfileId;
-
-      // Portfolio items can only be managed by the profile owner.
-      match /portfolio_items/{portfolioItemId} {
-        allow read, write: if request.auth != null && request.auth.uid == userProfileId;
-      }
-
-      // Stories can be created by the profile owner.
-      // Reading is handled by the collection group rule below.
-      match /stories/{storyId} {
-        allow write: if request.auth != null && request.auth.uid == userProfileId;
-        // Read is intentionally omitted here to rely on the collection group rule.
-      }
-    }
-    
-    // This rule is crucial for collection group queries on 'stories'.
-    // It allows any authenticated user to list stories from all users.
-    match /{path=**}/stories/{storyId} {
+    // Allow authenticated users read access to everything except writes
+    // You can tighten later.
+    match /{document=**} {
       allow read: if request.auth != null;
     }
 
-    // Role-specific profiles can be read by anyone, but only created/updated by the owner.
-    match /brand_profiles/{brandProfileId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && request.resource.data.userProfileId == request.auth.uid;
-    }
-
-    match /creator_profiles/{creatorProfileId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && request.resource.data.userProfileId == request.auth.uid;
-    }
-
-    match /service_provider_profiles/{serviceProviderProfileId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && request.resource.data.userProfileId == request.auth.uid;
-    }
-
-    // Studio profiles are publicly readable, but only the owner can write.
-    match /studio_profiles/{studioProfileId} {
-      allow read: if request.auth != null;
-      // Note: create rule might need to be more robust in a real app, e.g. checking a custom claim
-      allow write: if request.auth != null && request.resource.data.userProfileId == request.auth.uid;
-    }
-
-    // Posts are publicly readable, but only the owner can write.
+    // Allow users to write their own posts
     match /posts/{postId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && request.resource.data.userId == request.auth.uid;
-
-       // Comments on posts can be read by anyone, but only the author can write.
-      match /comments/{commentId} {
-        allow read: if request.auth != null;
-        allow write: if request.auth != null && request.resource.data.authorId == request.auth.uid;
-      }
+      allow write: if request.auth != null
+        && request.auth.uid == request.resource.data.userId;
     }
 
-    // Collab requests are only readable/writeable by the sender or receiver.
-    match /collab_requests/{collabRequestId} {
-      allow read, write: if request.auth != null && (request.auth.uid == resource.data.senderId || request.auth.uid == resource.data.receiverId);
+    // Allow users to write their own studio profiles
+    match /studio_profiles/{studioId} {
+      // Use userProfileId for studio ownership
+      allow write: if request.auth != null
+        && request.auth.uid == request.resource.data.userProfileId;
+    }
+
+    // Allow users to write their own user profile
+    match /user_profiles/{userId} {
+      allow write: if request.auth != null
+        && request.auth.uid == userId;
     }
     
-    // Projects are readable by any authenticated user, but only the owner can write.
+    // Allow users to write to their own portfolio
+    match /user_profiles/{userId}/portfolio_items/{itemId} {
+       allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Allow users to write their own stories in collectionGroup
+    match /user_profiles/{userId}/stories/{storyId} {
+      allow write: if request.auth != null
+        && request.auth.uid == userId;
+    }
+    
+    // Allow project creation and updates by owner
     match /projects/{projectId} {
-        allow read: if request.auth != null;
-        allow write: if request.auth != null && request.resource.data.ownerId == request.auth.uid;
-    }
-
-    // --- Other rules from the original file - left for completeness ---
-    
-    match /teams/{teamId} {
-      allow read, write: if request.auth != null && request.auth.uid in resource.data.memberIds;
-    }
-
-    match /chat_messages/{chatMessageId} {
-      allow read, write: if request.auth != null && (request.auth.uid == resource.data.senderId || request.auth.uid == resource.data.receiverId);
-    }
-
-    match /support_tickets/{supportTicketId} {
-      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
-    }
-    
-    match /payments/{paymentId} {
-      allow read, write: if request.auth != null && (request.auth.uid == resource.data.payerId || request.auth.uid == resource.data.payeeId);
+        allow write: if request.auth != null && request.auth.uid == request.resource.data.ownerId;
     }
   }
 }
