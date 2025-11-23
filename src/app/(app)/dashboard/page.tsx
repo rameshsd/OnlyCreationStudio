@@ -110,22 +110,34 @@ const PostSkeleton = () => (
 type FeedItem = (Post & { type: 'post' }) | (StudioProfile & { type: 'studio' });
 
 export default function DashboardPage() {
-    const { user, userData } = useAuth();
+    const { user, userData, loading: authLoading } = useAuth();
     const [activeFilter, setActiveFilter] = useState("All");
     const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [pageLoading, setPageLoading] = useState(true);
     const [isAddStoryOpen, setIsAddStoryOpen] = useState(false);
     
-    const postsQuery = useMemoFirebase(() => query(collection(db, "posts"), orderBy("createdAt", "desc")), []);
+    const postsQuery = useMemoFirebase(() => {
+      if (authLoading) return null;
+      return query(collection(db, "posts"), orderBy("createdAt", "desc"));
+    }, [authLoading]);
     const { data: posts, isLoading: postsLoading } = useCollection<Post>(postsQuery);
 
-    const studiosQuery = useMemoFirebase(() => query(collection(db, "studio_profiles"), orderBy("createdAt", "desc")), []);
+    const studiosQuery = useMemoFirebase(() => {
+      if (authLoading) return null;
+      return query(collection(db, "studio_profiles"), orderBy("createdAt", "desc"));
+    }, [authLoading]);
     const { data: studios, isLoading: studiosLoading } = useCollection<StudioProfile>(studiosQuery);
     
-    const usersWithStoriesQuery = useMemoFirebase(() => query(collection(db, "user_profiles")), []);
+    const usersWithStoriesQuery = useMemoFirebase(() => {
+      if (authLoading) return null;
+      return query(collection(db, "user_profiles"));
+    }, [authLoading]);
     const { data: userProfiles, isLoading: storiesLoading } = useCollection<UserProfile>(usersWithStoriesQuery);
 
-    const allStoriesCollectionQuery = useMemoFirebase(() => query(collectionGroup(db, 'stories'), orderBy('createdAt', 'asc')), []);
+    const allStoriesCollectionQuery = useMemoFirebase(() => {
+      if (authLoading) return null;
+      return query(collectionGroup(db, 'stories'), orderBy('createdAt', 'asc'))
+    }, [authLoading]);
     const { data: allStories, isLoading: allStoriesLoading } = useCollection<Story>(allStoriesCollectionQuery);
 
     const stories = useMemo(() => {
@@ -143,6 +155,8 @@ export default function DashboardPage() {
             ...profile,
             stories: storiesByUserId?.[profile.id] || []
         })).filter(p => p.stories.length > 0);
+
+        if (!userData) return usersWithStories;
 
         const currentUserStoryData: UserProfile = {
              id: userData.userId, 
@@ -180,7 +194,7 @@ export default function DashboardPage() {
             });
 
             setFeedItems(combinedFeed);
-            setLoading(false);
+            setPageLoading(false);
         }
     }, [posts, studios, postsLoading, studiosLoading]);
 
@@ -198,13 +212,13 @@ export default function DashboardPage() {
         setSeenStories(prev => new Set(prev).add(userId));
     }, []);
     
-  if (!user || !userData) {
+    if (authLoading) {
       return (
           <div className="flex h-screen items-center justify-center">
               <Loader2 className="h-12 w-12 animate-spin text-primary" />
           </div>
       );
-  }
+    }
 
   return (
     <>
@@ -285,7 +299,7 @@ export default function DashboardPage() {
                     </div>
 
                     <main className="space-y-6">
-                        {loading ? (
+                        {pageLoading ? (
                             <>
                               <PostSkeleton />
                               <PostSkeleton />
