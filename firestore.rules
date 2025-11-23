@@ -151,16 +151,16 @@ service cloud.firestore {
       }
       
       function isOwnerByStudioProfileId() {
-          return isSignedIn() && get(/databases/$(database)/documents/user_profiles/$(resource.data.userProfileId)).data.userId == request.auth.uid;
+          return isSignedIn() && get(/databases/$(database)/documents/user_profiles/$(request.resource.data.userProfileId)).data.userId == request.auth.uid;
       }
 
       function isExistingOwnerByStudioProfileId() {
-        return isOwnerByStudioProfileId() && resource != null;
+        return isSignedIn() && get(/databases/$(database)/documents/user_profiles/$(resource.data.userProfileId)).data.userId == request.auth.uid;
       }
 
-      allow get: if isOwnerByStudioProfileId();
-      allow list: if false;
-      allow create: if isSignedIn(); // Additional validation needed for userProfileId
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isOwnerByStudioProfileId();
       allow update: if isExistingOwnerByStudioProfileId();
       allow delete: if isExistingOwnerByStudioProfileId();
     }
