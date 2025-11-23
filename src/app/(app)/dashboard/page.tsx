@@ -112,7 +112,7 @@ export default function DashboardPage() {
         if (!users || !userData) return [];
         const otherUsers = users.filter(u => u.id !== userData.userId);
         return [
-            { id: userData.userId, username: "My Story", avatarUrl: userData.avatarUrl, isSelf: true },
+            { id: "MyStory", username: "My Story", avatarUrl: userData.avatarUrl, isSelf: true },
             ...otherUsers
         ];
     }, [users, userData]);
@@ -208,9 +208,9 @@ export default function DashboardPage() {
                             feedItems.map((item, index) => (
                                 <React.Fragment key={item.id}>
                                     {item.type === 'post' ? (
-                                        <PostCard post={item} />
+                                        <PostCard post={item as Post} />
                                     ) : (
-                                        <StudioPostCard studio={item} />
+                                        <StudioPostCard studio={item as StudioProfile} />
                                     )}
                                      { (index + 1) % 5 === 0 && (
                                         <ShortsReelCard />
