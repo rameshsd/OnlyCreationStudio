@@ -1,27 +1,16 @@
 
 "use client";
 
-import { useState } from 'react';
 import Image from 'next/image';
-import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, ChevronLeft, ChevronRight, PlayCircle, Star } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from './ui/carousel';
+import { PlayCircle, Star } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 interface Media {
     type: 'image' | 'video';
     url: string;
     hint?: string;
-}
-
-interface Author {
-    name: string;
-    avatar: string;
-    username: string;
-    isVerified: boolean;
 }
 
 interface FirestoreTimestamp {
@@ -43,27 +32,6 @@ export interface Post {
     createdAt: FirestoreTimestamp;
 }
 
-const ExpandableText = ({ text, maxLength = 100 }: { text: string, maxLength?: number }) => {
-    const [isExpanded, setIsExpanded] = useState(false);
-    
-    if (!text) return null;
-
-    const isLongText = text.length > maxLength;
-    const toggleExpand = () => setIsExpanded(!isExpanded);
-    const displayedText = isLongText && !isExpanded ? `${text.slice(0, maxLength)}...` : text;
-
-    return (
-        <p className="text-sm whitespace-pre-line">
-            {displayedText}
-            {isLongText && (
-                <Button variant="link" onClick={toggleExpand} className="p-0 h-auto ml-1 text-muted-foreground hover:text-primary">
-                    {isExpanded ? 'Read less' : 'Read more'}
-                </Button>
-            )}
-        </p>
-    );
-};
-
 const MediaContent = ({ mediaItem }: { mediaItem: Media }) => {
     if (mediaItem.type === 'video') {
         return (
@@ -75,14 +43,10 @@ const MediaContent = ({ mediaItem }: { mediaItem: Media }) => {
             </div>
         )
     }
-    return <Image src={mediaItem.url} alt="Post media" fill className="object-contain" data-ai-hint={mediaItem.hint} />;
+    return <Image src={mediaItem.url} alt="Post media" width={600} height={400} className="rounded-lg object-cover w-full h-auto" data-ai-hint={mediaItem.hint} />;
 }
 
 export function PostCard({ post }: { post: Post }) {
-    const [isLiked, setIsLiked] = useState(false);
-    const [isSaved, setIsSaved] = useState(false);
-
-    const hasMultipleMedia = post.media?.length > 1;
 
     const formatTimestamp = (timestamp: FirestoreTimestamp) => {
       if (!timestamp) return 'Just now';
@@ -92,79 +56,28 @@ export function PostCard({ post }: { post: Post }) {
 
     return (
         <Card className="bg-card border-none rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-            <CardHeader className="p-4 flex flex-row justify-between items-center">
-                <div className="flex items-center gap-3">
-                    <Avatar className="h-11 w-11">
-                        <AvatarImage src={post.userAvatar} alt={post.username} data-ai-hint="user avatar" />
-                        <AvatarFallback>{post.username?.substring(0, 2).toUpperCase()}</AvatarFallback>
-                    </Avatar>
-                    <div>
-                        <div className="flex items-center gap-1.5">
-                            <p className="font-bold">{post.username}</p>
-                            {post.userIsVerified && <Star className="h-4 w-4 text-blue-500 fill-current" />}
-                        </div>
-                        <p className="text-xs text-muted-foreground">@{post.username} &middot; {formatTimestamp(post.createdAt)}</p>
+            <CardHeader className="p-4 flex flex-row items-center gap-3">
+                <Avatar className="h-11 w-11">
+                    <AvatarImage src={post.userAvatar} alt={post.username} data-ai-hint="user avatar" />
+                    <AvatarFallback>{post.username?.substring(0, 2).toUpperCase()}</AvatarFallback>
+                </Avatar>
+                <div>
+                    <div className="flex items-center gap-1.5">
+                        <p className="font-bold">{post.username}</p>
+                        {post.userIsVerified && <Star className="h-4 w-4 text-blue-500 fill-current" />}
                     </div>
+                    <p className="text-xs text-muted-foreground">@{post.username} &middot; {formatTimestamp(post.createdAt)}</p>
                 </div>
-                <Button variant="ghost" size="icon"><MoreHorizontal className="h-5 w-5" /></Button>
             </CardHeader>
-            <CardContent className="px-4 pb-2 space-y-4">
-                <ExpandableText text={post.caption} />
+            <CardContent className="px-4 pb-4 space-y-4">
+                {post.caption && <p className="text-sm whitespace-pre-line">{post.caption}</p>}
+                
                 {post.media && post.media.length > 0 && (
-                    <div className="relative -mx-4">
-                        {hasMultipleMedia ? (
-                             <Carousel className="w-full" opts={{ loop: true }}>
-                                <CarouselContent>
-                                {post.media.map((item, index) => (
-                                    <CarouselItem key={index} className="pl-4">
-                                        <div className="relative aspect-[4/3] bg-black/5 backdrop-blur-sm rounded-lg overflow-hidden">
-                                           <MediaContent mediaItem={item} />
-                                        </div>
-                                    </CarouselItem>
-                                ))}
-                                </CarouselContent>
-                                <CarouselPrevious className="left-6" />
-                                <CarouselNext className="right-6"/>
-                            </Carousel>
-                        ) : (
-                             <div className="relative aspect-[4/3] bg-black/5 backdrop-blur-sm rounded-lg overflow-hidden mx-4">
-                                <MediaContent mediaItem={post.media[0]} />
-                            </div>
-                        )}
+                    <div className="relative">
+                        <MediaContent mediaItem={post.media[0]} />
                     </div>
                 )}
             </CardContent>
-            <CardFooter className="p-4 pt-2 flex flex-col items-start gap-2">
-                 <div className="flex items-center gap-4 text-muted-foreground text-sm">
-                    <div className="flex items-center gap-1">
-                        <Heart className="h-4 w-4" />
-                        <span>{post.likes + (isLiked ? 1 : 0)}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                        <MessageCircle className="h-4 w-4" />
-                        <span>{post.comments}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                        <Share2 className="h-4 w-4" />
-                        <span>{post.shares}</span>
-                    </div>
-                </div>
-                <div className="w-full h-px bg-border my-1"></div>
-                <div className="w-full grid grid-cols-4">
-                    <Button variant="ghost" className="text-muted-foreground font-semibold" onClick={() => setIsLiked(!isLiked)}>
-                        <Heart className={cn("mr-2 h-5 w-5", isLiked ? "text-red-500 fill-current" : "")} /> Like
-                    </Button>
-                    <Button variant="ghost" className="text-muted-foreground font-semibold">
-                        <MessageCircle className="mr-2 h-5 w-5" /> Comment
-                    </Button>
-                    <Button variant="ghost" className="text-muted-foreground font-semibold">
-                        <Share2 className="mr-2 h-5 w-5" /> Share
-                    </Button>
-                    <Button variant="ghost" className="text-muted-foreground font-semibold" onClick={() => setIsSaved(!isSaved)}>
-                        <Bookmark className={cn("mr-2 h-5 w-5", isSaved ? "text-yellow-500 fill-current" : "")} /> Save
-                    </Button>
-                </div>
-            </CardFooter>
         </Card>
     );
 }
