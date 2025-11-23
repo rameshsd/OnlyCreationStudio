@@ -3,6 +3,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
+import { useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Calendar } from '@/components/ui/calendar';
@@ -96,15 +97,17 @@ const StudioDetailSkeleton = () => (
 )
 
 
-export default function StudioDetailPage({ params }: { params: { id: string } }) {
+export default function StudioDetailPage() {
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [selectedTime, setSelectedTime] = useState<string | undefined>();
   const { toast } = useToast();
+  const params = useParams<{ id: string }>();
+  const studioId = params.id;
 
   const studioDocRef = useMemoFirebase(() => {
-    if (!params.id) return null;
-    return doc(db, 'studio_profiles', params.id);
-  }, [params.id]);
+    if (!studioId) return null;
+    return doc(db, 'studio_profiles', studioId);
+  }, [studioId]);
 
   const { data: studioData, isLoading } = useDoc<StudioProfile>(studioDocRef);
 
