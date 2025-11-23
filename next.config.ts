@@ -41,12 +41,6 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
-      {
-        protocol: 'https',
-        hostname: 'onlycreation.in',
-        port: '',
-        pathname: '/**',
-      }
     ],
   },
   experimental: {
