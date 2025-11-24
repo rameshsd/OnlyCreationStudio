@@ -5,7 +5,7 @@ import * as React from 'react';
 import { getAuth, onIdTokenChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, User } from 'firebase/auth';
 import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
 import { app } from '@/lib/firebase';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { errorEmitter } from '@/firebase/error-emitter';
 
@@ -25,13 +25,14 @@ interface AuthContextType {
 const AuthContext = React.createContext<AuthContextType | undefined>(undefined);
 
 const setSessionCookie = async (idToken: string | null) => {
-    const method = idToken ? 'POST' : 'DELETE';
-    const headers = idToken ? { 'Authorization': `Bearer ${idToken}` } : {};
-    
-    await fetch('/api/auth/session', {
-        method: method,
-        headers: headers,
-    });
+    try {
+        await fetch('/api/auth/session', {
+            method: idToken ? 'POST' : 'DELETE',
+            headers: idToken ? { 'Authorization': `Bearer ${idToken}` } : {},
+        });
+    } catch (error) {
+        console.error("Failed to set session cookie:", error);
+    }
 };
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
@@ -39,7 +40,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [userData, setUserData] = React.useState(null);
     const [loading, setLoading] = React.useState(true);
     const router = useRouter();
-    const pathname = usePathname();
 
     React.useEffect(() => {
         const unsubscribe = onIdTokenChanged(auth, async (user) => {
@@ -55,6 +55,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                     if (userDoc.exists()) {
                         setUserData(userDoc.data());
                     } else {
+                        // This can happen right after signup before the doc is created
                         setUserData(null);
                     }
                 } catch (serverError) {
@@ -74,6 +75,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         });
 
         return () => unsubscribe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const login = (email: string, pass: string) => {
@@ -97,6 +99,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             skills: ["Content Creator"]
         };
         
+        // This setDoc is critical. We'll also update the client-side state immediately.
+        setUserData(userProfileData as any);
         await setDoc(userProfileRef, userProfileData).catch(serverError => {
             const permissionError = new FirestorePermissionError({
                 path: userProfileRef.path,
@@ -104,6 +108,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 requestResourceData: userProfileData
             });
             errorEmitter.emit('permission-error', permissionError);
+            // Even if this fails, we optimistically set the user data.
+            // The error will be shown in a toast.
             throw serverError;
         });
         
@@ -121,13 +127,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             role: "Studio",
             bio: "Studio Owner",
             avatarUrl: `https://api.dicebear.com/7.x/initials/svg?seed=${username}`,
-            coverUrl: "https://images.unsplash.com/photo-1507525428034-b723a9ce6890?q=80&w=2070&auto=format&fit=crop&ixlib-rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+            coverUrl: "https://images.unsplash.com/photo-1507525428034-b723a9ce6890?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
             followers: [],
             following: [],
             isVerified: false,
             skills: ["Studio Rental", "Production Services"]
         };
         
+        setUserData(userProfileData as any);
         await setDoc(userProfileRef, userProfileData).catch(serverError => {
             const permissionError = new FirestorePermissionError({
                 path: userProfileRef.path,
