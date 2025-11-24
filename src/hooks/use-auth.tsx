@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import * as React from 'react';
 import { getAuth, onIdTokenChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, User } from 'firebase/auth';
 import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
 import { app } from '@/lib/firebase';
@@ -21,7 +21,7 @@ interface AuthContextType {
     userData: any;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = React.createContext<AuthContextType | undefined>(undefined);
 
 const setSessionCookie = (idToken: string | null) => {
     if (idToken) {
@@ -31,14 +31,14 @@ const setSessionCookie = (idToken: string | null) => {
     }
 };
 
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
-    const [user, setUser] = useState<User | null>(null);
-    const [userData, setUserData] = useState(null);
-    const [loading, setLoading] = useState(true);
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+    const [user, setUser] = React.useState<User | null>(null);
+    const [userData, setUserData] = React.useState(null);
+    const [loading, setLoading] = React.useState(true);
     const router = useRouter();
     const pathname = usePathname();
 
-    useEffect(() => {
+    React.useEffect(() => {
         const unsubscribe = onIdTokenChanged(auth, async (user) => {
             setLoading(true);
             if (user) {
@@ -74,7 +74,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return () => unsubscribe();
     }, []);
     
-    useEffect(() => {
+    React.useEffect(() => {
         const publicPaths = ['/login', '/signup', '/welcome', '/signup-studio'];
         const isPublicPath = publicPaths.some(p => pathname.startsWith(p));
         
@@ -164,7 +164,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 };
 
 export const useAuth = () => {
-    const context = useContext(AuthContext);
+    const context = React.useContext(AuthContext);
     if (context === undefined) {
         throw new Error('useAuth must be used within an AuthProvider');
     }
