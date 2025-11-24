@@ -3,39 +3,37 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Default deny all reads and writes
-    match /{document=**} {
-      allow read, write: if false;
+
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // Allow authenticated users to read most collections.
-    // This is a broad rule, but we secure writes more granularly.
-    match /user_profiles/{userId} {
+    match /user_profiles/{userProfileId} {
       allow read: if request.auth != null;
-      allow write: if request.auth.uid == userId;
+      allow write: if request.auth != null && request.auth.uid == userProfileId;
+    }
+
+    match /user_profiles/{userProfileId}/portfolio_items/{portfolioItemId} {
+        allow read, write: if request.auth != null && request.auth.uid == userProfileId;
+    }
+    
+    match /user_profiles/{userProfileId}/stories/{storyId} {
+        allow read, write: if request.auth != null && request.auth.uid == userProfileId;
     }
 
     match /posts/{postId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth.uid == request.resource.data.userId;
-      allow update, delete: if request.auth.uid == resource.data.userId;
+      allow get, list: if request.auth != null;
+      allow write: if request.auth.uid == request.resource.data.userId;
     }
 
-    match /studio_profiles/{studioId} {
-      allow read: if request.auth != null;
-      // Write access is checked against the userProfileId field in the document
-      allow write: if request.auth.uid == request.resource.data.userProfileId;
+    match /studio_profiles/{studioProfileId} {
+        allow read: if request.auth != null;
+        allow write: if request.auth.uid == request.resource.data.userProfileId;
     }
-    
+
     match /projects/{projectId} {
        allow read: if request.auth != null;
        allow write: if request.auth.uid == request.resource.data.ownerId;
-    }
-    
-    // Allow users to manage their own subcollections like stories and portfolio items
-    match /user_profiles/{userId}/{subcollection}/{itemId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
   }
 }
