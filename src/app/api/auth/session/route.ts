@@ -1,13 +1,14 @@
 
 import { NextResponse, NextRequest } from 'next/server';
 import { auth } from 'firebase-admin';
-import { adminDb } from '@/lib/firebase-admin'; // Ensure admin app is initialized
+import { adminDb } from '@/lib/firebase-admin'; 
 
 export async function POST(request: NextRequest) {
     const authorization = request.headers.get('Authorization');
     if (authorization?.startsWith('Bearer ')) {
         const idToken = authorization.split('Bearer ')[1];
-        const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 days
+        // Session cookie expires in 5 days.
+        const expiresIn = 60 * 60 * 24 * 5 * 1000;
 
         try {
             const sessionCookie = await auth().createSessionCookie(idToken, { expiresIn });
@@ -16,27 +17,27 @@ export async function POST(request: NextRequest) {
                 value: sessionCookie,
                 maxAge: expiresIn,
                 httpOnly: true,
-                secure: true,
+                secure: true, // Set to true for HTTPS environments
             };
 
-            // Set cookie
             const response = NextResponse.json({}, { status: 200 });
             response.cookies.set(options);
             return response;
             
         } catch (error) {
+            console.error('Error creating session cookie:', error);
             return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
         }
     }
 
-    return NextResponse.json({ message: 'Bad Request' }, { status: 400 });
+    return NextResponse.json({ message: 'Bad Request: No authorization token.' }, { status: 400 });
 }
 
 export async function DELETE(request: NextRequest) {
     const options = {
         name: 'session',
         value: '',
-        maxAge: -1,
+        maxAge: -1, // Expire the cookie immediately
     };
 
     const response = NextResponse.json({}, { status: 200 });

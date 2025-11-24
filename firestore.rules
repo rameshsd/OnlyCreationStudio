@@ -4,12 +4,13 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Default deny all
+    // Default deny all reads and writes
     match /{document=**} {
       allow read, write: if false;
     }
 
-    // Allow authenticated users to read most collections
+    // Allow authenticated users to read most collections.
+    // This is a broad rule, but we secure writes more granularly.
     match /user_profiles/{userId} {
       allow read: if request.auth != null;
       allow write: if request.auth.uid == userId;
@@ -23,14 +24,16 @@ service cloud.firestore {
 
     match /studio_profiles/{studioId} {
       allow read: if request.auth != null;
+      // Write access is checked against the userProfileId field in the document
       allow write: if request.auth.uid == request.resource.data.userProfileId;
     }
     
     match /projects/{projectId} {
-       allow read, write: if request.auth.uid == request.resource.data.ownerId;
+       allow read: if request.auth != null;
+       allow write: if request.auth.uid == request.resource.data.ownerId;
     }
     
-    // Allow users to manage their own stories and portfolio items
+    // Allow users to manage their own subcollections like stories and portfolio items
     match /user_profiles/{userId}/{subcollection}/{itemId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }

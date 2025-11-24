@@ -68,11 +68,17 @@ export interface CurrentUser {
     avatarUrl: string;
 }
 
-const toDate = (timestamp: FirestoreTimestamp): Date => {
-  if (!timestamp || typeof timestamp._seconds !== 'number' || typeof timestamp._nanoseconds !== 'number') {
-    return new Date(); // Fallback for invalid timestamp
-  }
-  return new Date(timestamp._seconds * 1000 + timestamp._nanoseconds / 1000000);
+const toDate = (timestamp: any): Date => {
+    if (timestamp instanceof Date) {
+        return timestamp;
+    }
+    if (timestamp && typeof timestamp.toDate === 'function') {
+        return timestamp.toDate();
+    }
+    if (timestamp && typeof timestamp._seconds === 'number') {
+        return new Date(timestamp._seconds * 1000 + (timestamp._nanoseconds || 0) / 1000000);
+    }
+    return new Date(); // Fallback
 };
 
 const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
@@ -91,7 +97,6 @@ const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
                 avatarUrl: userProfileSnap.data()?.avatarUrl || ''
             };
         }
-        // If user profile doesn't exist, still return basic user info
         return { uid: decodedClaims.uid, avatarUrl: '' };
     } catch (error) {
         console.error("[ Server ] Error verifying session cookie:", error);
