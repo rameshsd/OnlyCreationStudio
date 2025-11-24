@@ -10,10 +10,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from '@/hooks/use-auth';
 import { addDoc, collection, serverTimestamp, Timestamp } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { db, storage } from '@/lib/firebase';
+import { db } from '@/lib/firebase';
 import { Loader2, Image as ImageIcon, Video, Type, Link, X } from 'lucide-react';
 import Image from 'next/image';
+import { uploadPhoto } from '@/app/(app)/create/actions';
+import { FirestorePermissionError } from '@/firebase/errors';
+import { errorEmitter } from '@/firebase/error-emitter';
 
 interface AddStoryDialogProps {
   open: boolean;
@@ -77,10 +79,15 @@ export function AddStoryDialog({ open, onOpenChange }: AddStoryDialogProps) {
       let mediaType: StatusType = statusType;
 
       if (file) {
-        const statusId = `${user.uid}_${Date.now()}`;
-        const storageRef = ref(storage, `status/${user.uid}/${statusId}`);
-        const snapshot = await uploadBytes(storageRef, file);
-        mediaUrl = await getDownloadURL(snapshot.ref);
+        const formData = new FormData();
+        formData.append('imageFile', file);
+        formData.append('userId', user.uid);
+        const result = await uploadPhoto(formData);
+        if (result.error || !result.url) {
+          throw new Error(result.error || 'Media upload failed.');
+        }
+        mediaUrl = result.url;
+        mediaType = result.resource_type === 'video' ? 'video' : 'image';
       } else if (statusType === 'link') {
         mediaUrl = link;
       }
@@ -99,17 +106,28 @@ export function AddStoryDialog({ open, onOpenChange }: AddStoryDialogProps) {
         viewers: [],
       };
       
-      await addDoc(collection(db, `user_profiles/${user.uid}/statuses`), statusData);
+      const statusesColRef = collection(db, `user_profiles/${user.uid}/statuses`);
+      await addDoc(statusesColRef, statusData).catch(serverError => {
+        const permissionError = new FirestorePermissionError({
+            path: statusesColRef.path,
+            operation: 'create',
+            requestResourceData: statusData,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        throw serverError; // Re-throw to be caught by outer catch
+      });
 
       toast({ title: "Status Posted!", description: "Your status is now live for 24 hours." });
       handleOpenChange(false);
     } catch (error: any) {
       console.error("Error posting status:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to post status. Please try again.",
-        variant: "destructive",
-      });
+       if (!(error instanceof FirestorePermissionError)) {
+            toast({
+                title: "Error",
+                description: error.message || "Failed to post status. Please try again.",
+                variant: "destructive",
+            });
+       }
     } finally {
       setLoading(false);
     }
@@ -131,8 +149,8 @@ export function AddStoryDialog({ open, onOpenChange }: AddStoryDialogProps) {
               <Button variant="outline" className="h-24 flex-col gap-2" onClick={() => document.getElementById('video-upload')?.click()}><Video /> Video</Button>
               <Button variant="outline" className="h-24 flex-col gap-2" onClick={() => setStatusType('text')}><Type /> Text</Button>
               <Button variant="outline" className="h-24 flex-col gap-2" onClick={() => setStatusType('link')}><Link /> Link</Button>
-              <Input id="image-upload" type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleFileChange} />
-              <Input id="video-upload" type="file" accept="video/mp4" className="hidden" onChange={handleFileChange} />
+              <Input id="image-upload" type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={handleFileChange} />
+              <Input id="video-upload" type="file" accept="video/mp4,video/quicktime" className="hidden" onChange={handleFileChange} />
             </div>
           ) : (
             <div className="space-y-4">
