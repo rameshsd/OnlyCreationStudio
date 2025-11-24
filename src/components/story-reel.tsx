@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useMemo } from 'react';
-import { collectionGroup, query, where, Timestamp, orderBy } from 'firebase/firestore';
+import { collection, collectionGroup, query, where, Timestamp, orderBy } from 'firebase/firestore';
 import { useCollection, useMemoFirebase } from '@/firebase';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
@@ -10,7 +10,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Plus } from 'lucide-react';
 import { StoryViewer } from '@/components/story-viewer';
 import { AddStoryDialog } from '@/components/add-story-dialog';
-import type { Status, UserProfileWithStories } from '@/lib/types';
+import type { Status, UserProfile, UserProfileWithStories } from '@/lib/types';
 import { Skeleton } from './ui/skeleton';
 
 const StoryReelSkeleton = () => (
@@ -41,7 +41,7 @@ export function StoryReel() {
   const { data: statuses, isLoading: statusesLoading } = useCollection<Status>(statusesQuery);
   
   const profilesQuery = useMemoFirebase(() => query(collection(db, 'user_profiles')), []);
-  const { data: profiles, isLoading: profilesLoading } = useCollection(profilesQuery);
+  const { data: profiles, isLoading: profilesLoading } = useCollection<UserProfile>(profilesQuery);
 
   const usersWithStories = useMemo<UserProfileWithStories[]>(() => {
     if (!statuses || !profiles) return [];
@@ -111,9 +111,9 @@ export function StoryReel() {
         </div>
 
         {/* Other users' stories */}
-        {usersWithStories.filter(u => u.id !== user?.uid).map((storyUser, index) => (
+        {usersWithStories.map((storyUser, index) => (
           <div 
-            onClick={() => handleStoryClick(index + 1)} // Adjust index because "Your Story" is at 0
+            onClick={() => handleStoryClick(index)} 
             key={storyUser.id} 
             className="flex flex-col items-center gap-2 flex-shrink-0 w-20 cursor-pointer"
           >
