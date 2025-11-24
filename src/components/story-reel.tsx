@@ -30,19 +30,17 @@ export function StoryReel() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [selectedUserIndex, setSelectedUserIndex] = useState(0);
 
-  const followingIds = useMemo(() => {
-    if (!userData || !Array.isArray(userData.following)) return [];
-    return userData.following;
-  }, [userData]);
-
   const storyUserIds = useMemo(() => {
     if (!user) return [];
-    const ids = [user.uid]; // Always include self
-    if (followingIds.length > 0) {
-      ids.push(...followingIds);
+    // Always include the current user's ID
+    const ids = [user.uid];
+    // Add IDs of users they are following
+    if (userData?.following && Array.isArray(userData.following)) {
+      ids.push(...userData.following);
     }
-    return ids;
-  }, [user, followingIds]);
+    // Return a unique set of IDs
+    return [...new Set(ids)];
+  }, [user, userData]);
 
   const statusesQuery = useMemoFirebase(() => {
     if (storyUserIds.length === 0) return null;
@@ -64,7 +62,7 @@ export function StoryReel() {
     );
   }, [storyUserIds]);
 
-  const { data: profiles, isLoading: profilesLoading } = useCollection(profilesQuery);
+  const { data: profiles, isLoading: profilesLoading } = useCollection<UserProfile>(profilesQuery);
 
   const usersWithStories = useMemo<UserProfileWithStories[]>(() => {
     if (!statuses || !profiles || !user) return [];
@@ -72,8 +70,10 @@ export function StoryReel() {
     const userStoryMap: { [key: string]: UserProfileWithStories } = {};
 
     profiles.forEach(profile => {
+        // The document ID from useCollection is the user's UID
         userStoryMap[profile.id] = {
             ...profile,
+            id: profile.id, // Ensure id is set correctly
             stories: [],
             hasUnseen: false,
         };

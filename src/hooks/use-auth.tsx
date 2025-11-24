@@ -1,9 +1,10 @@
 
+
 "use client";
 
 import * as React from 'react';
 import { getAuth, onIdTokenChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, User } from 'firebase/auth';
-import { getFirestore, doc, setDoc, getDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, getDoc, updateDoc, arrayUnion, arrayRemove, writeBatch } from 'firebase/firestore';
 import { app } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -12,6 +13,18 @@ import { errorEmitter } from '@/firebase/error-emitter';
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+interface UserData {
+    userId: string;
+    username: string;
+    bio?: string;
+    avatarUrl?: string;
+    coverUrl?: string;
+    followers?: string[];
+    following?: string[];
+    isVerified?: boolean;
+    skills?: string[];
+}
+
 interface AuthContextType {
     user: User | null;
     loading: boolean;
@@ -19,7 +32,7 @@ interface AuthContextType {
     signup: (email: string, pass: string, username: string) => Promise<any>;
     signupStudio: (email: string, pass: string, username: string) => Promise<any>;
     logout: () => Promise<any>;
-    userData: any;
+    userData: UserData | null;
     followUser: (targetUserId: string) => Promise<void>;
     unfollowUser: (targetUserId: string) => Promise<void>;
 }
@@ -39,16 +52,20 @@ const setSessionCookie = async (idToken: string | null) => {
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [user, setUser] = React.useState<User | null>(null);
-    const [userData, setUserData] = React.useState(null);
+    const [userData, setUserData] = React.useState<UserData | null>(null);
     const [loading, setLoading] = React.useState(true);
     const router = useRouter();
 
-    const fetchUserData = async (currentUser: User) => {
+    const fetchUserData = React.useCallback(async (currentUser: User | null) => {
+        if (!currentUser) {
+            setUserData(null);
+            return;
+        }
         const userDocRef = doc(db, "user_profiles", currentUser.uid);
         try {
             const userDoc = await getDoc(userDocRef);
             if (userDoc.exists()) {
-                setUserData(userDoc.data());
+                setUserData(userDoc.data() as UserData);
             } else {
                 setUserData(null);
             }
@@ -60,7 +77,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             errorEmitter.emit('permission-error', permissionError);
             setUserData(null);
         }
-    }
+    }, []);
 
     React.useEffect(() => {
         const unsubscribe = onIdTokenChanged(auth, async (user) => {
@@ -79,7 +96,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         });
 
         return () => unsubscribe();
-    }, []);
+    }, [fetchUserData]);
 
     const login = (email: string, pass: string) => {
         return signInWithEmailAndPassword(auth, email, pass);
@@ -90,7 +107,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const user = userCredential.user;
 
         const userProfileRef = doc(db, "user_profiles", user.uid);
-        const userProfileData = {
+        const userProfileData: UserData = {
             userId: user.uid,
             username: username,
             bio: "New to OnlyCreation!",
@@ -102,7 +119,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             skills: ["Content Creator"]
         };
         
-        setUserData(userProfileData as any);
+        setUserData(userProfileData);
         await setDoc(userProfileRef, userProfileData).catch(serverError => {
             const permissionError = new FirestorePermissionError({
                 path: userProfileRef.path,
@@ -121,10 +138,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const user = userCredential.user;
 
         const userProfileRef = doc(db, "user_profiles", user.uid);
-        const userProfileData = {
+        const userProfileData: UserData = {
             userId: user.uid,
             username: username,
-            role: "Studio",
             bio: "Studio Owner",
             avatarUrl: `https://api.dicebear.com/7.x/initials/svg?seed=${username}`,
             coverUrl: "https://images.unsplash.com/photo-1507525428034-b723a9ce6890?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
@@ -134,7 +150,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             skills: ["Studio Rental", "Production Services"]
         };
         
-        setUserData(userProfileData as any);
+        setUserData(userProfileData);
         await setDoc(userProfileRef, userProfileData).catch(serverError => {
             const permissionError = new FirestorePermissionError({
                 path: userProfileRef.path,
@@ -154,22 +170,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     const followUser = async (targetUserId: string) => {
-        if (!user) return;
+        if (!user) throw new Error("You must be logged in to follow users.");
+        
         const currentUserRef = doc(db, "user_profiles", user.uid);
         const targetUserRef = doc(db, "user_profiles", targetUserId);
 
-        await updateDoc(currentUserRef, { following: arrayUnion(targetUserId) });
-        await updateDoc(targetUserRef, { followers: arrayUnion(user.uid) });
+        const batch = writeBatch(db);
+        batch.update(currentUserRef, { following: arrayUnion(targetUserId) });
+        batch.update(targetUserRef, { followers: arrayUnion(user.uid) });
+        
+        await batch.commit();
         await fetchUserData(user); // Refetch user data to update state
     };
 
     const unfollowUser = async (targetUserId: string) => {
-        if (!user) return;
+        if (!user) throw new Error("You must be logged in to unfollow users.");
         const currentUserRef = doc(db, "user_profiles", user.uid);
         const targetUserRef = doc(db, "user_profiles", targetUserId);
 
-        await updateDoc(currentUserRef, { following: arrayRemove(targetUserId) });
-        await updateDoc(targetUserRef, { followers: arrayRemove(user.uid) });
+        const batch = writeBatch(db);
+        batch.update(currentUserRef, { following: arrayRemove(targetUserId) });
+        batch.update(targetUserRef, { followers: arrayRemove(user.uid) });
+        
+        await batch.commit();
         await fetchUserData(user); // Refetch user data to update state
     };
 
