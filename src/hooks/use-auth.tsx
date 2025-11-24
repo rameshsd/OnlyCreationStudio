@@ -1,8 +1,7 @@
-
 "use client";
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, User } from 'firebase/auth';
+import { getAuth, onIdTokenChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, User } from 'firebase/auth';
 import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
 import { app } from '@/lib/firebase';
 import { useRouter, usePathname } from 'next/navigation';
@@ -15,7 +14,7 @@ const db = getFirestore(app);
 interface AuthContextType {
     user: User | null;
     loading: boolean;
-    login: (email: string, pass: string) => Promise<any>;
+    login: (email: string, pass:string) => Promise<any>;
     signup: (email: string, pass: string, username: string) => Promise<any>;
     signupStudio: (email: string, pass: string, username: string) => Promise<any>;
     logout: () => Promise<any>;
@@ -23,6 +22,14 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+const setSessionCookie = (idToken: string | null) => {
+    if (idToken) {
+        document.cookie = `__session=${idToken};path=/;max-age=3600;samesite=lax`;
+    } else {
+        document.cookie = '__session=;path=/;max-age=0;samesite=lax';
+    }
+};
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [user, setUser] = useState<User | null>(null);
@@ -32,21 +39,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const pathname = usePathname();
 
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, async (user) => {
+        const unsubscribe = onIdTokenChanged(auth, async (user) => {
+            setLoading(true);
             if (user) {
                 setUser(user);
+                const idToken = await user.getIdToken();
+                setSessionCookie(idToken);
+                
                 const userDocRef = doc(db, "user_profiles", user.uid);
                 try {
                     const userDoc = await getDoc(userDocRef);
                     if (userDoc.exists()) {
                         setUserData(userDoc.data());
                     } else {
-                        // Fallback for older data structure
-                        const oldUserDocRef = doc(db, "users", user.uid);
-                        const oldUserDoc = await getDoc(oldUserDocRef);
-                        if (oldUserDoc.exists()) {
-                            setUserData(oldUserDoc.data());
-                        }
+                        // This might be a new user, or data is missing.
+                         setUserData(null);
                     }
                 } catch (serverError) {
                      const permissionError = new FirestorePermissionError({
@@ -54,14 +61,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                         operation: 'get',
                     });
                     errorEmitter.emit('permission-error', permissionError);
-                } finally {
-                    setLoading(false);
+                    setUserData(null);
                 }
             } else {
                 setUser(null);
                 setUserData(null);
-                setLoading(false);
+                setSessionCookie(null);
             }
+            setLoading(false);
         });
 
         return () => unsubscribe();
@@ -85,24 +92,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const signup = async (email: string, pass: string, username: string) => {
         const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
         const user = userCredential.user;
-        
-        // Create document in 'users' collection
-        const userRef = doc(db, "users", user.uid);
-        const newUserData = {
-            id: user.uid,
-            email: user.email,
-            createdDateTime: new Date().toISOString(),
-        };
-         setDoc(userRef, newUserData).catch(serverError => {
-            const permissionError = new FirestorePermissionError({
-                path: userRef.path,
-                operation: 'create',
-                requestResourceData: newUserData
-            });
-            errorEmitter.emit('permission-error', permissionError);
-        });
 
-        // Create document in 'user_profiles' collection
+        // Create user profile document in 'user_profiles' collection
         const userProfileRef = doc(db, "user_profiles", user.uid);
         const userProfileData = {
             userId: user.uid,
@@ -116,13 +107,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             skills: ["Content Creator", "Videographer"]
         };
         
-        setDoc(userProfileRef, userProfileData).catch(serverError => {
+        await setDoc(userProfileRef, userProfileData).catch(serverError => {
             const permissionError = new FirestorePermissionError({
                 path: userProfileRef.path,
                 operation: 'create',
                 requestResourceData: userProfileData
             });
             errorEmitter.emit('permission-error', permissionError);
+            throw serverError; // Propagate error
         });
         
         return userCredential;
@@ -131,24 +123,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const signupStudio = async (email: string, pass: string, username: string) => {
         const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
         const user = userCredential.user;
-        
-        // Create document in 'users' collection
-        const userRef = doc(db, "users", user.uid);
-        const newUserData = {
-            id: user.uid,
-            email: user.email,
-            createdDateTime: new Date().toISOString(),
-        };
-         setDoc(userRef, newUserData).catch(serverError => {
-            const permissionError = new FirestorePermissionError({
-                path: userRef.path,
-                operation: 'create',
-                requestResourceData: newUserData
-            });
-            errorEmitter.emit('permission-error', permissionError);
-        });
 
-        // Create document in 'user_profiles' collection
+        // Create user profile document in 'user_profiles' collection
         const userProfileRef = doc(db, "user_profiles", user.uid);
         const userProfileData = {
             userId: user.uid,
@@ -163,13 +139,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             skills: ["Studio Rental", "Production Services"]
         };
         
-        setDoc(userProfileRef, userProfileData).catch(serverError => {
+        await setDoc(userProfileRef, userProfileData).catch(serverError => {
             const permissionError = new FirestorePermissionError({
                 path: userProfileRef.path,
                 operation: 'create',
                 requestResourceData: userProfileData
             });
             errorEmitter.emit('permission-error', permissionError);
+            throw serverError;
         });
         
         return userCredential;
