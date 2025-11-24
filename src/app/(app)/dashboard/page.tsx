@@ -115,16 +115,28 @@ export default function DashboardPage() {
     const [pageLoading, setPageLoading] = useState(true);
     const [isAddStoryOpen, setIsAddStoryOpen] = useState(false);
     
-    const postsQuery = useMemoFirebase(() => query(collection(db, "posts"), orderBy("createdAt", "desc")), []);
+    const postsQuery = useMemoFirebase(() => {
+      if (authLoading || !user) return null;
+      return query(collection(db, "posts"), orderBy("createdAt", "desc"));
+    }, [authLoading, user]);
     const { data: posts, isLoading: postsLoading } = useCollection<Post>(postsQuery);
 
-    const studiosQuery = useMemoFirebase(() => query(collection(db, "studio_profiles"), orderBy("createdAt", "desc")), []);
+    const studiosQuery = useMemoFirebase(() => {
+      if (authLoading || !user) return null;
+      return query(collection(db, "studio_profiles"), orderBy("createdAt", "desc"));
+    }, [authLoading, user]);
     const { data: studios, isLoading: studiosLoading } = useCollection<StudioProfile>(studiosQuery);
     
-    const usersQuery = useMemoFirebase(() => query(collection(db, "user_profiles")), []);
+    const usersQuery = useMemoFirebase(() => {
+        if (authLoading || !user) return null;
+        return query(collection(db, "user_profiles"));
+    }, [authLoading, user]);
     const { data: userProfiles, isLoading: usersLoading } = useCollection<UserProfile>(usersQuery);
 
-    const allStoriesCollectionQuery = useMemoFirebase(() => query(collectionGroup(db, 'stories'), orderBy('createdAt', 'asc')), []);
+    const allStoriesCollectionQuery = useMemoFirebase(() => {
+        if (authLoading || !user) return null;
+        return query(collectionGroup(db, 'stories'), orderBy('createdAt', 'asc'))
+    }, [authLoading, user]);
     const { data: allStories, isLoading: allStoriesLoading } = useCollection<Story>(allStoriesCollectionQuery);
 
     const stories = useMemo(() => {
