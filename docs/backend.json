@@ -2,7 +2,6 @@
 {
   "entities": {
     "User": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "User",
       "type": "object",
       "description": "Represents a user account in the system.",
@@ -16,40 +15,22 @@
           "description": "User's email address.",
           "format": "email"
         },
-        "phoneNumber": {
-          "type": "string",
-          "description": "User's phone number for OTP authentication."
-        },
         "displayName": {
           "type": "string",
           "description": "User's display name."
-        },
-        "profileId": {
-          "type": "string",
-          "description": "Reference to the UserProfile entity. (Relationship: User 1:1 UserProfile)"
         },
         "createdDateTime": {
           "type": "string",
           "description": "Date and time the user account was created.",
           "format": "date-time"
-        },
-        "lastLoginDateTime": {
-          "type": "string",
-          "description": "Date and time of the user's last login.",
-          "format": "date-time"
         }
       },
-      "required": [
-        "id",
-        "email",
-        "createdDateTime"
-      ]
+      "required": ["id", "email", "createdDateTime"]
     },
     "UserProfile": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "UserProfile",
       "type": "object",
-      "description": "Represents a user's profile information, linked to a User account.  Contains common profile fields.",
+      "description": "Represents a user's profile information, linked to a User account.",
       "properties": {
         "id": {
           "type": "string",
@@ -57,16 +38,15 @@
         },
         "userId": {
           "type": "string",
-          "description": "Reference to the User entity. (Relationship: User 1:1 UserProfile)"
+          "description": "Reference to the User entity."
+        },
+        "username": {
+            "type": "string",
+            "description": "The user's public username."
         },
         "role": {
           "type": "string",
-          "description": "User's role (Brand, Creator, Service Provider, Studio)."
-        },
-        "coverPhotoUrl": {
-          "type": "string",
-          "description": "URL of the user's cover photo.",
-          "format": "uri"
+          "description": "User's role (e.g., Brand, Creator, Studio)."
         },
         "avatarUrl": {
           "type": "string",
@@ -76,191 +56,76 @@
         "bio": {
           "type": "string",
           "description": "User's biography."
-        },
-        "websiteUrl": {
-          "type": "string",
-          "description": "User's website URL.",
-          "format": "uri"
-        },
-        "location": {
-          "type": "string",
-          "description": "User's location."
         }
       },
-      "required": [
-        "id",
-        "userId",
-        "role"
-      ]
+      "required": ["id", "userId", "username"]
     },
-    "PortfolioItem": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "PortfolioItem",
+    "Post": {
+      "title": "Post",
       "type": "object",
-      "description": "Represents an item in a user's portfolio.",
+      "description": "Represents a post in the content feed.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the portfolio item entity."
+          "description": "Unique identifier for the post entity."
         },
         "userId": {
           "type": "string",
-          "description": "The ID of the user who owns this portfolio item."
+          "description": "Reference to the UserProfile entity of the author."
         },
-        "type": {
+        "caption": {
           "type": "string",
-          "description": "The type of media (e.g., 'image', 'video').",
-          "enum": [
-            "image",
-            "video"
-          ]
+          "description": "Description or caption for the post."
         },
-        "url": {
-          "type": "string",
-          "description": "URL of the portfolio content.",
-          "format": "uri"
+        "media": {
+            "type": "array",
+            "description": "Media content of the post.",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "type": {"type": "string", "enum": ["image", "video"]},
+                    "url": {"type": "string", "format": "uri"}
+                }
+            }
         },
-        "title": {
+        "createdAt": {
           "type": "string",
-          "description": "Title of the portfolio item."
-        },
-        "hint": {
-          "type": "string",
-          "description": "A hint for AI image generation services."
+          "description": "Date and time the post was created.",
+          "format": "date-time"
         }
       },
-      "required": [
-        "id",
-        "userId",
-        "type",
-        "url",
-        "title"
-      ]
+      "required": ["id", "userId", "createdAt"]
     },
-    "BrandProfile": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "BrandProfile",
+    "Project": {
+      "title": "Project",
       "type": "object",
-      "description": "Represents the profile information for a brand.",
+      "description": "Represents a project in the opportunity marketplace.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the brand profile entity."
+          "description": "Unique identifier for the project entity."
         },
-        "userProfileId": {
+        "name": {
           "type": "string",
-          "description": "Reference to the UserProfile entity. (Relationship: BrandProfile 1:1 UserProfile)"
-        },
-        "companyName": {
-          "type": "string",
-          "description": "Name of the company."
-        },
-        "logoUrl": {
-          "type": "string",
-          "description": "URL of the company logo.",
-          "format": "uri"
+          "description": "The name of the project."
         },
         "description": {
           "type": "string",
-          "description": "Description of the company."
+          "description": "A detailed description of the project."
         },
-        "goals": {
-          "type": "array",
-          "description": "List of goals for the brand (Launch Product, Increase Engagement, Create Ads, etc.).",
-          "items": {
-            "type": "string"
-          }
+        "ownerId": {
+          "type": "string",
+          "description": "Reference to the UserProfile entity of the project creator."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Date and time the project was created.",
+          "format": "date-time"
         }
       },
-      "required": [
-        "id",
-        "userProfileId",
-        "companyName"
-      ]
-    },
-    "CreatorProfile": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "CreatorProfile",
-      "type": "object",
-      "description": "Represents the profile information for a creator or influencer.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the creator profile entity."
-        },
-        "userProfileId": {
-          "type": "string",
-          "description": "Reference to the UserProfile entity. (Relationship: CreatorProfile 1:1 UserProfile)"
-        },
-        "publicName": {
-          "type": "string",
-          "description": "Public name of the creator."
-        },
-        "professionalBio": {
-          "type": "string",
-          "description": "Professional biography of the creator."
-        },
-        "specialties": {
-          "type": "array",
-          "description": "List of specialties or niches of the creator.",
-          "items": {
-            "type": "string"
-          }
-        },
-        "primaryPlatformLink": {
-          "type": "string",
-          "description": "Link to the creator's primary platform.",
-          "format": "uri"
-        },
-        "isVerified": {
-          "type": "boolean",
-          "description": "Indicates if the creator profile is verified by the admin."
-        }
-      },
-      "required": [
-        "id",
-        "userProfileId",
-        "publicName"
-      ]
-    },
-    "ServiceProviderProfile": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "ServiceProviderProfile",
-      "type": "object",
-      "description": "Represents the profile information for a service provider or freelancer.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the service provider profile entity."
-        },
-        "userProfileId": {
-          "type": "string",
-          "description": "Reference to the UserProfile entity. (Relationship: ServiceProviderProfile 1:1 UserProfile)"
-        },
-        "professionalSummary": {
-          "type": "string",
-          "description": "Professional summary of the service provider."
-        },
-        "skills": {
-          "type": "array",
-          "description": "List of skills of the service provider.",
-          "items": {
-            "type": "string"
-          }
-        },
-        "portfolioLink": {
-          "type": "string",
-          "description": "Link to the service provider's portfolio.",
-          "format": "uri"
-        }
-      },
-      "required": [
-        "id",
-        "userProfileId"
-      ]
+      "required": ["id", "name", "ownerId", "createdAt"]
     },
     "StudioProfile": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "StudioProfile",
       "type": "object",
       "description": "Represents the profile information for a studio.",
@@ -271,7 +136,7 @@
         },
         "userProfileId": {
           "type": "string",
-          "description": "Reference to the UserProfile entity. (Relationship: StudioProfile 1:1 UserProfile)"
+          "description": "Reference to the UserProfile entity."
         },
         "studioName": {
           "type": "string",
@@ -285,40 +150,8 @@
           "type": "array",
           "description": "List of URLs of studio photos.",
           "items": {
-            "type": "string"
-          }
-        },
-        "type": {
-          "type": "string",
-          "description": "Type of studio."
-        },
-        "size": {
-          "type": "string",
-          "description": "Size of the studio."
-        },
-        "qualityGrade": {
-          "type": "string",
-          "description": "Quality grade of the studio."
-        },
-        "amenities": {
-          "type": "array",
-          "description": "List of studio amenities.",
-          "items": {
-            "type": "string"
-          }
-        },
-        "rentableGear": {
-          "type": "array",
-          "description": "List of rentable gear available at the studio.",
-          "items": {
-            "type": "string"
-          }
-        },
-        "services": {
-          "type": "array",
-          "description": "List of services offered by the studio.",
-          "items": {
-            "type": "string"
+            "type": "string",
+            "format": "uri"
           }
         },
         "createdAt": {
@@ -327,350 +160,9 @@
           "format": "date-time"
         }
       },
-      "required": [
-        "id",
-        "userProfileId",
-        "studioName"
-      ]
+      "required": ["id", "userProfileId", "studioName", "createdAt"]
     },
-    "Post": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Post",
-      "type": "object",
-      "description": "Represents a post in the content feed.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the post entity."
-        },
-        "authorId": {
-          "type": "string",
-          "description": "Reference to the UserProfile entity. (Relationship: UserProfile 1:N Post)"
-        },
-        "contentUrl": {
-          "type": "string",
-          "description": "URL of the post content (image or video).",
-          "format": "uri"
-        },
-        "description": {
-          "type": "string",
-          "description": "Description of the post."
-        },
-        "likes": {
-          "type": "number",
-          "description": "Number of likes for the post."
-        },
-        "comments": {
-          "type": "number",
-          "description": "Number of comments for the post."
-        },
-        "shares": {
-          "type": "number",
-          "description": "Number of shares for the post."
-        },
-        "postedDateTime": {
-          "type": "string",
-          "description": "Date and time the post was created.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "authorId",
-        "contentUrl",
-        "postedDateTime"
-      ]
-    },
-    "Comment": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Comment",
-      "type": "object",
-      "description": "Represents a comment on a post.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the comment entity."
-        },
-        "postId": {
-          "type": "string",
-          "description": "Reference to the Post entity. (Relationship: Post 1:N Comment)"
-        },
-        "authorId": {
-          "type": "string",
-          "description": "Reference to the UserProfile entity. (Relationship: UserProfile 1:N Comment)"
-        },
-        "text": {
-          "type": "string",
-          "description": "Text content of the comment."
-        },
-        "createdDateTime": {
-          "type": "string",
-          "description": "Date and time the comment was created.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "postId",
-        "authorId",
-        "text",
-        "createdDateTime"
-      ]
-    },
-    "CollabRequest": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "CollabRequest",
-      "type": "object",
-      "description": "Represents a collaboration request between users.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the collaboration request entity."
-        },
-        "senderId": {
-          "type": "string",
-          "description": "Reference to the UserProfile entity of the sender. (Relationship: UserProfile 1:N CollabRequest)"
-        },
-        "receiverId": {
-          "type": "string",
-          "description": "Reference to the UserProfile entity of the receiver. (Relationship: UserProfile 1:N CollabRequest)"
-        },
-        "message": {
-          "type": "string",
-          "description": "Message accompanying the collaboration request."
-        },
-        "status": {
-          "type": "string",
-          "description": "Status of the collaboration request (Pending, Accepted, Declined)."
-        },
-        "createdDateTime": {
-          "type": "string",
-          "description": "Date and time the collaboration request was created.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "senderId",
-        "receiverId",
-        "status",
-        "createdDateTime"
-      ]
-    },
-    "Team": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Team",
-      "type": "object",
-      "description": "Represents a team of users.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the team entity."
-        },
-        "name": {
-          "type": "string",
-          "description": "Name of the team."
-        },
-        "memberIds": {
-          "type": "array",
-          "description": "References to UserProfile entities of team members. (Relationship: UserProfile N:N Team)",
-          "items": {
-            "type": "string"
-          }
-        },
-        "createdDateTime": {
-          "type": "string",
-          "description": "Date and time the team was created.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "name",
-        "createdDateTime"
-      ]
-    },
-    "Project": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Project",
-      "type": "object",
-      "description": "Represents a project in the opportunity marketplace.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the project entity."
-        },
-        "creatorId": {
-          "type": "string",
-          "description": "Reference to the UserProfile entity of the project creator. (Relationship: UserProfile 1:N Project)"
-        },
-        "teamSize": {
-          "type": "number",
-          "description": "Number of team members required for the project."
-        },
-        "deliverables": {
-          "type": "string",
-          "description": "Description of the project deliverables."
-        },
-        "skills": {
-          "type": "array",
-          "description": "List of skills required for the project.",
-          "items": {
-            "type": "string"
-          }
-        },
-        "budget": {
-          "type": "number",
-          "description": "Budget for the project."
-        },
-        "description": {
-          "type": "string",
-          "description": "Description of the project."
-        },
-        "hiringMethod": {
-          "type": "string",
-          "description": "Method of hiring for the project (AI Instant Match or Post to Marketplace)."
-        },
-        "createdDateTime": {
-          "type": "string",
-          "description": "Date and time the project was created.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "creatorId",
-        "deliverables",
-        "budget",
-        "hiringMethod",
-        "createdDateTime"
-      ]
-    },
-    "ChatMessage": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "ChatMessage",
-      "type": "object",
-      "description": "Represents a chat message.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the chat message entity."
-        },
-        "senderId": {
-          "type": "string",
-          "description": "Reference to the UserProfile entity of the sender. (Relationship: UserProfile 1:N ChatMessage)"
-        },
-        "receiverId": {
-          "type": "string",
-          "description": "Reference to the UserProfile entity of the receiver. (Relationship: UserProfile 1:N ChatMessage)"
-        },
-        "text": {
-          "type": "string",
-          "description": "Text content of the chat message."
-        },
-        "sentDateTime": {
-          "type": "string",
-          "description": "Date and time the chat message was sent.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "senderId",
-        "receiverId",
-        "text",
-        "sentDateTime"
-      ]
-    },
-    "SupportTicket": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "SupportTicket",
-      "type": "object",
-      "description": "Represents a support ticket.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the support ticket entity."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to the User entity that created the support ticket. (Relationship: User 1:N SupportTicket)"
-        },
-        "subject": {
-          "type": "string",
-          "description": "Subject of the support ticket."
-        },
-        "description": {
-          "type": "string",
-          "description": "Description of the issue."
-        },
-        "status": {
-          "type": "string",
-          "description": "Status of the support ticket (Open, In Progress, Closed)."
-        },
-        "createdDateTime": {
-          "type": "string",
-          "description": "Date and time the support ticket was created.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "userId",
-        "subject",
-        "description",
-        "status",
-        "createdDateTime"
-      ]
-    },
-    "Payment": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Payment",
-      "type": "object",
-      "description": "Represents a payment transaction.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the payment entity."
-        },
-        "projectId": {
-          "type": "string",
-          "description": "Reference to the Project entity associated with the payment. (Relationship: Project 1:N Payment)"
-        },
-        "payerId": {
-          "type": "string",
-          "description": "Reference to the UserProfile entity of the payer."
-        },
-        "payeeId": {
-          "type": "string",
-          "description": "Reference to the UserProfile entity of the payee."
-        },
-        "amount": {
-          "type": "number",
-          "description": "Amount of the payment."
-        },
-        "status": {
-          "type": "string",
-          "description": "Status of the payment (Pending, Completed, Failed)."
-        },
-        "transactionDateTime": {
-          "type": "string",
-          "description": "Date and time of the payment transaction.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "projectId",
-        "payerId",
-        "payeeId",
-        "amount",
-        "status",
-        "transactionDateTime"
-      ]
-    },
-    "Story": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
+     "Story": {
       "title": "Story",
       "type": "object",
       "description": "Represents a story created by a user, which typically expires after 24 hours.",
@@ -691,10 +183,7 @@
         "mediaType": {
           "type": "string",
           "description": "The type of media.",
-          "enum": [
-            "image",
-            "video"
-          ]
+          "enum": ["image", "video"]
         },
         "createdAt": {
           "type": "string",
@@ -707,21 +196,11 @@
           "format": "date-time"
         }
       },
-      "required": [
-        "id",
-        "userId",
-        "mediaUrl",
-        "mediaType",
-        "createdAt",
-        "expiresAt"
-      ]
+      "required": ["id", "userId", "mediaUrl", "mediaType", "createdAt", "expiresAt"]
     }
   },
   "auth": {
-    "providers": [
-      "password",
-      "anonymous"
-    ]
+    "providers": ["password", "anonymous"]
   },
   "firestore": {
     "structure": [
@@ -729,273 +208,51 @@
         "path": "/users/{userId}",
         "definition": {
           "entityName": "User",
-          "schema": {
-            "$ref": "#/backend/entities/User"
-          },
-          "description": "Stores user account information.  Owned by the user.  Authorization is based on the authenticated user's ID matching the userId parameter.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user.  Must match the authenticated user's UID."
-            }
-          ]
+          "schema": { "$ref": "#/entities/User" },
+          "description": "Stores basic, private user account information, separate from public profiles."
         }
       },
       {
         "path": "/user_profiles/{userProfileId}",
         "definition": {
           "entityName": "UserProfile",
-          "schema": {
-            "$ref": "#/backend/entities/UserProfile"
-          },
-          "description": "Stores user profile information. Includes denormalized 'role' field for authorization independence. One-to-one relationship with User collection. ",
-          "params": [
-            {
-              "name": "userProfileId",
-              "description": "The unique identifier for the user profile."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/user_profiles/{userProfileId}/portfolio_items/{portfolioItemId}",
-        "definition": {
-          "entityName": "PortfolioItem",
-          "schema": {
-            "$ref": "#/backend/entities/PortfolioItem"
-          },
-          "description": "Stores portfolio items for a specific user profile.",
-          "params": [
-            {
-              "name": "userProfileId",
-              "description": "The unique identifier for the user profile."
-            },
-            {
-              "name": "portfolioItemId",
-              "description": "The unique identifier for the portfolio item."
-            }
-          ]
+          "schema": { "$ref": "#/entities/UserProfile" },
+          "description": "Stores public user profile information. The document ID matches the user's auth UID."
         }
       },
       {
         "path": "/user_profiles/{userProfileId}/stories/{storyId}",
         "definition": {
           "entityName": "Story",
-          "schema": {
-            "$ref": "#/backend/entities/Story"
-          },
-          "description": "Stores stories for a specific user profile.",
-          "params": [
-            {
-              "name": "userProfileId",
-              "description": "The unique identifier for the user profile."
-            },
-            {
-              "name": "storyId",
-              "description": "The unique identifier for the story."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/brand_profiles/{brandProfileId}",
-        "definition": {
-          "entityName": "BrandProfile",
-          "schema": {
-            "$ref": "#/backend/entities/BrandProfile"
-          },
-          "description": "Stores brand profile information. Contains a reference to the UserProfile via 'userProfileId'.",
-          "params": [
-            {
-              "name": "brandProfileId",
-              "description": "The unique identifier for the brand profile."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/creator_profiles/{creatorProfileId}",
-        "definition": {
-          "entityName": "CreatorProfile",
-          "schema": {
-            "$ref": "#/backend/entities/CreatorProfile"
-          },
-          "description": "Stores creator profile information. Contains a reference to the UserProfile via 'userProfileId'.",
-          "params": [
-            {
-              "name": "creatorProfileId",
-              "description": "The unique identifier for the creator profile."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/service_provider_profiles/{serviceProviderProfileId}",
-        "definition": {
-          "entityName": "ServiceProviderProfile",
-          "schema": {
-            "$ref": "#/backend/entities/ServiceProviderProfile"
-          },
-          "description": "Stores service provider profile information. Contains a reference to the UserProfile via 'userProfileId'.",
-          "params": [
-            {
-              "name": "serviceProviderProfileId",
-              "description": "The unique identifier for the service provider profile."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/studio_profiles/{studioProfileId}",
-        "definition": {
-          "entityName": "StudioProfile",
-          "schema": {
-            "$ref": "#/backend/entities/StudioProfile"
-          },
-          "description": "Stores studio profile information. Contains a reference to the UserProfile via 'userProfileId'.",
-          "params": [
-            {
-              "name": "studioProfileId",
-              "description": "The unique identifier for the studio profile."
-            }
-          ]
+          "schema": { "$ref": "#/entities/Story" },
+          "description": "Stores stories for a specific user profile. Accessed via collection group query in the main feed."
         }
       },
       {
         "path": "/posts/{postId}",
         "definition": {
           "entityName": "Post",
-          "schema": {
-            "$ref": "#/backend/entities/Post"
-          },
-          "description": "Stores post information. Includes denormalized 'authorId' (UserProfile ID) for authorization independence.",
-          "params": [
-            {
-              "name": "postId",
-              "description": "The unique identifier for the post."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/posts/{postId}/comments/{commentId}",
-        "definition": {
-          "entityName": "Comment",
-          "schema": {
-            "$ref": "#/backend/entities/Comment"
-          },
-          "description": "Stores comments for a specific post. Includes denormalized 'authorId' (UserProfile ID) for authorization independence.",
-          "params": [
-            {
-              "name": "postId",
-              "description": "The unique identifier for the post."
-            },
-            {
-              "name": "commentId",
-              "description": "The unique identifier for the comment."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/collab_requests/{collabRequestId}",
-        "definition": {
-          "entityName": "CollabRequest",
-          "schema": {
-            "$ref": "#/backend/entities/CollabRequest"
-          },
-          "description": "Stores collaboration requests. Includes 'senderId' and 'receiverId' (UserProfile IDs) for authorization independence and QAP support.",
-          "params": [
-            {
-              "name": "collabRequestId",
-              "description": "The unique identifier for the collaboration request."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/teams/{teamId}",
-        "definition": {
-          "entityName": "Team",
-          "schema": {
-            "$ref": "#/backend/entities/Team"
-          },
-          "description": "Stores team information. Consider denormalizing a 'members' map (UserProfile ID to role) for improved authorization independence.",
-          "params": [
-            {
-              "name": "teamId",
-              "description": "The unique identifier for the team."
-            }
-          ]
+          "schema": { "$ref": "#/entities/Post" },
+          "description": "A top-level collection for all user posts to allow for an aggregated feed."
         }
       },
       {
         "path": "/projects/{projectId}",
         "definition": {
           "entityName": "Project",
-          "schema": {
-            "$ref": "#/backend/entities/Project"
-          },
-          "description": "Stores project information. Owned by UserProfile (creatorId).",
-          "params": [
-            {
-              "name": "projectId",
-              "description": "The unique identifier for the project."
-            }
-          ]
+          "schema": { "$ref": "#/entities/Project" },
+          "description": "A top-level collection for all projects."
         }
       },
       {
-        "path": "/chat_messages/{chatMessageId}",
+        "path": "/studio_profiles/{studioProfileId}",
         "definition": {
-          "entityName": "ChatMessage",
-          "schema": {
-            "$ref": "#/backend/entities/ChatMessage"
-          },
-          "description": "Stores chat messages. Includes 'senderId' and 'receiverId' (UserProfile IDs).",
-          "params": [
-            {
-              "name": "chatMessageId",
-              "description": "The unique identifier for the chat message."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/support_tickets/{supportTicketId}",
-        "definition": {
-          "entityName": "SupportTicket",
-          "schema": {
-            "$ref": "#/backend/entities/SupportTicket"
-          },
-          "description": "Stores support tickets. Owned by User (userId).",
-          "params": [
-            {
-              "name": "supportTicketId",
-              "description": "The unique identifier for the support ticket."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/payments/{paymentId}",
-        "definition": {
-          "entityName": "Payment",
-          "schema": {
-            "$ref": "#/backend/entities/Payment"
-          },
-          "description": "Stores payment information. Associated with a project (projectId) and involves UserProfiles (payerId, payeeId).",
-          "params": [
-            {
-              "name": "paymentId",
-              "description": "The unique identifier for the payment."
-            }
-          ]
+          "entityName": "StudioProfile",
+          "schema": { "$ref": "#/entities/StudioProfile" },
+          "description": "A top-level collection for all studio profiles."
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed to address the permission error by ensuring authorization independence and simplifying security rules. The core strategy is to use path-based authorization for user-owned data and membership maps for collaborative data, denormalizing authorization data where necessary to avoid `get()` calls in security rules.\n\n1.  **Users and Profiles:** User data is stored under `/users/{userId}` and `/user_profiles/{userProfileId}`, ensuring that only the authenticated user can access their own data. The UserProfile document contains the `role` field which is used for role-based access control.\n2.  **Brand/Creator/Service Provider/Studio Profiles:** These are stored separately in collections named after their entity names. Since these profiles are extensions of user profiles and owned by the user, they are linked to the UserProfile through the `userProfileId`. This allows for easy retrieval and management while keeping the security rules straightforward.\n3.  **Posts and Comments:** Posts are stored in a top-level `/posts` collection, with `authorId` referencing the UserProfile. Comments are stored in a subcollection `/posts/{postId}/comments/{commentId}`. This approach allows for easy querying of posts and comments while maintaining a clear hierarchy.\n4.  **Collab Requests:** Collab requests are stored in a `/collab_requests` collection. Each document includes `senderId` and `receiverId`, both referencing UserProfile IDs. This makes it easy to query requests sent and received by a user.\n5.  **Teams:** Teams are stored in a `/teams` collection with a `memberIds` array. Security rules can check if the authenticated user is in this array for access control.\n6.  **Projects:** Projects are stored in a `/projects` collection, owned by the UserProfile (`creatorId`).\n7.  **Chat Messages:** Chat messages are stored in a `/chat_messages` collection, including `senderId` and `receiverId` to identify participants.\n8.  **Support Tickets:** Support tickets are stored in a `/support_tickets` collection, owned by the User (`userId`).\n9.  **Payments:** Payments are stored in a `/payments` collection, associated with a `projectId` and involving `payerId` and `payeeId` (UserProfile IDs).\n\nTo ensure Authorization Independence, the following denormalization strategies are implemented:\n\n*   *Posts:* The `authorId` which is a reference to `user_profiles/{userProfileId}` can be used to define access rules without needing a `get()` call. This is because rules can directly verify that `request.auth.uid` matches the `authorId`.\n*   *Comments:* Similarly, the `authorId` within the `/posts/{postId}/comments/{commentId}` collection allows rules to validate the creator of the comment without needing to fetch the user profile.\n*   *Collab Requests:* The `senderId` and `receiverId` fields enable secure listing (QAP) of collaboration requests, as rules can limit read access to requests where the user is either the sender or the receiver.\n*   *Teams:* While `memberIds` are used for storing references, for more complex team-based permissions, consider denormalizing a `members` map within each team document, as described in the DBAC strategy. This prevents needing to iterate through the `memberIds` array in rules.\n\nThe structure supports required QAPs:\n\n*   *List Posts:* The flat `/posts` collection, combined with the `authorId` field, enables filtering posts by author without needing to check parent documents. Rules can restrict lists to posts created by the authenticated user.\n*   *List Comments:* By storing comments in subcollections (`/posts/{postId}/comments/{commentId}`), listing comments for a specific post is straightforward. Access can be controlled based on post ownership or comment authorship.\n*   *List Collab Requests:* The `senderId` and `receiverId` fields allow rules to filter collaboration requests to those sent or received by the current user. This ensures users can only see relevant requests.\n\nThis structure avoids hierarchical authorization dependencies, making the security rules simple and efficient. It also supports atomic operations and facilitates easy debugging."
+    "reasoning": "This simplified structure directly matches the user's confirmed list of collections: users, user_profiles, posts, projects, and studio_profiles. It uses a flat architecture for scalable queries, especially for the main post feed. User data is split between private 'users' and public 'user_profiles' for security. Stories are a subcollection under user_profiles, intended to be queried via a collectionGroup query, which is efficient for a story feed."
   }
 }
-
-    
