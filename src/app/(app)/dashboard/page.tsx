@@ -9,7 +9,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { PostCard, type Post } from "@/components/post-card";
 import { ShortsReelCard } from "@/components/shorts-reel-card";
 import { db } from "@/lib/firebase";
-import { collection, orderBy, query, Timestamp, collectionGroup } from "firebase/firestore";
+import { collection, getDocs, orderBy, query, Timestamp, collectionGroup } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
 import { generateMockSuggestions, generateMockTrendingTopics } from "@/lib/mock-data";
 import { useCollection, useMemoFirebase } from "@/firebase";
@@ -115,33 +115,21 @@ export default function DashboardPage() {
     const [pageLoading, setPageLoading] = useState(true);
     const [isAddStoryOpen, setIsAddStoryOpen] = useState(false);
     
-    const postsQuery = useMemoFirebase(() => {
-      if (!user) return null;
-      return query(collection(db, "posts"), orderBy("createdAt", "desc"));
-    }, [user]);
+    const postsQuery = useMemoFirebase(() => query(collection(db, "posts"), orderBy("createdAt", "desc")), []);
     const { data: posts, isLoading: postsLoading } = useCollection<Post>(postsQuery);
 
-    const studiosQuery = useMemoFirebase(() => {
-      if (!user) return null;
-      return query(collection(db, "studio_profiles"), orderBy("createdAt", "desc"));
-    }, [user]);
+    const studiosQuery = useMemoFirebase(() => query(collection(db, "studio_profiles"), orderBy("createdAt", "desc")), []);
     const { data: studios, isLoading: studiosLoading } = useCollection<StudioProfile>(studiosQuery);
     
-    const usersQuery = useMemoFirebase(() => {
-        if (!user) return null;
-        return query(collection(db, "user_profiles"));
-    }, [user]);
+    const usersQuery = useMemoFirebase(() => query(collection(db, "user_profiles")), []);
     const { data: userProfiles, isLoading: usersLoading } = useCollection<UserProfile>(usersQuery);
 
-    const allStoriesCollectionQuery = useMemoFirebase(() => {
-        if (!user) return null;
-        return query(collectionGroup(db, 'stories'), orderBy('createdAt', 'asc'));
-    }, [user]);
+    const allStoriesCollectionQuery = useMemoFirebase(() => query(collectionGroup(db, 'stories'), orderBy('createdAt', 'asc')), []);
     const { data: allStories, isLoading: allStoriesLoading } = useCollection<Story>(allStoriesCollectionQuery);
 
     const stories = useMemo(() => {
         if (!userProfiles || !allStories || !userData) return [];
-
+        
         const storiesByUserId = allStories.reduce((acc, story) => {
             if (!acc[story.userId]) {
                 acc[story.userId] = [];
@@ -152,17 +140,17 @@ export default function DashboardPage() {
 
         const usersWithStories = userProfiles.map(profile => ({
             ...profile,
-            stories: storiesByUserId[profile.id] || []
+            stories: storiesByUserId?.[profile.id] || []
         })).filter(p => p.stories.length > 0);
-        
-        const currentUserStoryData: UserProfile = {
-            id: userData.userId,
-            username: "My Story",
-            avatarUrl: userData.avatarUrl,
-            isSelf: true,
-            stories: storiesByUserId[userData.userId] || []
-        };
 
+        const currentUserStoryData: UserProfile = {
+             id: userData.userId, 
+             username: "My Story", 
+             avatarUrl: userData.avatarUrl, 
+             isSelf: true, 
+             stories: storiesByUserId?.[userData.userId] || []
+        };
+        
         return [
             currentUserStoryData,
             ...usersWithStories.filter(u => u.id !== userData.userId)
@@ -209,13 +197,13 @@ export default function DashboardPage() {
         setSeenStories(prev => new Set(prev).add(userId));
     }, []);
     
-    if (authLoading) {
+  if (authLoading) {
       return (
           <div className="flex h-screen items-center justify-center">
               <Loader2 className="h-12 w-12 animate-spin text-primary" />
           </div>
       );
-    }
+  }
 
   return (
     <>
@@ -359,4 +347,3 @@ export default function DashboardPage() {
     </>
   );
 }
-    
