@@ -1,17 +1,25 @@
-import { Plus, Search, Bell, Rss, TrendingUp, Users, Video } from "lucide-react";
-import Link from "next/link";
-import React from "react";
-import { PostCard, type Post } from "@/components/post-card";
-import { ShortsReelCard } from "@/components/shorts-reel-card";
-import { generateMockSuggestions, generateMockTrendingTopics } from "@/lib/mock-data";
-import type { StudioProfile } from "../studios/[id]/page";
-import { StudioPostCard } from "@/components/studio-post-card";
-import { AddStoryDialogWrapper } from "@/components/add-story-dialog-wrapper";
-import { StoryReel } from "@/components/story-reel";
+
+"use client";
+
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { getFeedData, FeedItem } from "@/lib/get-feed-data";
+import { Plus, Search, Bell, Rss, TrendingUp, Users, Video, Loader2 } from "lucide-react";
+import Link from "next/link";
+import React, { useState, useEffect, useMemo } from "react";
+import { PostCard, type Post } from "@/components/post-card";
+import { ShortsReelCard } from "@/components/shorts-reel-card";
+import { db } from "@/lib/firebase";
+import { collection, query, orderBy, Timestamp, collectionGroup } from "firebase/firestore";
+import { Skeleton } from "@/components/ui/skeleton";
+import { generateMockSuggestions, generateMockTrendingTopics } from "@/lib/mock-data";
+import { useCollection, useMemoFirebase } from "@/firebase";
+import type { StudioProfile } from "../studios/[id]/page";
+import { StudioPostCard } from "@/components/studio-post-card";
+import { useAuth } from "@/hooks/use-auth";
+import { AddStoryDialogWrapper } from "@/components/add-story-dialog-wrapper";
+import { StoryReel } from "@/components/story-reel";
+import type { UserProfileWithStories } from "@/lib/get-feed-data";
 
 const feedFilters = [
     { label: "All", icon: Rss },
@@ -48,9 +56,126 @@ const SuggestionsCard = () => (
     </Card>
 );
 
+const PostSkeleton = () => (
+    <Card className="bg-card border-none rounded-2xl overflow-hidden shadow-sm">
+      <CardHeader className="p-4 flex flex-row items-center gap-3">
+          <Skeleton className="h-11 w-11 rounded-full" />
+          <div className="space-y-2">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-3 w-20" />
+          </div>
+      </CardHeader>
+      <CardContent className="p-0">
+          <Skeleton className="relative aspect-[4/3] w-full" />
+      </CardContent>
+       <CardFooter className="p-4 flex flex-col items-start gap-3">
+          <div className="w-full flex justify-between items-center text-muted-foreground">
+              <div className="flex items-center gap-4">
+                  <Skeleton className="h-5 w-12" />
+                  <Skeleton className="h-5 w-12" />
+                  <Skeleton className="h-5 w-5" />
+              </div>
+              <Skeleton className="h-8 w-8" />
+          </div>
+           <div className="w-full h-px bg-border my-1"></div>
+           <div className="w-full flex justify-between items-center">
+              <Skeleton className="h-5 w-1/3" />
+              <Skeleton className="h-8 w-1/4" />
+           </div>
+      </CardFooter>
+    </Card>
+  )
 
-export default async function DashboardPage() {
-    const { feedItems, stories, currentUser } = await getFeedData();
+type FeedItem = (Post & { type: 'post' }) | (StudioProfile & { type: 'studio' });
+
+export default function DashboardPage() {
+    const { user, userData } = useAuth();
+    const [activeFilter, setActiveFilter] = useState("All");
+    const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    const postsQuery = useMemoFirebase(() => query(collection(db, "posts"), orderBy("createdAt", "desc")), []);
+    const { data: posts, isLoading: postsLoading } = useCollection<Post>(postsQuery);
+
+    const studiosQuery = useMemoFirebase(() => query(collection(db, "studio_profiles"), orderBy("createdAt", "desc")), []);
+    const { data: studios, isLoading: studiosLoading } = useCollection<StudioProfile>(studiosQuery);
+    
+    // Fetch all stories using a collection group query
+    const storiesQuery = useMemoFirebase(() => query(collectionGroup(db, 'stories'), orderBy('createdAt', 'desc')), []);
+    const { data: allStories, isLoading: allStoriesLoading } = useCollection<any>(storiesQuery);
+
+    // Fetch all user profiles to map stories back to users
+    const profilesQuery = useMemoFirebase(() => collection(db, 'user_profiles'), []);
+    const { data: userProfiles, isLoading: profilesLoading } = useCollection<any>(profilesQuery);
+
+    useEffect(() => {
+        if (!postsLoading && !studiosLoading) {
+            const combinedFeed: FeedItem[] = [];
+            if (posts) {
+                combinedFeed.push(...posts.map(p => ({ ...p, type: 'post' as const })));
+            }
+            if (studios) {
+                combinedFeed.push(...studios.map(s => ({ ...s, type: 'studio' as const })));
+            }
+
+            combinedFeed.sort((a, b) => {
+                const dateA = a.createdAt ? (a.createdAt as unknown as Timestamp).toMillis() : 0;
+                const dateB = b.createdAt ? (b.createdAt as unknown as Timestamp).toMillis() : 0;
+                return dateB - dateA;
+            });
+
+            setFeedItems(combinedFeed);
+            setLoading(false);
+        }
+    }, [posts, studios, postsLoading, studiosLoading]);
+
+    const storiesData = useMemo(() => {
+        if (profilesLoading || allStoriesLoading || !userProfiles || !userData) {
+            return null;
+        }
+
+        const storiesByUserId: Record<string, any[]> = {};
+        allStories?.forEach(story => {
+            if (!storiesByUserId[story.userId]) {
+                storiesByUserId[story.userId] = [];
+            }
+            storiesByUserId[story.userId].push(story);
+        });
+
+        const myProfile = userProfiles.find(p => p.id === user?.uid);
+        const myStories = storiesByUserId[user?.uid || ''] || [];
+
+        const otherUserStories = userProfiles
+            .filter(p => p.id !== user?.uid && storiesByUserId[p.id]?.length > 0)
+            .map(p => ({
+                id: p.id,
+                username: p.username,
+                avatarUrl: p.avatarUrl,
+                stories: storiesByUserId[p.id],
+                isSelf: false
+            }));
+
+        const myStoryItem: UserProfileWithStories = {
+            id: user?.uid || 'current_user',
+            username: "My Story",
+            avatarUrl: myProfile?.avatarUrl || '',
+            stories: myStories,
+            isSelf: true
+        };
+
+        return [myStoryItem, ...otherUserStories];
+
+    }, [allStories, userProfiles, profilesLoading, allStoriesLoading, userData, user]);
+    
+    const overallLoading = loading || profilesLoading || allStoriesLoading;
+
+  if (!user || !userData) {
+      return (
+          <div className="flex h-screen items-center justify-center">
+              <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          </div>
+      );
+  }
 
   return (
     <>
@@ -68,13 +193,14 @@ export default async function DashboardPage() {
             <div className="lg:col-span-8">
                 <div className="flex flex-col gap-8 text-foreground">
                     
-                    <StoryReel stories={stories || []} currentUser={currentUser} />
+                    <StoryReel stories={storiesData || []} currentUser={{ uid: user.uid, avatarUrl: userData.avatarUrl }} />
 
                     <div className="flex items-center gap-2 overflow-x-auto pb-2 -mx-4 px-4">
                         {feedFilters.map(filter => (
                             <Button 
                                 key={filter.label} 
-                                variant={filter.label === 'All' ? "default" : "secondary"}
+                                variant={activeFilter === filter.label ? "default" : "secondary"}
+                                onClick={() => setActiveFilter(filter.label)}
                                 className="rounded-full flex-shrink-0"
                             >
                                 <filter.icon className="mr-2 h-4 w-4" />
@@ -84,7 +210,13 @@ export default async function DashboardPage() {
                     </div>
 
                     <main className="space-y-6">
-                        {feedItems && feedItems.length > 0 ? (
+                        {overallLoading ? (
+                            <>
+                              <PostSkeleton />
+                              <PostSkeleton />
+                              <PostSkeleton />
+                            </>
+                        ) : feedItems && feedItems.length > 0 ? (
                             feedItems.map((item, index) => (
                                 <React.Fragment key={item.id}>
                                     {item.type === 'post' ? (
