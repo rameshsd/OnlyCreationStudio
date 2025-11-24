@@ -18,6 +18,7 @@ export interface UserProfile {
   id: string;
   username: string;
   avatarUrl: string;
+  following?: string[];
   // Add other profile fields as needed
 }
 

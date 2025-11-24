@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Briefcase, Heart, Mail, MessageCircle, PenSquare, Rss, Star, UserPlus, Users, Video, UserCheck, BarChart2, Loader2 } from "lucide-react";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo, useTransition } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { ResponsiveContainer, BarChart, XAxis, YAxis, Bar } from "recharts";
 import { useAuth } from "@/hooks/use-auth";
@@ -17,6 +17,7 @@ import { collection, query, where, orderBy, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useCollection, useDoc, useMemoFirebase } from "@/firebase";
 import { useParams } from "next/navigation";
+import { followUserAction, unfollowUserAction } from "./actions";
 
 const statsData = [
   { month: "Jan", followers: 400 },
@@ -42,7 +43,7 @@ interface PortfolioItem {
 }
 
 interface UserProfileData {
-    userId: string;
+    id: string;
     username: string;
     bio?: string;
     avatarUrl?: string;
@@ -55,10 +56,12 @@ interface UserProfileData {
 
 
 export default function ProfilePage() {
-    const { user, loading: authLoading, followUser, unfollowUser, userData: currentUserData } = useAuth();
+    const { user, loading: authLoading, userData: currentUserData } = useAuth();
     const { toast } = useToast();
     const params = useParams();
     const profileUserId = params.userId as string;
+    const [isPending, startTransition] = useTransition();
+
 
     const profileDocRef = useMemoFirebase(() => {
         if (!profileUserId) return null;
@@ -74,19 +77,22 @@ export default function ProfilePage() {
     }, [currentUserData, profileUserId]);
 
     const handleFollowToggle = async () => {
-        if (isOwnProfile || !profileUserId) return;
+        if (isOwnProfile || !profileUserId || !user) return;
         
-        try {
-            if (isFollowing) {
-                await unfollowUser(profileUserId);
-                toast({ title: "Unfollowed", description: `You are no longer following ${profileData?.username}.` });
+        startTransition(async () => {
+            const action = isFollowing ? unfollowUserAction : followUserAction;
+            const result = await action(user.uid, profileUserId);
+
+            if (result.error) {
+                toast({ title: "Error", description: result.error, variant: "destructive" });
             } else {
-                await followUser(profileUserId);
-                toast({ title: "Followed", description: `You are now following ${profileData?.username}.` });
+                const toastTitle = isFollowing ? "Unfollowed" : "Followed";
+                const toastDescription = isFollowing 
+                    ? `You are no longer following ${profileData?.username}.`
+                    : `You are now following ${profileData?.username}.`;
+                toast({ title: toastTitle, description: toastDescription });
             }
-        } catch (error) {
-            toast({ title: "Error", description: "Could not update follow status.", variant: "destructive" });
-        }
+        });
     };
 
 
@@ -169,8 +175,8 @@ export default function ProfilePage() {
                                      <Button variant="outline" onClick={() => handleComingSoon('Edit Profile')}><PenSquare /> Edit Profile</Button>
                                 ) : (
                                     <>
-                                        <Button variant="outline" onClick={handleFollowToggle}>
-                                            {isFollowing ? <UserCheck className="mr-2 h-4 w-4" /> : <UserPlus className="mr-2 h-4 w-4" />} 
+                                        <Button variant="outline" onClick={handleFollowToggle} disabled={isPending}>
+                                            {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : isFollowing ? <UserCheck className="mr-2 h-4 w-4" /> : <UserPlus className="mr-2 h-4 w-4" />} 
                                             {isFollowing ? "Following" : "Follow"}
                                         </Button>
                                         <Button variant={isFavorited ? 'default' : 'outline'} onClick={handleFavorite}>

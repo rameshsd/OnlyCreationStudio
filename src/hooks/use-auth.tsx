@@ -4,7 +4,7 @@
 
 import * as React from 'react';
 import { getAuth, onIdTokenChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, User } from 'firebase/auth';
-import { getFirestore, doc, setDoc, getDoc, updateDoc, arrayUnion, arrayRemove, writeBatch } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
 import { app } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -14,7 +14,7 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 interface UserData {
-    userId: string;
+    id: string;
     username: string;
     bio?: string;
     avatarUrl?: string;
@@ -33,8 +33,6 @@ interface AuthContextType {
     signupStudio: (email: string, pass: string, username: string) => Promise<any>;
     logout: () => Promise<any>;
     userData: UserData | null;
-    followUser: (targetUserId: string) => Promise<void>;
-    unfollowUser: (targetUserId: string) => Promise<void>;
 }
 
 const AuthContext = React.createContext<AuthContextType | undefined>(undefined);
@@ -65,7 +63,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         try {
             const userDoc = await getDoc(userDocRef);
             if (userDoc.exists()) {
-                setUserData(userDoc.data() as UserData);
+                setUserData({ id: userDoc.id, ...userDoc.data() } as UserData);
             } else {
                 setUserData(null);
             }
@@ -107,8 +105,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const user = userCredential.user;
 
         const userProfileRef = doc(db, "user_profiles", user.uid);
-        const userProfileData: UserData = {
-            userId: user.uid,
+        const userProfileData: Omit<UserData, 'id'> = {
             username: username,
             bio: "New to OnlyCreation!",
             avatarUrl: `https://api.dicebear.com/7.x/initials/svg?seed=${username}`,
@@ -119,7 +116,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             skills: ["Content Creator"]
         };
         
-        setUserData(userProfileData);
+        setUserData({ id: user.uid, ...userProfileData });
         await setDoc(userProfileRef, userProfileData).catch(serverError => {
             const permissionError = new FirestorePermissionError({
                 path: userProfileRef.path,
@@ -138,8 +135,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const user = userCredential.user;
 
         const userProfileRef = doc(db, "user_profiles", user.uid);
-        const userProfileData: UserData = {
-            userId: user.uid,
+        const userProfileData: Omit<UserData, 'id'> = {
             username: username,
             bio: "Studio Owner",
             avatarUrl: `https://api.dicebear.com/7.x/initials/svg?seed=${username}`,
@@ -150,7 +146,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             skills: ["Studio Rental", "Production Services"]
         };
         
-        setUserData(userProfileData);
+        setUserData({ id: user.uid, ...userProfileData });
         await setDoc(userProfileRef, userProfileData).catch(serverError => {
             const permissionError = new FirestorePermissionError({
                 path: userProfileRef.path,
@@ -169,36 +165,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         router.push('/login');
     };
 
-    const followUser = async (targetUserId: string) => {
-        if (!user) throw new Error("You must be logged in to follow users.");
-        
-        const currentUserRef = doc(db, "user_profiles", user.uid);
-        const targetUserRef = doc(db, "user_profiles", targetUserId);
-
-        const batch = writeBatch(db);
-        batch.update(currentUserRef, { following: arrayUnion(targetUserId) });
-        batch.update(targetUserRef, { followers: arrayUnion(user.uid) });
-        
-        await batch.commit();
-        await fetchUserData(user); // Refetch user data to update state
-    };
-
-    const unfollowUser = async (targetUserId: string) => {
-        if (!user) throw new Error("You must be logged in to unfollow users.");
-        const currentUserRef = doc(db, "user_profiles", user.uid);
-        const targetUserRef = doc(db, "user_profiles", targetUserId);
-
-        const batch = writeBatch(db);
-        batch.update(currentUserRef, { following: arrayRemove(targetUserId) });
-        batch.update(targetUserRef, { followers: arrayRemove(user.uid) });
-        
-        await batch.commit();
-        await fetchUserData(user); // Refetch user data to update state
-    };
-
-
     return (
-        <AuthContext.Provider value={{ user, userData, loading, login, signup, signupStudio, logout, followUser, unfollowUser }}>
+        <AuthContext.Provider value={{ user, userData, loading, login, signup, signupStudio, logout }}>
             {children}
         </AuthContext.Provider>
     );

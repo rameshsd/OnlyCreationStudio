@@ -38,7 +38,7 @@ export function StoryReel() {
     if (userData?.following && Array.isArray(userData.following)) {
       ids.push(...userData.following);
     }
-    // Return a unique set of IDs
+    // Return a unique set of IDs, ensuring it's never empty for the query
     return [...new Set(ids)];
   }, [user, userData]);
 
@@ -58,7 +58,7 @@ export function StoryReel() {
     if (storyUserIds.length === 0) return null;
     return query(
         collection(db, 'user_profiles'), 
-        where('userId', 'in', storyUserIds)
+        where('__name__', 'in', storyUserIds)
     );
   }, [storyUserIds]);
 
@@ -67,35 +67,42 @@ export function StoryReel() {
   const usersWithStories = useMemo<UserProfileWithStories[]>(() => {
     if (!statuses || !profiles || !user) return [];
     
+    const profileMap: { [id: string]: UserProfile } = {};
+    profiles.forEach(p => {
+        profileMap[p.id] = p;
+    });
+
     const userStoryMap: { [key: string]: UserProfileWithStories } = {};
 
-    profiles.forEach(profile => {
-        // The document ID from useCollection is the user's UID
-        userStoryMap[profile.id] = {
-            ...profile,
-            id: profile.id, // Ensure id is set correctly
-            stories: [],
-            hasUnseen: false,
-        };
-    });
-
     statuses.forEach(status => {
-      if (userStoryMap[status.userId]) {
-        userStoryMap[status.userId].stories.push(status);
-        if (!status.viewers.includes(user.uid)) {
-            userStoryMap[status.userId].hasUnseen = true;
+        const profile = profileMap[status.userId];
+        if (profile) {
+            if (!userStoryMap[status.userId]) {
+                userStoryMap[status.userId] = {
+                    ...profile,
+                    stories: [],
+                    hasUnseen: false,
+                };
+            }
+            userStoryMap[status.userId].stories.push(status);
+            if (!status.viewers.includes(user.uid)) {
+                userStoryMap[status.userId].hasUnseen = true;
+            }
         }
-      }
     });
 
-    const filteredUsers = Object.values(userStoryMap).filter(u => u.stories.length > 0);
+    const filteredUsers = Object.values(userStoryMap);
     
     return filteredUsers.sort((a, b) => {
-        if (a.id === user?.uid) return -1;
-        if (b.id === user?.uid) return 1;
+        // Current user's stories always first
+        if (a.id === user.uid) return -1;
+        if (b.id === user.uid) return 1;
+
+        // Users with unseen stories next
         if (a.hasUnseen && !b.hasUnseen) return -1;
         if (!a.hasUnseen && b.hasUnseen) return 1;
         
+        // Finally, sort by most recent story
         const lastStoryA = a.stories[0]?.createdAt.seconds || 0;
         const lastStoryB = b.stories[0]?.createdAt.seconds || 0;
         return lastStoryB - lastStoryA;

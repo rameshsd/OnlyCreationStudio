@@ -34,15 +34,11 @@
     "UserProfile": {
       "title": "UserProfile",
       "type": "object",
-      "description": "Represents a user's profile information, linked to a User account.",
+      "description": "Represents a user's public profile information, linked to a User account.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the user profile entity."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to the User entity."
+          "description": "Unique identifier for the user profile entity. Matches the user's auth UID."
         },
         "username": {
           "type": "string",
@@ -64,7 +60,6 @@
       },
       "required": [
         "id",
-        "userId",
         "username"
       ]
     },
@@ -179,11 +174,6 @@
             "type": "string",
             "format": "uri"
           }
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Date and time the studio profile was created.",
-          "format": "date-time"
         }
       },
       "required": [
