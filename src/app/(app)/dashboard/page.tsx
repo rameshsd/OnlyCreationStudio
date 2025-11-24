@@ -3,7 +3,6 @@ import Link from "next/link";
 import React from "react";
 import { PostCard, type Post } from "@/components/post-card";
 import { ShortsReelCard } from "@/components/shorts-reel-card";
-import { Skeleton } from "@/components/ui/skeleton";
 import { generateMockSuggestions, generateMockTrendingTopics } from "@/lib/mock-data";
 import type { StudioProfile } from "../studios/[id]/page";
 import { StudioPostCard } from "@/components/studio-post-card";
@@ -49,40 +48,6 @@ const SuggestionsCard = () => (
     </Card>
 );
 
-const PostSkeleton = () => (
-    <Card className="bg-card border-none rounded-2xl overflow-hidden shadow-sm">
-      <CardHeader className="p-4 flex flex-row items-center gap-3">
-          <Skeleton className="h-11 w-11 rounded-full" />
-          <div className="space-y-2">
-              <Skeleton className="h-4 w-24" />
-              <Skeleton className="h-3 w-20" />
-          </div>
-      </CardHeader>
-      <CardContent className="p-0">
-          <div className="text-sm whitespace-pre-line px-4 mb-4">
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-2/3 mt-2" />
-          </div>
-          <Skeleton className="relative aspect-[4/3] w-full" />
-      </CardContent>
-       <CardFooter className="p-4 flex flex-col items-start gap-3">
-          <div className="w-full flex justify-between items-center text-muted-foreground">
-              <div className="flex items-center gap-4">
-                  <Skeleton className="h-5 w-12" />
-                  <Skeleton className="h-5 w-12" />
-                  <Skeleton className="h-5 w-5" />
-              </div>
-              <Skeleton className="h-8 w-8" />
-          </div>
-           <div className="w-full h-px bg-border my-1"></div>
-           <div className="w-full flex justify-between items-center">
-              <Skeleton className="h-5 w-1/3" />
-              <Skeleton className="h-8 w-1/4" />
-           </div>
-      </CardFooter>
-    </Card>
-  )
-
 
 export default async function DashboardPage() {
     const { feedItems, stories, currentUser } = await getFeedData();
@@ -103,7 +68,7 @@ export default async function DashboardPage() {
             <div className="lg:col-span-8">
                 <div className="flex flex-col gap-8 text-foreground">
                     
-                    <StoryReel stories={stories} currentUser={currentUser} />
+                    <StoryReel stories={stories || []} currentUser={currentUser} />
 
                     <div className="flex items-center gap-2 overflow-x-auto pb-2 -mx-4 px-4">
                         {feedFilters.map(filter => (

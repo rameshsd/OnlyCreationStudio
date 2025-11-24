@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -8,23 +7,11 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { type UserProfileWithStories, type Story } from '@/lib/get-feed-data';
 
-interface Story {
-  id: string;
-  mediaUrl: string;
-  mediaType: 'image' | 'video';
-  createdAt: { seconds: number; nanoseconds: number; };
-}
-
-interface UserWithStories {
-  id: string;
-  username: string;
-  avatarUrl: string;
-  stories?: Story[];
-}
 
 interface StoryViewerProps {
-  stories: UserWithStories[];
+  stories: UserProfileWithStories[];
   startIndex: number;
   onClose: () => void;
   onStoryViewed: (userId: string) => void;
@@ -38,25 +25,30 @@ export function StoryViewer({ stories, startIndex, onClose, onStoryViewed }: Sto
   const [isPaused, setIsPaused] = useState(false);
   
   const videoRef = useRef<HTMLVideoElement>(null);
-  const timerRef = useRef<NodeJS.Timeout>();
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const storyStartTimeRef = useRef<number>(0);
 
   const currentUser = stories[currentUserIndex];
   const currentStory = currentUser?.stories?.[currentStoryIndex];
   
   const storyDuration = 5000; // 5 seconds for images
 
+  const goToNextUser = useCallback(() => {
+    if (currentUserIndex < stories.length - 1) {
+      setCurrentUserIndex(prev => prev + 1);
+      setCurrentStoryIndex(0);
+    } else {
+      onClose();
+    }
+  }, [currentUserIndex, stories.length, onClose]);
+
   const goToNextStory = useCallback(() => {
     if (currentUser?.stories && currentStoryIndex < currentUser.stories.length - 1) {
       setCurrentStoryIndex(prev => prev + 1);
     } else {
-      if (currentUserIndex < stories.length - 1) {
-        setCurrentUserIndex(prev => prev + 1);
-        setCurrentStoryIndex(0);
-      } else {
-        onClose();
-      }
+      goToNextUser();
     }
-  }, [currentStoryIndex, currentUserIndex, stories, currentUser?.stories, onClose]);
+  }, [currentStoryIndex, currentUser, goToNextUser]);
 
   const goToPrevStory = useCallback(() => {
     if (currentStoryIndex > 0) {
@@ -71,37 +63,39 @@ export function StoryViewer({ stories, startIndex, onClose, onStoryViewed }: Sto
     }
   }, [currentStoryIndex, currentUserIndex, stories]);
 
+  // Handle side effect for marking story as viewed
   useEffect(() => {
-    onStoryViewed(currentUser.id);
-  }, [currentUser.id, onStoryViewed]);
+    if (currentUser?.id) {
+        onStoryViewed(currentUser.id);
+    }
+  }, [currentUser?.id, onStoryViewed]);
 
+  // Main timer effect for progressing through stories
   useEffect(() => {
     setIsLoading(true);
     setProgress(0);
-    
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-    }
-    
-    if (currentStory?.mediaType === 'image') {
-        const startTime = Date.now();
-        timerRef.current = setInterval(() => {
-          if (!isPaused) {
-            const elapsedTime = Date.now() - startTime;
-            const newProgress = (elapsedTime / storyDuration) * 100;
-            if (newProgress >= 100) {
-              goToNextStory();
-            } else {
-              setProgress(newProgress);
-            }
+    storyStartTimeRef.current = Date.now();
+
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (!currentStory) return;
+
+    if (currentStory.mediaType === 'image') {
+      timerRef.current = setInterval(() => {
+        if (!isPaused) {
+          const elapsedTime = Date.now() - storyStartTimeRef.current;
+          const newProgress = (elapsedTime / storyDuration) * 100;
+          setProgress(newProgress);
+          if (newProgress >= 100) {
+            goToNextStory();
           }
-        }, 50);
+        }
+      }, 50);
     }
+    
+    // For video, progress is handled by `onTimeUpdate`
     
     return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
+      if (timerRef.current) clearInterval(timerRef.current);
     };
   }, [currentStory, isPaused, goToNextStory]);
   
@@ -118,19 +112,25 @@ export function StoryViewer({ stories, startIndex, onClose, onStoryViewed }: Sto
 
   const handleVideoCanPlay = () => {
       setIsLoading(false);
-      videoRef.current?.play();
+      videoRef.current?.play().catch(e => console.error("Video play failed:", e));
   };
 
   const handleImageLoad = () => {
     setIsLoading(false);
   };
   
-  const handleInteractionStart = () => setIsPaused(true);
-  const handleInteractionEnd = () => setIsPaused(false);
+  const handleInteractionStart = () => {
+      setIsPaused(true);
+      if(videoRef.current) videoRef.current.pause();
+  };
+  const handleInteractionEnd = () => {
+      setIsPaused(false);
+      if(videoRef.current) videoRef.current.play().catch(e => console.error("Video play failed:", e));
+  };
 
 
   return (
-    <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center" onContextMenu={(e) => e.preventDefault()}>
       <div className="relative w-full max-w-sm h-[95vh] bg-neutral-900 rounded-lg overflow-hidden shadow-2xl flex flex-col">
         {/* Header */}
         <div className="absolute top-0 left-0 right-0 p-4 z-10 bg-gradient-to-b from-black/50 to-transparent">
@@ -190,6 +190,7 @@ export function StoryViewer({ stories, startIndex, onClose, onStoryViewed }: Sto
               className="object-contain"
               onLoad={handleImageLoad}
               onError={() => setIsLoading(false)}
+              priority
             />
           )}
           {currentStory?.mediaType === 'video' && (
@@ -208,15 +209,15 @@ export function StoryViewer({ stories, startIndex, onClose, onStoryViewed }: Sto
           )}
         </div>
 
-        {/* Navigation */}
-        <div className="absolute inset-0 flex justify-between items-center z-20">
-            <button onClick={goToPrevStory} className="h-full w-1/3" aria-label="Previous Story" />
-            <button onClick={goToNextStory} className="h-full w-1/3" aria-label="Next Story" />
-        </div>
-        <button onClick={goToPrevStory} className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-black/30 rounded-full text-white hover:bg-black/60 z-30">
+        {/* Navigation Overlays */}
+        <div className="absolute inset-y-0 left-0 w-1/3 z-20" onClick={goToPrevStory} />
+        <div className="absolute inset-y-0 right-0 w-1/3 z-20" onClick={goToNextStory} />
+        
+        {/* Navigation Buttons */}
+        <button onClick={goToPrevStory} className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-black/30 rounded-full text-white hover:bg-black/60 z-30 opacity-80 hover:opacity-100 transition-opacity">
           <ChevronLeft size={28} />
         </button>
-        <button onClick={goToNextStory} className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-black/30 rounded-full text-white hover:bg-black/60 z-30">
+        <button onClick={goToNextStory} className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-black/30 rounded-full text-white hover:bg-black/60 z-30 opacity-80 hover:opacity-100 transition-opacity">
           <ChevronRight size={28} />
         </button>
       </div>

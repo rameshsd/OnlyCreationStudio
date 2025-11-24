@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -18,22 +18,10 @@ export function StoryReel({ stories, currentUser }: StoryReelProps) {
     const [storyViewerStartIndex, setStoryViewerStartIndex] = useState(0);
     const [seenStories, setSeenStories] = useState<Set<string>>(new Set());
 
-    const myStoryData = {
-        id: currentUser?.uid || 'MyStory',
-        username: "My Story",
-        avatarUrl: currentUser?.avatarUrl || '',
-        isSelf: true,
-        stories: stories.find(s => s.id === currentUser?.uid)?.stories || [],
-    };
-    
-    const otherUsersStories = stories.filter(s => s.id !== currentUser?.uid);
-    const displayStories = [myStoryData, ...otherUsersStories];
-
-
     const handleStoryClick = (index: number) => {
-        const clickedStory = displayStories[index];
+        const clickedStory = stories[index];
         if (clickedStory.isSelf && (!clickedStory.stories || clickedStory.stories.length === 0)) {
-            // This is a simple way to trigger the dialog. A more robust solution might use a global state manager (Zustand, Redux)
+            // A simple event bus to open the dialog from a sibling component
              window.dispatchEvent(new CustomEvent('open-add-story-dialog'));
         } else {
             setStoryViewerStartIndex(index);
@@ -45,18 +33,32 @@ export function StoryReel({ stories, currentUser }: StoryReelProps) {
         setSeenStories(prev => new Set(prev).add(userId));
     }, []);
 
+    if (!currentUser) {
+        // Render skeleton or nothing if there's no user context
+        return (
+            <div className="flex space-x-4 overflow-x-auto pb-4 -mx-4 px-4">
+                {[...Array(8)].map((_, index) => (
+                    <div key={index} className="flex flex-col items-center gap-2 flex-shrink-0 w-20">
+                        <Skeleton className="h-20 w-20 rounded-full" />
+                        <Skeleton className="h-3 w-16" />
+                    </div>
+                ))}
+            </div>
+        );
+    }
+
     return (
         <>
             {storyViewerOpen && (
                 <StoryViewer
-                    stories={displayStories}
+                    stories={stories}
                     startIndex={storyViewerStartIndex}
                     onClose={() => setStoryViewerOpen(false)}
                     onStoryViewed={handleStoryViewed}
                 />
             )}
             <div className="flex space-x-4 overflow-x-auto pb-4 -mx-4 px-4">
-                {displayStories.map((story, index) => {
+                {stories.map((story, index) => {
                     const hasUnseenStories = story.stories && story.stories.length > 0 && !seenStories.has(story.id);
                     const isMyEmptyStory = story.isSelf && (!story.stories || story.stories.length === 0);
 

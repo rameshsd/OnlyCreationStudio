@@ -48,13 +48,11 @@ export interface StudioProfile {
 
 export type FeedItem = (Omit<Post, 'createdAt'> & { type: 'post', createdAt: Date }) | (Omit<StudioProfile, 'createdAt'> & { type: 'studio', createdAt: Date });
 
-
 export interface Story {
   id: string;
   mediaUrl: string;
   mediaType: 'image' | 'video';
-  createdAt: Date;
-  expiresAt: Date;
+  createdAt: { seconds: number; nanoseconds: number; }; // Keep as Firestore-like for viewer
 }
 
 export interface UserProfileWithStories {
@@ -62,6 +60,7 @@ export interface UserProfileWithStories {
   username: string;
   avatarUrl: string;
   stories: Story[];
+  isSelf?: boolean;
 }
 
 export interface CurrentUser {
@@ -76,7 +75,7 @@ const toDate = (timestamp: FirestoreTimestamp): Date => {
 };
 
 // Helper function to safely get the current user from the session cookie
-const getCurrentUser = async (): Promise<{ uid: string; avatarUrl: string; } | null> => {
+const getCurrentUser = async (): Promise<CurrentUser | null> => {
     const sessionCookie = cookies().get('__session')?.value;
     if (!sessionCookie) return null;
 
@@ -89,7 +88,7 @@ const getCurrentUser = async (): Promise<{ uid: string; avatarUrl: string; } | n
                 avatarUrl: userProfileSnap.data()?.avatarUrl || ''
             };
         }
-        return null;
+        return { uid: decodedClaims.uid, avatarUrl: '' }; // Return UID even if profile doesn't exist
     } catch (error) {
         console.error("Error verifying session cookie:", error);
         return null;
@@ -97,11 +96,8 @@ const getCurrentUser = async (): Promise<{ uid: string; avatarUrl: string; } | n
 };
 
 export const getFeedData = cache(async () => {
-    if (!adminDb) {
-        throw new Error("Firebase Admin SDK not initialized.");
-    }
-    
     const currentUser = await getCurrentUser();
+    
     if (!currentUser) {
        return { feedItems: [], stories: [], currentUser: null };
     }
@@ -112,15 +108,16 @@ export const getFeedData = cache(async () => {
     // Fetch studios
     const studiosPromise = adminDb.collection('studio_profiles').orderBy('createdAt', 'desc').limit(10).get();
 
-    // Fetch user profiles and their stories
-    const usersPromise = adminDb.collection('user_profiles').limit(50).get();
+    // Fetch all active stories via a collection group query
+    const storiesPromise = adminDb.collectionGroup('stories').where('expiresAt', '>', new Date()).orderBy('expiresAt', 'desc').get();
     
-    const [postsSnapshot, studiosSnapshot, usersSnapshot] = await Promise.all([
+    const [postsSnapshot, studiosSnapshot, storiesSnapshot] = await Promise.all([
         postsPromise,
         studiosPromise,
-        usersPromise
+        storiesSnapshot
     ]);
 
+    // Process feed items
     const feedItems: FeedItem[] = [];
     postsSnapshot.forEach(doc => {
         const data = doc.data();
@@ -131,32 +128,52 @@ export const getFeedData = cache(async () => {
         feedItems.push({ ...data, id: doc.id, type: 'studio', createdAt: toDate(data.createdAt) } as FeedItem);
     });
 
-    // Sort combined feed by date
     feedItems.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
     
     // Process stories
-    const stories: UserProfileWithStories[] = [];
-    for (const userDoc of usersSnapshot.docs) {
-        const userProfile = { id: userDoc.id, ...userDoc.data() };
-        const storiesSnapshot = await adminDb.collection('user_profiles').doc(userDoc.id).collection('stories').where('expiresAt', '>', new Date()).orderBy('expiresAt', 'desc').get();
-        
-        if (!storiesSnapshot.empty) {
-            stories.push({
-                id: userProfile.id,
-                username: userProfile.username,
-                avatarUrl: userProfile.avatarUrl,
-                stories: storiesSnapshot.docs.map(storyDoc => {
-                    const storyData = storyDoc.data();
-                    return {
-                        id: storyDoc.id,
-                        ...storyData,
-                        createdAt: toDate(storyData.createdAt),
-                        expiresAt: toDate(storyData.expiresAt),
-                    } as Story;
-                })
+    const storiesByUserId: Record<string, Story[]> = {};
+    storiesSnapshot.forEach(doc => {
+      const story = { id: doc.id, ...doc.data() } as Story & { userId: string };
+      if (!storiesByUserId[story.userId]) {
+        storiesByUserId[story.userId] = [];
+      }
+      storiesByUserId[story.userId].push(story);
+    });
+
+    const userIdsWithStories = Object.keys(storiesByUserId);
+    const userProfiles: Record<string, {username: string; avatarUrl: string}> = {};
+
+    if (userIdsWithStories.length > 0) {
+        const userProfilesSnapshot = await adminDb.collection('user_profiles').where(auth.FieldPath.documentId(), 'in', userIdsWithStories).get();
+        userProfilesSnapshot.forEach(doc => {
+            const data = doc.data();
+            userProfiles[doc.id] = { username: data.username, avatarUrl: data.avatarUrl };
+        });
+    }
+
+    const finalStories: UserProfileWithStories[] = [];
+    const myStories = storiesByUserId[currentUser.uid] || [];
+
+    // Add current user's story placeholder
+    finalStories.push({
+        id: currentUser.uid,
+        username: 'My Story',
+        avatarUrl: currentUser.avatarUrl,
+        stories: myStories,
+        isSelf: true
+    });
+    
+    // Add other users' stories
+    for (const userId of userIdsWithStories) {
+        if (userId !== currentUser.uid && userProfiles[userId]) {
+            finalStories.push({
+                id: userId,
+                username: userProfiles[userId].username,
+                avatarUrl: userProfiles[userId].avatarUrl,
+                stories: storiesByUserId[userId]
             });
         }
     }
 
-    return { feedItems, stories, currentUser };
+    return { feedItems, stories: finalStories, currentUser };
 });
