@@ -17,18 +17,6 @@ service cloud.firestore {
       allow read, write: if request.auth.uid == userProfileId;
     }
 
-    // DIRECT user stories (individual user pages)
-    match /user_profiles/{userProfileId}/stories/{storyId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth.uid == userProfileId;
-    }
-
-    // GLOBAL STORY FETCH (collectionGroup)
-    match /{path=**}/stories/{storyId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth.uid == request.resource.data.userId;
-    }
-
     match /posts/{postId} {
       allow read: if request.auth != null;
       allow write: if request.auth.uid == request.resource.data.userId;

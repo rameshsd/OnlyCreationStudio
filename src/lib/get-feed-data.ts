@@ -1,9 +1,5 @@
 
 import 'server-only';
-import { adminDb } from '@/lib/firebase-admin';
-import { cookies } from 'next/headers';
-import { auth } from 'firebase-admin';
-import { cache } from 'react';
 
 // This file is now primarily for type definitions, 
 // as data fetching has been moved client-side to the dashboard component.
@@ -45,22 +41,6 @@ export interface StudioProfile {
 }
 
 export type FeedItem = (Post & { type: 'post' }) | (StudioProfile & { type: 'studio' });
-
-export interface Story {
-  id: string;
-  userId: string;
-  mediaUrl: string;
-  mediaType: 'image' | 'video';
-  createdAt: { seconds: number; nanoseconds: number; }; 
-}
-
-export interface UserProfileWithStories {
-  id: string;
-  username: string;
-  avatarUrl: string;
-  stories: Story[];
-  isSelf?: boolean;
-}
 
 export interface CurrentUser {
     uid: string;

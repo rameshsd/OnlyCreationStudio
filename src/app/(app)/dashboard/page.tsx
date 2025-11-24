@@ -10,14 +10,10 @@ import React, { useState, useMemo } from "react";
 import { PostCard, type Post } from "@/components/post-card";
 import { ShortsReelCard } from "@/components/shorts-reel-card";
 import { db } from "@/lib/firebase";
-import { collection, query, orderBy, collectionGroup } from "firebase/firestore";
+import { collection, query, orderBy } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
 import { generateMockSuggestions, generateMockTrendingTopics } from "@/lib/mock-data";
 import { useCollection, useMemoFirebase } from "@/firebase";
-import { useAuth } from "@/hooks/use-auth";
-import { AddStoryDialogWrapper } from "@/components/add-story-dialog-wrapper";
-import { StoryReel } from "@/components/story-reel";
-import { type UserProfileWithStories } from "@/lib/get-feed-data";
 
 
 const feedFilters = [
@@ -87,74 +83,15 @@ const PostSkeleton = () => (
 
 export default function DashboardPage() {
     const [activeFilter, setActiveFilter] = useState("All");
-    const { user: currentUser } = useAuth();
     
     const postsQuery = useMemoFirebase(() => query(collection(db, "posts"), orderBy("createdAt", "desc")), []);
     const { data: posts, isLoading: postsLoading } = useCollection<Post>(postsQuery);
 
-    const storiesQuery = useMemoFirebase(() => query(collectionGroup(db, 'stories'), orderBy('createdAt', 'desc')), []);
-    const { data: allStories, isLoading: storiesLoading } = useCollection(storiesQuery);
-    
-    const profilesQuery = useMemoFirebase(() => query(collection(db, "user_profiles")), []);
-    const { data: userProfiles, isLoading: profilesLoading } = useCollection(profilesQuery);
-
-    const storiesData = useMemo(() => {
-        if (!allStories || !userProfiles || !currentUser) return [];
-
-        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).getTime() / 1000;
-
-        const profilesWithStories = new Map<string, UserProfileWithStories>();
-        
-        // Add current user first if they exist in the profiles list
-        const currentUserProfile = userProfiles.find(p => p.id === currentUser.uid);
-        if (currentUserProfile) {
-            profilesWithStories.set(currentUser.uid, {
-                ...currentUserProfile,
-                stories: [],
-                isSelf: true
-            });
-        }
-        
-        // Initialize all other profiles
-        userProfiles.forEach(profile => {
-            if (profile.id !== currentUser.uid) {
-                profilesWithStories.set(profile.id, { ...profile, stories: [] });
-            }
-        });
-
-        // Populate stories
-        allStories.forEach(story => {
-            const storyTimestamp = story.createdAt?.seconds;
-            if (storyTimestamp >= twentyFourHoursAgo) {
-                const profile = profilesWithStories.get(story.userId);
-                if (profile) {
-                    profile.stories.push(story);
-                }
-            }
-        });
-        
-        // Move users with stories to the front, after the current user
-        const sortedProfiles = Array.from(profilesWithStories.values());
-        
-        const me = sortedProfiles.find(p => p.isSelf);
-        const othersWithStories = sortedProfiles.filter(p => !p.isSelf && p.stories.length > 0);
-        const othersWithoutStories = sortedProfiles.filter(p => !p.isSelf && p.stories.length === 0);
-
-        return [
-            ...(me ? [me] : []),
-            ...othersWithStories,
-            ...othersWithoutStories
-        ];
-
-    }, [allStories, userProfiles, currentUser]);
-
-
-    const loading = postsLoading || profilesLoading || storiesLoading;
+    const loading = postsLoading;
 
 
   return (
     <>
-    <AddStoryDialogWrapper />
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         <div className="lg:col-span-8">
             <div className="flex flex-col gap-8 text-foreground">
@@ -165,9 +102,6 @@ export default function DashboardPage() {
                         <Button variant="ghost" size="icon"><Bell className="h-6 w-6" /></Button>
                     </div>
                 </header>
-
-                <StoryReel stories={storiesData} currentUser={currentUser} />
-
 
                 <div className="flex items-center gap-2 overflow-x-auto pb-2 -mx-4 px-4">
                     {feedFilters.map(filter => (

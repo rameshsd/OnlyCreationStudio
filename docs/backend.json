@@ -161,42 +161,6 @@
         }
       },
       "required": ["id", "userProfileId", "studioName", "createdAt"]
-    },
-     "Story": {
-      "title": "Story",
-      "type": "object",
-      "description": "Represents a story created by a user, which typically expires after 24 hours.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the story entity."
-        },
-        "userId": {
-          "type": "string",
-          "description": "The ID of the user who created the story."
-        },
-        "mediaUrl": {
-          "type": "string",
-          "description": "URL of the story media (image or video).",
-          "format": "uri"
-        },
-        "mediaType": {
-          "type": "string",
-          "description": "The type of media.",
-          "enum": ["image", "video"]
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Date and time the story was created.",
-          "format": "date-time"
-        },
-        "expiresAt": {
-          "type": "string",
-          "description": "Date and time the story expires.",
-          "format": "date-time"
-        }
-      },
-      "required": ["id", "userId", "mediaUrl", "mediaType", "createdAt", "expiresAt"]
     }
   },
   "auth": {
@@ -218,14 +182,6 @@
           "entityName": "UserProfile",
           "schema": { "$ref": "#/entities/UserProfile" },
           "description": "Stores public user profile information. The document ID matches the user's auth UID."
-        }
-      },
-      {
-        "path": "/user_profiles/{userProfileId}/stories/{storyId}",
-        "definition": {
-          "entityName": "Story",
-          "schema": { "$ref": "#/entities/Story" },
-          "description": "Stores stories for a specific user profile. Accessed via collection group query in the main feed."
         }
       },
       {
@@ -253,6 +209,6 @@
         }
       }
     ],
-    "reasoning": "This simplified structure directly matches the user's confirmed list of collections: users, user_profiles, posts, projects, and studio_profiles. It uses a flat architecture for scalable queries, especially for the main post feed. User data is split between private 'users' and public 'user_profiles' for security. Stories are a subcollection under user_profiles, intended to be queried via a collectionGroup query, which is efficient for a story feed."
+    "reasoning": "This simplified structure directly matches the user's confirmed list of collections: users, user_profiles, posts, projects, and studio_profiles. It uses a flat architecture for scalable queries, especially for the main post feed. User data is split between private 'users' and public 'user_profiles' for security."
   }
 }
