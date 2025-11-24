@@ -163,17 +163,3 @@ export const generateMockMessages = (count: number) => {
     }
     return { conversations, messages };
 }
-
-export const generateMockStories = (count: number) => {
-    const stories = [];
-    for (let i = 0; i < count; i++) {
-        const name = generateRandomName();
-        stories.push({
-            name: name,
-            avatar: getRandomElement(avatarPool),
-            hint: "user avatar",
-            isSelf: i === 0, // Make the first story the user's own
-        });
-    }
-    return stories;
-};

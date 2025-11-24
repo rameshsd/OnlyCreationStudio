@@ -10,11 +10,12 @@ import React, { useState, useMemo } from "react";
 import { PostCard, type Post } from "@/components/post-card";
 import { ShortsReelCard } from "@/components/shorts-reel-card";
 import { db } from "@/lib/firebase";
-import { collection, query, orderBy } from "firebase/firestore";
+import { collection, orderBy, query } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
 import { generateMockSuggestions, generateMockTrendingTopics } from "@/lib/mock-data";
 import { useCollection, useMemoFirebase } from "@/firebase";
-
+import { StudioPostCard } from "@/components/studio-post-card";
+import type { StudioProfile, FeedItem } from "@/lib/get-feed-data";
 
 const feedFilters = [
     { label: "All", icon: Rss },
@@ -83,12 +84,29 @@ const PostSkeleton = () => (
 
 export default function DashboardPage() {
     const [activeFilter, setActiveFilter] = useState("All");
-    
+
     const postsQuery = useMemoFirebase(() => query(collection(db, "posts"), orderBy("createdAt", "desc")), []);
     const { data: posts, isLoading: postsLoading } = useCollection<Post>(postsQuery);
 
-    const loading = postsLoading;
+    const studiosQuery = useMemoFirebase(() => query(collection(db, "studio_profiles"), orderBy("createdAt", "desc")), []);
+    const { data: studios, isLoading: studiosLoading } = useCollection<StudioProfile>(studiosQuery);
 
+    const feedItems = useMemo(() => {
+        const combined: FeedItem[] = [];
+        if (posts) {
+            combined.push(...posts.map(p => ({ ...p, type: 'post' as const })));
+        }
+        if (studios) {
+            combined.push(...studios.map(s => ({ ...s, type: 'studio' as const })));
+        }
+        return combined.sort((a, b) => {
+             const dateA = a.createdAt?.getTime() || 0;
+             const dateB = b.createdAt?.getTime() || 0;
+             return dateB - dateA;
+        });
+    }, [posts, studios]);
+
+    const loading = postsLoading || studiosLoading;
 
   return (
     <>
@@ -105,8 +123,8 @@ export default function DashboardPage() {
 
                 <div className="flex items-center gap-2 overflow-x-auto pb-2 -mx-4 px-4">
                     {feedFilters.map(filter => (
-                        <Button 
-                            key={filter.label} 
+                        <Button
+                            key={filter.label}
                             variant={activeFilter === filter.label ? "default" : "secondary"}
                             onClick={() => setActiveFilter(filter.label)}
                             className="rounded-full flex-shrink-0"
@@ -124,10 +142,10 @@ export default function DashboardPage() {
                           <PostSkeleton />
                           <PostSkeleton />
                         </>
-                    ) : posts && posts.length > 0 ? (
-                        posts.map((post, index) => (
-                            <React.Fragment key={post.id}>
-                                <PostCard post={post} />
+                    ) : feedItems && feedItems.length > 0 ? (
+                        feedItems.map((item, index) => (
+                            <React.Fragment key={item.id}>
+                                {item.type === 'post' ? <PostCard post={item as Post} /> : <StudioPostCard studio={item as StudioProfile} />}
                                  { (index + 1) % 5 === 0 && (
                                     <ShortsReelCard />
                                 )}
@@ -176,5 +194,3 @@ export default function DashboardPage() {
     </>
   );
 }
-
-    

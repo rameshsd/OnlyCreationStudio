@@ -59,12 +59,6 @@ export default function ProfilePage() {
     }, [user]);
     const { data: portfolioItems, isLoading: portfolioLoading } = useCollection<PortfolioItem>(userPortfolioQuery);
     
-    const userStoriesQuery = useMemoFirebase(() => {
-        if (!user) return null;
-        return query(collection(db, "user_profiles", user.uid, "stories"), orderBy("createdAt", "desc"));
-    }, [user]);
-    const { data: stories, isLoading: storiesLoading } = useCollection<any>(userStoriesQuery);
-
 
     const handleFollow = () => {
         setIsFollowing(!isFollowing);

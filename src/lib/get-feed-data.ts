@@ -1,7 +1,7 @@
 
 import 'server-only';
 
-// This file is now primarily for type definitions, 
+// This file is now primarily for type definitions,
 // as data fetching has been moved client-side to the dashboard component.
 
 export interface Post {
@@ -15,7 +15,7 @@ export interface Post {
     likes: number;
     comments: number;
     shares: number;
-    createdAt: { seconds: number; nanoseconds: number; }; 
+    createdAt: Date;
 }
 
 export interface StudioProfile {
@@ -35,14 +35,9 @@ export interface StudioProfile {
     size: string;
     qualityGrade: string;
     services: string[];
-    createdAt: { seconds: number; nanoseconds: number; }; 
+    createdAt: Date;
     rating?: number;
     reviewCount?: number;
 }
 
 export type FeedItem = (Post & { type: 'post' }) | (StudioProfile & { type: 'studio' });
-
-export interface CurrentUser {
-    uid: string;
-    avatarUrl: string;
-}
