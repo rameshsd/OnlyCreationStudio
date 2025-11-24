@@ -25,18 +25,13 @@ interface AuthContextType {
 const AuthContext = React.createContext<AuthContextType | undefined>(undefined);
 
 const setSessionCookie = async (idToken: string | null) => {
-    if (idToken) {
-        await fetch('/api/auth/session', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${idToken}`,
-            },
-        });
-    } else {
-        await fetch('/api/auth/session', {
-            method: 'DELETE',
-        });
-    }
+    const method = idToken ? 'POST' : 'DELETE';
+    const headers = idToken ? { 'Authorization': `Bearer ${idToken}` } : {};
+    
+    await fetch('/api/auth/session', {
+        method: method,
+        headers: headers,
+    });
 };
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
@@ -60,8 +55,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                     if (userDoc.exists()) {
                         setUserData(userDoc.data());
                     } else {
-                        // This case happens during signup before the user profile is created.
-                        // It will be updated shortly after.
                         setUserData(null);
                     }
                 } catch (serverError) {
@@ -82,17 +75,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         return () => unsubscribe();
     }, []);
-    
-    React.useEffect(() => {
-        const publicPaths = ['/login', '/signup', '/welcome', '/signup-studio'];
-        const isPublicPath = publicPaths.some(p => pathname.startsWith(p));
-        
-        if (!loading && !user && !isPublicPath) {
-            router.push('/welcome');
-        }
-
-    }, [user, loading, router, pathname]);
-
 
     const login = (email: string, pass: string) => {
         return signInWithEmailAndPassword(auth, email, pass);
@@ -115,7 +97,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             skills: ["Content Creator"]
         };
         
-        // This setDoc will be caught by the onIdTokenChanged listener, which will update userData state
         await setDoc(userProfileRef, userProfileData).catch(serverError => {
             const permissionError = new FirestorePermissionError({
                 path: userProfileRef.path,
@@ -123,7 +104,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 requestResourceData: userProfileData
             });
             errorEmitter.emit('permission-error', permissionError);
-            throw serverError; // Propagate error
+            throw serverError;
         });
         
         return userCredential;
