@@ -9,7 +9,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { PostCard, type Post } from "@/components/post-card";
 import { ShortsReelCard } from "@/components/shorts-reel-card";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, orderBy, query, Timestamp, collectionGroup } from "firebase/firestore";
+import { collection, orderBy, query, Timestamp, collectionGroup } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
 import { generateMockSuggestions, generateMockTrendingTopics } from "@/lib/mock-data";
 import { useCollection, useMemoFirebase } from "@/firebase";
@@ -127,21 +127,21 @@ export default function DashboardPage() {
     }, [user]);
     const { data: studios, isLoading: studiosLoading } = useCollection<StudioProfile>(studiosQuery);
     
-    const usersWithStoriesQuery = useMemoFirebase(() => {
-      if (!user) return null;
-      return query(collection(db, "user_profiles"));
+    const usersQuery = useMemoFirebase(() => {
+        if (!user) return null;
+        return query(collection(db, "user_profiles"));
     }, [user]);
-    const { data: userProfiles, isLoading: storiesLoading } = useCollection<UserProfile>(usersWithStoriesQuery);
+    const { data: userProfiles, isLoading: usersLoading } = useCollection<UserProfile>(usersQuery);
 
     const allStoriesCollectionQuery = useMemoFirebase(() => {
-      if (!user) return null;
-      return query(collectionGroup(db, 'stories'), orderBy('createdAt', 'asc'))
+        if (!user) return null;
+        return query(collectionGroup(db, 'stories'), orderBy('createdAt', 'asc'));
     }, [user]);
     const { data: allStories, isLoading: allStoriesLoading } = useCollection<Story>(allStoriesCollectionQuery);
 
     const stories = useMemo(() => {
-        if (!userProfiles || !allStories) return [];
-        
+        if (!userProfiles || !allStories || !userData) return [];
+
         const storiesByUserId = allStories.reduce((acc, story) => {
             if (!acc[story.userId]) {
                 acc[story.userId] = [];
@@ -152,19 +152,17 @@ export default function DashboardPage() {
 
         const usersWithStories = userProfiles.map(profile => ({
             ...profile,
-            stories: storiesByUserId?.[profile.id] || []
+            stories: storiesByUserId[profile.id] || []
         })).filter(p => p.stories.length > 0);
-
-        if (!userData) return usersWithStories;
-
-        const currentUserStoryData: UserProfile = {
-             id: userData.userId, 
-             username: "My Story", 
-             avatarUrl: userData.avatarUrl, 
-             isSelf: true, 
-             stories: storiesByUserId?.[userData.userId] || []
-        };
         
+        const currentUserStoryData: UserProfile = {
+            id: userData.userId,
+            username: "My Story",
+            avatarUrl: userData.avatarUrl,
+            isSelf: true,
+            stories: storiesByUserId[userData.userId] || []
+        };
+
         return [
             currentUserStoryData,
             ...usersWithStories.filter(u => u.id !== userData.userId)
@@ -243,7 +241,7 @@ export default function DashboardPage() {
             <div className="lg:col-span-8">
                 <div className="flex flex-col gap-8 text-foreground">
                     <div className="flex space-x-4 overflow-x-auto pb-4 -mx-4 px-4">
-                        {storiesLoading || allStoriesLoading ? (
+                        {usersLoading || allStoriesLoading ? (
                              [...Array(10)].map((_, index) => (
                                 <div key={index} className="flex flex-col items-center gap-2 flex-shrink-0 w-20">
                                     <Skeleton className="h-20 w-20 rounded-full" />
@@ -361,3 +359,4 @@ export default function DashboardPage() {
     </>
   );
 }
+    
