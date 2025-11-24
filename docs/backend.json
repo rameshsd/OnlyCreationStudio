@@ -25,7 +25,11 @@
           "format": "date-time"
         }
       },
-      "required": ["id", "email", "createdDateTime"]
+      "required": [
+        "id",
+        "email",
+        "createdDateTime"
+      ]
     },
     "UserProfile": {
       "title": "UserProfile",
@@ -41,8 +45,8 @@
           "description": "Reference to the User entity."
         },
         "username": {
-            "type": "string",
-            "description": "The user's public username."
+          "type": "string",
+          "description": "The user's public username."
         },
         "role": {
           "type": "string",
@@ -58,7 +62,11 @@
           "description": "User's biography."
         }
       },
-      "required": ["id", "userId", "username"]
+      "required": [
+        "id",
+        "userId",
+        "username"
+      ]
     },
     "Post": {
       "title": "Post",
@@ -78,15 +86,24 @@
           "description": "Description or caption for the post."
         },
         "media": {
-            "type": "array",
-            "description": "Media content of the post.",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "type": {"type": "string", "enum": ["image", "video"]},
-                    "url": {"type": "string", "format": "uri"}
-                }
+          "type": "array",
+          "description": "Media content of the post.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "image",
+                  "video"
+                ]
+              },
+              "url": {
+                "type": "string",
+                "format": "uri"
+              }
             }
+          }
         },
         "createdAt": {
           "type": "string",
@@ -94,7 +111,11 @@
           "format": "date-time"
         }
       },
-      "required": ["id", "userId", "createdAt"]
+      "required": [
+        "id",
+        "userId",
+        "createdAt"
+      ]
     },
     "Project": {
       "title": "Project",
@@ -123,7 +144,12 @@
           "format": "date-time"
         }
       },
-      "required": ["id", "name", "ownerId", "createdAt"]
+      "required": [
+        "id",
+        "name",
+        "ownerId",
+        "createdAt"
+      ]
     },
     "StudioProfile": {
       "title": "StudioProfile",
@@ -160,11 +186,80 @@
           "format": "date-time"
         }
       },
-      "required": ["id", "userProfileId", "studioName"]
+      "required": [
+        "id",
+        "userProfileId",
+        "studioName"
+      ]
+    },
+    "Status": {
+      "title": "Status",
+      "type": "object",
+      "description": "Represents a temporary 24-hour status update.",
+      "properties": {
+        "statusId": {
+          "type": "string",
+          "description": "Unique identifier for the status."
+        },
+        "userId": {
+          "type": "string",
+          "description": "The ID of the user who posted the status."
+        },
+        "mediaUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL of the image/video, or the link for link-type statuses."
+        },
+        "mediaType": {
+          "type": "string",
+          "enum": [
+            "image",
+            "video",
+            "text",
+            "link"
+          ],
+          "description": "The type of media for the status."
+        },
+        "text": {
+          "type": "string",
+          "description": "Optional text caption or the content for a text-only status."
+        },
+        "backgroundColor": {
+            "type": "string",
+            "description": "Background color for text statuses."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the status was created."
+        },
+        "expiresAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the status will auto-expire (24 hours after creation)."
+        },
+        "viewers": {
+          "type": "array",
+          "description": "List of user IDs who have viewed the status.",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "statusId",
+        "userId",
+        "mediaType",
+        "createdAt",
+        "expiresAt"
+      ]
     }
   },
   "auth": {
-    "providers": ["password", "anonymous"]
+    "providers": [
+      "password",
+      "anonymous"
+    ]
   },
   "firestore": {
     "structure": [
@@ -172,7 +267,9 @@
         "path": "/users/{userId}",
         "definition": {
           "entityName": "User",
-          "schema": { "$ref": "#/entities/User" },
+          "schema": {
+            "$ref": "#/entities/User"
+          },
           "description": "Stores basic, private user account information, separate from public profiles."
         }
       },
@@ -180,15 +277,29 @@
         "path": "/user_profiles/{userProfileId}",
         "definition": {
           "entityName": "UserProfile",
-          "schema": { "$ref": "#/entities/UserProfile" },
+          "schema": {
+            "$ref": "#/entities/UserProfile"
+          },
           "description": "Stores public user profile information. The document ID matches the user's auth UID."
+        }
+      },
+      {
+        "path": "/user_profiles/{userProfileId}/statuses/{statusId}",
+        "definition": {
+          "entityName": "Status",
+          "schema": {
+            "$ref": "#/entities/Status"
+          },
+          "description": "Stores individual status updates for a user. Allows for a collection group query on 'statuses'."
         }
       },
       {
         "path": "/posts/{postId}",
         "definition": {
           "entityName": "Post",
-          "schema": { "$ref": "#/entities/Post" },
+          "schema": {
+            "$ref": "#/entities/Post"
+          },
           "description": "A top-level collection for all user posts to allow for an aggregated feed."
         }
       },
@@ -196,7 +307,9 @@
         "path": "/projects/{projectId}",
         "definition": {
           "entityName": "Project",
-          "schema": { "$ref": "#/entities/Project" },
+          "schema": {
+            "$ref": "#/entities/Project"
+          },
           "description": "A top-level collection for all projects."
         }
       },
@@ -204,11 +317,13 @@
         "path": "/studio_profiles/{studioProfileId}",
         "definition": {
           "entityName": "StudioProfile",
-          "schema": { "$ref": "#/entities/StudioProfile" },
+          "schema": {
+            "$ref": "#/entities/StudioProfile"
+          },
           "description": "A top-level collection for all studio profiles."
         }
       }
     ],
-    "reasoning": "This simplified structure directly matches the user's confirmed list of collections: users, user_profiles, posts, projects, and studio_profiles. It uses a flat architecture for scalable queries, especially for the main post feed. User data is split between private 'users' and public 'user_profiles' for security."
+    "reasoning": "This simplified structure directly matches the user's confirmed list of collections: users, user_profiles, posts, projects, and studio_profiles. It uses a flat architecture for scalable queries, especially for the main post feed. User data is split between private 'users' and public 'user_profiles' for security. Statuses are a subcollection under user_profiles to enable efficient querying and collection group scans."
   }
 }

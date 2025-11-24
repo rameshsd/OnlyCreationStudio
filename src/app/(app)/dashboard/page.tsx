@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardFooter } from "@/components/ui/card"
 import { Plus, Search, Bell, Rss, TrendingUp, Users, Video } from "lucide-react";
 import Link from "next/link";
 import React, { useState, useMemo } from "react";
-import { PostCard } from "@/components/post-card";
+import { PostCard, type Post } from "@/components/post-card";
 import { ShortsReelCard } from "@/components/shorts-reel-card";
 import { db } from "@/lib/firebase";
 import { collection, orderBy, query } from "firebase/firestore";
@@ -15,7 +15,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { generateMockSuggestions, generateMockTrendingTopics } from "@/lib/mock-data";
 import { useCollection, useMemoFirebase } from "@/firebase";
 import { StudioPostCard } from "@/components/studio-post-card";
-import type { FeedItem, Post, StudioProfile } from "@/lib/get-feed-data";
+import type { FeedItem, StudioProfile } from "@/lib/get-feed-data";
+import { StoryReel } from "@/components/story-reel";
+
 
 const feedFilters = [
     { label: "All", icon: Rss },
@@ -90,8 +92,8 @@ export default function DashboardPage() {
 
     const studiosQuery = useMemoFirebase(() => query(collection(db, "studio_profiles")), []);
     const { data: studios, isLoading: studiosLoading } = useCollection<StudioProfile>(studiosQuery);
-
-    const feedItems = useMemo(() => {
+    
+    const feedItems = useMemo<FeedItem[]>(() => {
         const combined: FeedItem[] = [];
         if (posts) {
             combined.push(...posts.map(p => ({ ...p, type: 'post' as const })));
@@ -99,10 +101,11 @@ export default function DashboardPage() {
         if (studios) {
             combined.push(...studios.map(s => ({ ...s, type: 'studio' as const })));
         }
+        
         return combined.sort((a, b) => {
-             const dateA = a.createdAt ? (a.createdAt.seconds * 1000) : 0;
-             const dateB = b.createdAt ? (b.createdAt.seconds * 1000) : 0;
-             return dateB - dateA;
+            const dateA = a.createdAt ? a.createdAt.seconds * 1000 : 0;
+            const dateB = b.createdAt ? b.createdAt.seconds * 1000 : 0;
+            return dateB - dateA;
         });
     }, [posts, studios]);
 
@@ -121,6 +124,8 @@ export default function DashboardPage() {
                     </div>
                 </header>
 
+                <StoryReel />
+                
                 <div className="flex items-center gap-2 overflow-x-auto pb-2 -mx-4 px-4">
                     {feedFilters.map(filter => (
                         <Button
