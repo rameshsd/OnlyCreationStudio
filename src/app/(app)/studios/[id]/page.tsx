@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Star, MapPin, Camera, Mic, Lightbulb, Users, Clock, Loader2, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useDoc, useMemoFirebase } from '@/firebase';
-import { doc, Timestamp } from 'firebase/firestore';
+import { doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -23,6 +23,11 @@ const staticStudioData = {
     { time: "03:00 PM", booked: true }, { time: "04:00 PM" }, { time: "05:00 PM" },
   ]
 };
+
+interface FirestoreTimestamp {
+    seconds: number;
+    nanoseconds: number;
+}
 
 export interface StudioProfile {
     id: string;
@@ -41,7 +46,7 @@ export interface StudioProfile {
     size: string;
     qualityGrade: string;
     services: string[];
-    createdAt: Timestamp;
+    createdAt?: FirestoreTimestamp;
     rating?: number;
     reviewCount?: number;
 }
@@ -125,7 +130,7 @@ export default function StudioDetailPage() {
     }
     toast({
       title: "Booking Confirmed!",
-      description: `You've booked ${studioData?.studioName} on ${date.toLocaleDateString()} at ${selectedTime}.`,
+      description: `You\'ve booked ${studioData?.studioName} on ${date.toLocaleDateString()} at ${selectedTime}.`,
     });
   };
 

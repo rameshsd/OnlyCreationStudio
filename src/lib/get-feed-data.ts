@@ -1,8 +1,10 @@
 
 import 'server-only';
 
-// This file is now primarily for type definitions,
-// as data fetching has been moved client-side to the dashboard component.
+interface FirestoreTimestamp {
+    seconds: number;
+    nanoseconds: number;
+}
 
 export interface Post {
     id: string;
@@ -15,7 +17,7 @@ export interface Post {
     likes: number;
     comments: number;
     shares: number;
-    createdAt: Date;
+    createdAt: FirestoreTimestamp;
 }
 
 export interface StudioProfile {
@@ -35,7 +37,7 @@ export interface StudioProfile {
     size: string;
     qualityGrade: string;
     services: string[];
-    createdAt: Date;
+    createdAt?: FirestoreTimestamp;
     rating?: number;
     reviewCount?: number;
 }

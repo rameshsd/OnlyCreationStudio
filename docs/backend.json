@@ -160,7 +160,7 @@
           "format": "date-time"
         }
       },
-      "required": ["id", "userProfileId", "studioName", "createdAt"]
+      "required": ["id", "userProfileId", "studioName"]
     }
   },
   "auth": {

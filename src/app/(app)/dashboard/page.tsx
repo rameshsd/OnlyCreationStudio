@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardFooter } from "@/components/ui/card"
 import { Plus, Search, Bell, Rss, TrendingUp, Users, Video } from "lucide-react";
 import Link from "next/link";
 import React, { useState, useMemo } from "react";
-import { PostCard, type Post } from "@/components/post-card";
+import { PostCard } from "@/components/post-card";
 import { ShortsReelCard } from "@/components/shorts-reel-card";
 import { db } from "@/lib/firebase";
 import { collection, orderBy, query } from "firebase/firestore";
@@ -15,7 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { generateMockSuggestions, generateMockTrendingTopics } from "@/lib/mock-data";
 import { useCollection, useMemoFirebase } from "@/firebase";
 import { StudioPostCard } from "@/components/studio-post-card";
-import type { StudioProfile, FeedItem } from "@/lib/get-feed-data";
+import type { FeedItem, Post, StudioProfile } from "@/lib/get-feed-data";
 
 const feedFilters = [
     { label: "All", icon: Rss },
@@ -88,7 +88,7 @@ export default function DashboardPage() {
     const postsQuery = useMemoFirebase(() => query(collection(db, "posts"), orderBy("createdAt", "desc")), []);
     const { data: posts, isLoading: postsLoading } = useCollection<Post>(postsQuery);
 
-    const studiosQuery = useMemoFirebase(() => query(collection(db, "studio_profiles"), orderBy("createdAt", "desc")), []);
+    const studiosQuery = useMemoFirebase(() => query(collection(db, "studio_profiles")), []);
     const { data: studios, isLoading: studiosLoading } = useCollection<StudioProfile>(studiosQuery);
 
     const feedItems = useMemo(() => {
@@ -100,8 +100,8 @@ export default function DashboardPage() {
             combined.push(...studios.map(s => ({ ...s, type: 'studio' as const })));
         }
         return combined.sort((a, b) => {
-             const dateA = a.createdAt?.getTime() || 0;
-             const dateB = b.createdAt?.getTime() || 0;
+             const dateA = a.createdAt ? (a.createdAt.seconds * 1000) : 0;
+             const dateB = b.createdAt ? (b.createdAt.seconds * 1000) : 0;
              return dateB - dateA;
         });
     }, [posts, studios]);
