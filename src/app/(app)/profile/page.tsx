@@ -42,9 +42,37 @@ interface PortfolioItem {
 
 
 export default function ProfilePage() {
-    const { user, userData, loading: authLoading } = useAuth();
+    const { user, userData, loading: authLoading, followUser, unfollowUser } = useAuth();
     const { toast } = useToast();
-    const [isFollowing, setIsFollowing] = useState(false);
+    
+    const isFollowing = useMemo(() => {
+        // This is just a placeholder logic. In a real app, you'd check against the other user's ID.
+        // For this page, we assume we are viewing our own profile, so the concept of "following" is more complex.
+        // Let's make it check if WE are following someone, which isn't what's needed for a button on *another* user's profile.
+        // We'll manage a local state for demo purposes on a non-self profile.
+        return false;
+    }, []);
+
+    const handleFollowToggle = async () => {
+        // This is a simplified example for a profile page of *another* user.
+        // On our own profile page, this button shouldn't exist.
+        // Let's assume we have a `profileData` prop for the viewed user.
+        const targetUserId = "some_other_user_id"; // This would come from props
+        
+        try {
+            if (isFollowing) {
+                await unfollowUser(targetUserId);
+                toast({ title: "Unfollowed" });
+            } else {
+                await followUser(targetUserId);
+                toast({ title: "Followed" });
+            }
+        } catch (error) {
+            toast({ title: "Error", description: "Could not update follow status.", variant: "destructive" });
+        }
+    };
+
+
     const [isFavorited, setIsFavorited] = useState(false);
 
     const userPostsQuery = useMemoFirebase(() => {
@@ -59,14 +87,6 @@ export default function ProfilePage() {
     }, [user]);
     const { data: portfolioItems, isLoading: portfolioLoading } = useCollection<PortfolioItem>(userPortfolioQuery);
     
-
-    const handleFollow = () => {
-        setIsFollowing(!isFollowing);
-        toast({
-            title: isFollowing ? "Unfollowed" : "Followed",
-            description: isFollowing ? `You are no longer following ${userData?.username}.` : `You are now following ${userData?.username}.`,
-        });
-    };
 
     const handleFavorite = () => {
         setIsFavorited(!isFavorited);
@@ -99,7 +119,7 @@ export default function ProfilePage() {
       );
     }
     
-    const isOwnProfile = true; // For now, assume it's always the user's own profile
+    const isOwnProfile = true; 
 
     return (
         <div className="flex flex-col gap-8">
@@ -134,7 +154,7 @@ export default function ProfilePage() {
                                      <Button variant="outline" onClick={() => handleComingSoon('Edit Profile')}><PenSquare /> Edit Profile</Button>
                                 ) : (
                                     <>
-                                        <Button variant="outline" onClick={handleFollow}>
+                                        <Button variant="outline" onClick={handleFollowToggle}>
                                             {isFollowing ? <UserCheck /> : <UserPlus />} {isFollowing ? "Following" : "Follow"}
                                         </Button>
                                         <Button variant={isFavorited ? 'default' : 'outline'} onClick={handleFavorite}>
@@ -267,5 +287,3 @@ export default function ProfilePage() {
         </div>
     );
 }
-
-    

@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import { getAuth, onIdTokenChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, User } from 'firebase/auth';
-import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, getDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { app } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -20,6 +20,8 @@ interface AuthContextType {
     signupStudio: (email: string, pass: string, username: string) => Promise<any>;
     logout: () => Promise<any>;
     userData: any;
+    followUser: (targetUserId: string) => Promise<void>;
+    unfollowUser: (targetUserId: string) => Promise<void>;
 }
 
 const AuthContext = React.createContext<AuthContextType | undefined>(undefined);
@@ -41,6 +43,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [loading, setLoading] = React.useState(true);
     const router = useRouter();
 
+    const fetchUserData = async (currentUser: User) => {
+        const userDocRef = doc(db, "user_profiles", currentUser.uid);
+        try {
+            const userDoc = await getDoc(userDocRef);
+            if (userDoc.exists()) {
+                setUserData(userDoc.data());
+            } else {
+                setUserData(null);
+            }
+        } catch (serverError) {
+             const permissionError = new FirestorePermissionError({
+                path: userDocRef.path,
+                operation: 'get',
+            });
+            errorEmitter.emit('permission-error', permissionError);
+            setUserData(null);
+        }
+    }
+
     React.useEffect(() => {
         const unsubscribe = onIdTokenChanged(auth, async (user) => {
             setLoading(true);
@@ -48,24 +69,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 setUser(user);
                 const idToken = await user.getIdToken();
                 await setSessionCookie(idToken);
-                
-                const userDocRef = doc(db, "user_profiles", user.uid);
-                try {
-                    const userDoc = await getDoc(userDocRef);
-                    if (userDoc.exists()) {
-                        setUserData(userDoc.data());
-                    } else {
-                        // This can happen right after signup before the doc is created
-                        setUserData(null);
-                    }
-                } catch (serverError) {
-                     const permissionError = new FirestorePermissionError({
-                        path: userDocRef.path,
-                        operation: 'get',
-                    });
-                    errorEmitter.emit('permission-error', permissionError);
-                    setUserData(null);
-                }
+                await fetchUserData(user);
             } else {
                 setUser(null);
                 setUserData(null);
@@ -98,7 +102,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             skills: ["Content Creator"]
         };
         
-        // This setDoc is critical. We'll also update the client-side state immediately.
         setUserData(userProfileData as any);
         await setDoc(userProfileRef, userProfileData).catch(serverError => {
             const permissionError = new FirestorePermissionError({
@@ -107,8 +110,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 requestResourceData: userProfileData
             });
             errorEmitter.emit('permission-error', permissionError);
-            // Even if this fails, we optimistically set the user data.
-            // The error will be shown in a toast.
             throw serverError;
         });
         
@@ -152,8 +153,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         router.push('/login');
     };
 
+    const followUser = async (targetUserId: string) => {
+        if (!user) return;
+        const currentUserRef = doc(db, "user_profiles", user.uid);
+        const targetUserRef = doc(db, "user_profiles", targetUserId);
+
+        await updateDoc(currentUserRef, { following: arrayUnion(targetUserId) });
+        await updateDoc(targetUserRef, { followers: arrayUnion(user.uid) });
+        await fetchUserData(user); // Refetch user data to update state
+    };
+
+    const unfollowUser = async (targetUserId: string) => {
+        if (!user) return;
+        const currentUserRef = doc(db, "user_profiles", user.uid);
+        const targetUserRef = doc(db, "user_profiles", targetUserId);
+
+        await updateDoc(currentUserRef, { following: arrayRemove(targetUserId) });
+        await updateDoc(targetUserRef, { followers: arrayRemove(user.uid) });
+        await fetchUserData(user); // Refetch user data to update state
+    };
+
+
     return (
-        <AuthContext.Provider value={{ user, userData, loading, login, signup, signupStudio, logout }}>
+        <AuthContext.Provider value={{ user, userData, loading, login, signup, signupStudio, logout, followUser, unfollowUser }}>
             {children}
         </AuthContext.Provider>
     );

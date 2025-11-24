@@ -30,21 +30,44 @@ export function StoryReel() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [selectedUserIndex, setSelectedUserIndex] = useState(0);
 
-  const statusesQuery = useMemoFirebase(() =>
-    query(
+  const followingIds = useMemo(() => {
+    if (!userData || !Array.isArray(userData.following)) return [];
+    return userData.following;
+  }, [userData]);
+
+  const storyUserIds = useMemo(() => {
+    if (!user) return [];
+    const ids = [user.uid]; // Always include self
+    if (followingIds.length > 0) {
+      ids.push(...followingIds);
+    }
+    return ids;
+  }, [user, followingIds]);
+
+  const statusesQuery = useMemoFirebase(() => {
+    if (storyUserIds.length === 0) return null;
+    return query(
       collectionGroup(db, 'statuses'),
+      where('userId', 'in', storyUserIds),
       where('expiresAt', '>', Timestamp.now()),
       orderBy('expiresAt', 'desc')
-    ),
-    []
-  );
+    );
+  }, [storyUserIds]);
+  
   const { data: statuses, isLoading: statusesLoading } = useCollection<Status>(statusesQuery);
   
-  const profilesQuery = useMemoFirebase(() => query(collection(db, 'user_profiles')), []);
-  const { data: profiles, isLoading: profilesLoading } = useCollection<UserProfile>(profilesQuery);
+  const profilesQuery = useMemoFirebase(() => {
+    if (storyUserIds.length === 0) return null;
+    return query(
+        collection(db, 'user_profiles'), 
+        where('userId', 'in', storyUserIds)
+    );
+  }, [storyUserIds]);
+
+  const { data: profiles, isLoading: profilesLoading } = useCollection(profilesQuery);
 
   const usersWithStories = useMemo<UserProfileWithStories[]>(() => {
-    if (!statuses || !profiles) return [];
+    if (!statuses || !profiles || !user) return [];
     
     const userStoryMap: { [key: string]: UserProfileWithStories } = {};
 
@@ -59,7 +82,7 @@ export function StoryReel() {
     statuses.forEach(status => {
       if (userStoryMap[status.userId]) {
         userStoryMap[status.userId].stories.push(status);
-        if (!status.viewers.includes(user?.uid ?? '')) {
+        if (!status.viewers.includes(user.uid)) {
             userStoryMap[status.userId].hasUnseen = true;
         }
       }
@@ -67,7 +90,6 @@ export function StoryReel() {
 
     const filteredUsers = Object.values(userStoryMap).filter(u => u.stories.length > 0);
     
-    // Sort logic: current user first, then users with unseen stories, then by latest story
     return filteredUsers.sort((a, b) => {
         if (a.id === user?.uid) return -1;
         if (b.id === user?.uid) return 1;
@@ -93,7 +115,6 @@ export function StoryReel() {
   return (
     <>
       <div className="flex space-x-4 overflow-x-auto pb-4 -mx-4 px-4">
-        {/* Add Your Story */}
         <div 
           onClick={() => setIsAddDialogOpen(true)}
           className="flex flex-col items-center gap-2 flex-shrink-0 w-20 cursor-pointer"
@@ -110,7 +131,6 @@ export function StoryReel() {
           <span className="text-xs font-medium truncate w-full text-center">Your Story</span>
         </div>
 
-        {/* Other users' stories */}
         {usersWithStories.map((storyUser, index) => (
           <div 
             onClick={() => handleStoryClick(index)} 
@@ -130,7 +150,7 @@ export function StoryReel() {
         ))}
       </div>
       
-      {isViewerOpen && (
+      {isViewerOpen && usersWithStories.length > 0 && (
         <StoryViewer
           users={usersWithStories}
           initialUserIndex={selectedUserIndex}
