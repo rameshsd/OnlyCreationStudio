@@ -17,7 +17,7 @@ import { useCollection, useMemoFirebase } from "@/firebase";
 import { useAuth } from "@/hooks/use-auth";
 import { AddStoryDialogWrapper } from "@/components/add-story-dialog-wrapper";
 import { StoryReel } from "@/components/story-reel";
-import { getFeedData, type UserProfileWithStories } from "@/lib/get-feed-data";
+import { type UserProfileWithStories } from "@/lib/get-feed-data";
 
 
 const feedFilters = [
@@ -87,13 +87,14 @@ const PostSkeleton = () => (
 
 export default function DashboardPage() {
     const [activeFilter, setActiveFilter] = useState("All");
-    const { user: currentUser, userData: currentUserData } = useAuth();
+    const { user: currentUser } = useAuth();
     
     const postsQuery = useMemoFirebase(() => query(collection(db, "posts"), orderBy("createdAt", "desc")), []);
     const { data: posts, isLoading: postsLoading } = useCollection<Post>(postsQuery);
 
     const storiesQuery = useMemoFirebase(() => query(collectionGroup(db, 'stories'), orderBy('createdAt', 'desc')), []);
     const { data: allStories, isLoading: storiesLoading } = useCollection(storiesQuery);
+    
     const profilesQuery = useMemoFirebase(() => query(collection(db, "user_profiles")), []);
     const { data: userProfiles, isLoading: profilesLoading } = useCollection(profilesQuery);
 
