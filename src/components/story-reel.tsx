@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useCallback } from "react";
@@ -6,11 +7,12 @@ import { cn } from "@/lib/utils";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Plus } from "lucide-react";
 import { StoryViewer } from "@/components/story-viewer";
-import { type UserProfileWithStories, type CurrentUser } from "@/lib/get-feed-data";
+import { type UserProfileWithStories } from "@/lib/get-feed-data";
+import { type User } from "firebase/auth";
 
 interface StoryReelProps {
     stories: UserProfileWithStories[];
-    currentUser: CurrentUser | null;
+    currentUser: User | null;
 }
 
 export function StoryReel({ stories, currentUser }: StoryReelProps) {
@@ -33,7 +35,7 @@ export function StoryReel({ stories, currentUser }: StoryReelProps) {
         setSeenStories(prev => new Set(prev).add(userId));
     }, []);
 
-    if (!currentUser) {
+    if (!currentUser || stories.length === 0) {
         // Render skeleton or nothing if there's no user context
         return (
             <div className="flex space-x-4 overflow-x-auto pb-4 -mx-4 px-4">

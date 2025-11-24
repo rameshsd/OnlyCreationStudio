@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -5,14 +6,18 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardFooter } from "@/components/ui/card";
 import { Plus, Search, Bell, Rss, TrendingUp, Users, Video } from "lucide-react";
 import Link from "next/link";
-import React, { useState, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import { PostCard, type Post } from "@/components/post-card";
 import { ShortsReelCard } from "@/components/shorts-reel-card";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, orderBy, query, onSnapshot } from "firebase/firestore";
+import { collection, query, orderBy, collectionGroup } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
-import { generateMockStories, generateMockSuggestions, generateMockTrendingTopics } from "@/lib/mock-data";
+import { generateMockSuggestions, generateMockTrendingTopics } from "@/lib/mock-data";
 import { useCollection, useMemoFirebase } from "@/firebase";
+import { useAuth } from "@/hooks/use-auth";
+import { AddStoryDialogWrapper } from "@/components/add-story-dialog-wrapper";
+import { StoryReel } from "@/components/story-reel";
+import { getFeedData, type UserProfileWithStories } from "@/lib/get-feed-data";
 
 
 const feedFilters = [
@@ -24,7 +29,6 @@ const feedFilters = [
 
 const trendingTopics = generateMockTrendingTopics(20);
 const suggestedUsers = generateMockSuggestions(5);
-const stories = generateMockStories(50);
 
 
 const SuggestionsCard = () => (
@@ -83,12 +87,73 @@ const PostSkeleton = () => (
 
 export default function DashboardPage() {
     const [activeFilter, setActiveFilter] = useState("All");
+    const { user: currentUser, userData: currentUserData } = useAuth();
     
     const postsQuery = useMemoFirebase(() => query(collection(db, "posts"), orderBy("createdAt", "desc")), []);
-    const { data: posts, isLoading: loading } = useCollection<Post>(postsQuery);
+    const { data: posts, isLoading: postsLoading } = useCollection<Post>(postsQuery);
+
+    const storiesQuery = useMemoFirebase(() => query(collectionGroup(db, 'stories'), orderBy('createdAt', 'desc')), []);
+    const { data: allStories, isLoading: storiesLoading } = useCollection(storiesQuery);
+    const profilesQuery = useMemoFirebase(() => query(collection(db, "user_profiles")), []);
+    const { data: userProfiles, isLoading: profilesLoading } = useCollection(profilesQuery);
+
+    const storiesData = useMemo(() => {
+        if (!allStories || !userProfiles || !currentUser) return [];
+
+        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).getTime() / 1000;
+
+        const profilesWithStories = new Map<string, UserProfileWithStories>();
+        
+        // Add current user first if they exist in the profiles list
+        const currentUserProfile = userProfiles.find(p => p.id === currentUser.uid);
+        if (currentUserProfile) {
+            profilesWithStories.set(currentUser.uid, {
+                ...currentUserProfile,
+                stories: [],
+                isSelf: true
+            });
+        }
+        
+        // Initialize all other profiles
+        userProfiles.forEach(profile => {
+            if (profile.id !== currentUser.uid) {
+                profilesWithStories.set(profile.id, { ...profile, stories: [] });
+            }
+        });
+
+        // Populate stories
+        allStories.forEach(story => {
+            const storyTimestamp = story.createdAt?.seconds;
+            if (storyTimestamp >= twentyFourHoursAgo) {
+                const profile = profilesWithStories.get(story.userId);
+                if (profile) {
+                    profile.stories.push(story);
+                }
+            }
+        });
+        
+        // Move users with stories to the front, after the current user
+        const sortedProfiles = Array.from(profilesWithStories.values());
+        
+        const me = sortedProfiles.find(p => p.isSelf);
+        const othersWithStories = sortedProfiles.filter(p => !p.isSelf && p.stories.length > 0);
+        const othersWithoutStories = sortedProfiles.filter(p => !p.isSelf && p.stories.length === 0);
+
+        return [
+            ...(me ? [me] : []),
+            ...othersWithStories,
+            ...othersWithoutStories
+        ];
+
+    }, [allStories, userProfiles, currentUser]);
+
+
+    const loading = postsLoading || profilesLoading || storiesLoading;
+
 
   return (
     <>
+    <AddStoryDialogWrapper />
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         <div className="lg:col-span-8">
             <div className="flex flex-col gap-8 text-foreground">
@@ -100,26 +165,8 @@ export default function DashboardPage() {
                     </div>
                 </header>
 
-                <div className="flex space-x-4 overflow-x-auto pb-4 -mx-4 px-4">
-                    {stories.map((story, index) => (
-                        <Link href="#" key={index} className="flex flex-col items-center gap-2 flex-shrink-0 w-20">
-                            <div className="h-20 w-20 rounded-full bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-500 p-1">
-                                <div className="bg-background rounded-full p-1 w-full h-full">
-                                    <Avatar className="h-full w-full relative">
-                                        {story.avatar && <AvatarImage src={story.avatar} alt={story.name} data-ai-hint={story.hint} />}
-                                        <AvatarFallback className="text-xs">{story.name.substring(0,2)}</AvatarFallback>
-                                        {story.isSelf && (
-                                            <div className="absolute bottom-0 right-0 bg-primary text-primary-foreground rounded-full h-6 w-6 flex items-center justify-center border-2 border-background">
-                                                <Plus className="h-4 w-4" />
-                                            </div>
-                                        )}
-                                    </Avatar>
-                                </div>
-                            </div>
-                            <span className="text-xs font-medium truncate w-full text-center">{story.name}</span>
-                        </Link>
-                    ))}
-                </div>
+                <StoryReel stories={storiesData} currentUser={currentUser} />
+
 
                 <div className="flex items-center gap-2 overflow-x-auto pb-2 -mx-4 px-4">
                     {feedFilters.map(filter => (
