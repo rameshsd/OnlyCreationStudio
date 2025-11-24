@@ -105,7 +105,7 @@ export default function DashboardPage() {
     const { data: allStories, isLoading: allStoriesLoading } = useCollection<any>(storiesQuery);
 
     // Fetch all user profiles to map stories back to users
-    const profilesQuery = useMemoFirebase(() => collection(db, 'user_profiles'), []);
+    const profilesQuery = useMemoFirebase(() => query(collection(db, 'user_profiles')), []);
     const { data: userProfiles, isLoading: profilesLoading } = useCollection<any>(profilesQuery);
 
     useEffect(() => {
