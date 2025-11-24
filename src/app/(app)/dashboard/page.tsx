@@ -91,8 +91,6 @@ type FeedItem = (Post & { type: 'post' }) | (StudioProfile & { type: 'studio' })
 export default function DashboardPage() {
     const { user, userData } = useAuth();
     const [activeFilter, setActiveFilter] = useState("All");
-    const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
-    const [loading, setLoading] = useState(true);
 
     const postsQuery = useMemoFirebase(() => query(collection(db, "posts"), orderBy("createdAt", "desc")), []);
     const { data: posts, isLoading: postsLoading } = useCollection<Post>(postsQuery);
@@ -100,34 +98,28 @@ export default function DashboardPage() {
     const studiosQuery = useMemoFirebase(() => query(collection(db, "studio_profiles"), orderBy("createdAt", "desc")), []);
     const { data: studios, isLoading: studiosLoading } = useCollection<StudioProfile>(studiosQuery);
     
-    // Fetch all stories using a collection group query
     const storiesQuery = useMemoFirebase(() => query(collectionGroup(db, 'stories'), orderBy('createdAt', 'desc')), []);
     const { data: allStories, isLoading: allStoriesLoading } = useCollection<any>(storiesQuery);
 
-    // Fetch all user profiles to map stories back to users
     const profilesQuery = useMemoFirebase(() => query(collection(db, 'user_profiles')), []);
     const { data: userProfiles, isLoading: profilesLoading } = useCollection<any>(profilesQuery);
 
-    useEffect(() => {
-        if (!postsLoading && !studiosLoading) {
-            const combinedFeed: FeedItem[] = [];
-            if (posts) {
-                combinedFeed.push(...posts.map(p => ({ ...p, type: 'post' as const })));
-            }
-            if (studios) {
-                combinedFeed.push(...studios.map(s => ({ ...s, type: 'studio' as const })));
-            }
-
-            combinedFeed.sort((a, b) => {
-                const dateA = a.createdAt ? (a.createdAt as unknown as Timestamp).toMillis() : 0;
-                const dateB = b.createdAt ? (b.createdAt as unknown as Timestamp).toMillis() : 0;
-                return dateB - dateA;
-            });
-
-            setFeedItems(combinedFeed);
-            setLoading(false);
+    const feedItems = useMemo(() => {
+        const combinedFeed: FeedItem[] = [];
+        if (posts) {
+            combinedFeed.push(...posts.map(p => ({ ...p, type: 'post' as const })));
         }
-    }, [posts, studios, postsLoading, studiosLoading]);
+        if (studios) {
+            combinedFeed.push(...studios.map(s => ({ ...s, type: 'studio' as const })));
+        }
+
+        combinedFeed.sort((a, b) => {
+            const dateA = a.createdAt ? (a.createdAt as unknown as Timestamp).toMillis() : 0;
+            const dateB = b.createdAt ? (b.createdAt as unknown as Timestamp).toMillis() : 0;
+            return dateB - dateA;
+        });
+        return combinedFeed;
+    }, [posts, studios]);
 
     const storiesData = useMemo(() => {
         if (profilesLoading || allStoriesLoading || !userProfiles || !userData) {
@@ -158,16 +150,16 @@ export default function DashboardPage() {
         const myStoryItem: UserProfileWithStories = {
             id: user?.uid || 'current_user',
             username: "My Story",
-            avatarUrl: myProfile?.avatarUrl || '',
+            avatarUrl: myProfile?.avatarUrl || userData.avatarUrl || '',
             stories: myStories,
             isSelf: true
         };
 
         return [myStoryItem, ...otherUserStories];
 
-    }, [allStories, userProfiles, profilesLoading, allStoriesLoading, userData, user]);
+    }, [allStories, userProfiles, profilesLoading, allStoriesLoading, userData, user, posts, studios]);
     
-    const overallLoading = loading || profilesLoading || allStoriesLoading;
+    const overallLoading = postsLoading || studiosLoading || profilesLoading || allStoriesLoading;
 
   if (!user || !userData) {
       return (
