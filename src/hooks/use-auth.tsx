@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from 'react';
@@ -23,11 +24,18 @@ interface AuthContextType {
 
 const AuthContext = React.createContext<AuthContextType | undefined>(undefined);
 
-const setSessionCookie = (idToken: string | null) => {
+const setSessionCookie = async (idToken: string | null) => {
     if (idToken) {
-        document.cookie = `__session=${idToken};path=/;max-age=3600;samesite=lax`;
+        await fetch('/api/auth/session', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${idToken}`,
+            },
+        });
     } else {
-        document.cookie = '__session=;path=/;max-age=0;samesite=lax';
+        await fetch('/api/auth/session', {
+            method: 'DELETE',
+        });
     }
 };
 
@@ -44,7 +52,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             if (user) {
                 setUser(user);
                 const idToken = await user.getIdToken();
-                setSessionCookie(idToken);
+                await setSessionCookie(idToken);
                 
                 const userDocRef = doc(db, "user_profiles", user.uid);
                 try {
@@ -52,8 +60,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                     if (userDoc.exists()) {
                         setUserData(userDoc.data());
                     } else {
-                        // This might be a new user, or data is missing.
-                         setUserData(null);
+                        setUserData(null);
                     }
                 } catch (serverError) {
                      const permissionError = new FirestorePermissionError({
@@ -66,7 +73,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             } else {
                 setUser(null);
                 setUserData(null);
-                setSessionCookie(null);
+                await setSessionCookie(null);
             }
             setLoading(false);
         });
@@ -93,7 +100,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
         const user = userCredential.user;
 
-        // Create user profile document in 'user_profiles' collection
         const userProfileRef = doc(db, "user_profiles", user.uid);
         const userProfileData = {
             userId: user.uid,
@@ -124,7 +130,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
         const user = userCredential.user;
 
-        // Create user profile document in 'user_profiles' collection
         const userProfileRef = doc(db, "user_profiles", user.uid);
         const userProfileData = {
             userId: user.uid,
@@ -152,8 +157,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return userCredential;
     };
 
-    const logout = () => {
-        return signOut(auth);
+    const logout = async () => {
+        await signOut(auth);
+        // The onIdTokenChanged listener will handle cookie deletion
     };
 
     return (

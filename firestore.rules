@@ -1,47 +1,38 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Default deny all reads and writes
+    
+    // Default deny all
     match /{document=**} {
       allow read, write: if false;
     }
 
-    // Allow authenticated users to read necessary collections
+    // Allow authenticated users to read most collections
     match /user_profiles/{userId} {
-      allow get: if request.auth != null;
+      allow read: if request.auth != null;
+      allow write: if request.auth.uid == userId;
     }
+
     match /posts/{postId} {
-      allow get, list: if request.auth != null;
+      allow read: if request.auth != null;
+      allow create: if request.auth.uid == request.resource.data.userId;
+      allow update, delete: if request.auth.uid == resource.data.userId;
     }
-     match /studio_profiles/{studioId} {
-      allow get, list: if request.auth != null;
-    }
-    match /{path=**}/stories/{storyId} {
-      allow get, list: if request.auth != null;
+
+    match /studio_profiles/{studioId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth.uid == request.resource.data.userProfileId;
     }
     
-    // Allow users to write to their own documents
-    match /posts/{postId} {
-      allow create, update, delete: if request.auth != null && request.resource.data.userId == request.auth.uid;
-    }
-    match /studio_profiles/{studioProfileId} {
-      allow create, update, delete: if request.auth != null && request.resource.data.userProfileId == request.auth.uid;
-    }
-    match /user_profiles/{userId} {
-      // Profile creation is handled at signup
-      allow update: if request.auth != null && request.auth.uid == userId;
-
-      match /stories/{storyId} {
-        allow create, delete: if request.auth != null && request.resource.data.userId == request.auth.uid;
-      }
-      match /portfolio_items/{itemId} {
-        allow create, delete: if request.auth != null && request.resource.data.userId == request.auth.uid;
-      }
-    }
     match /projects/{projectId} {
-       allow read, write: if request.auth != null && request.resource.data.ownerId == request.auth.uid;
+       allow read, write: if request.auth.uid == request.resource.data.ownerId;
+    }
+    
+    // Allow users to manage their own stories and portfolio items
+    match /user_profiles/{userId}/{subcollection}/{itemId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
   }
 }

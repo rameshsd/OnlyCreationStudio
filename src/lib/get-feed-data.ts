@@ -1,10 +1,10 @@
+
 import 'server-only';
 import { adminDb } from '@/lib/firebase-admin';
 import { cookies } from 'next/headers';
 import { auth } from 'firebase-admin';
 import { cache } from 'react';
 
-// Define types for better type safety
 interface FirestoreTimestamp {
   _seconds: number;
   _nanoseconds: number;
@@ -21,7 +21,7 @@ export interface Post {
     likes: number;
     comments: number;
     shares: number;
-    createdAt: Date; // Converted from Firestore Timestamp
+    createdAt: Date; 
 }
 
 export interface StudioProfile {
@@ -41,7 +41,7 @@ export interface StudioProfile {
     size: string;
     qualityGrade: string;
     services: string[];
-    createdAt: Date; // Converted
+    createdAt: Date; 
     rating?: number;
     reviewCount?: number;
 }
@@ -52,7 +52,7 @@ export interface Story {
   id: string;
   mediaUrl: string;
   mediaType: 'image' | 'video';
-  createdAt: { seconds: number; nanoseconds: number; }; // Keep as Firestore-like for viewer
+  createdAt: { seconds: number; nanoseconds: number; }; 
 }
 
 export interface UserProfileWithStories {
@@ -68,32 +68,37 @@ export interface CurrentUser {
     avatarUrl: string;
 }
 
-
-// Function to convert Firestore Timestamp to JS Date
 const toDate = (timestamp: FirestoreTimestamp): Date => {
+  if (!timestamp || typeof timestamp._seconds !== 'number' || typeof timestamp._nanoseconds !== 'number') {
+    return new Date(); // Fallback for invalid timestamp
+  }
   return new Date(timestamp._seconds * 1000 + timestamp._nanoseconds / 1000000);
 };
 
-// Helper function to safely get the current user from the session cookie
-const getCurrentUser = async (): Promise<CurrentUser | null> => {
-    const sessionCookie = cookies().get('__session')?.value;
-    if (!sessionCookie) return null;
+const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
+    const sessionCookie = cookies().get('session')?.value;
+    if (!sessionCookie) {
+        return null;
+    }
 
     try {
         const decodedClaims = await auth().verifySessionCookie(sessionCookie, true);
         const userProfileSnap = await adminDb.collection('user_profiles').doc(decodedClaims.uid).get();
+
         if (userProfileSnap.exists()) {
             return {
                 uid: decodedClaims.uid,
                 avatarUrl: userProfileSnap.data()?.avatarUrl || ''
             };
         }
-        return { uid: decodedClaims.uid, avatarUrl: '' }; // Return UID even if profile doesn't exist
+        // If user profile doesn't exist, still return basic user info
+        return { uid: decodedClaims.uid, avatarUrl: '' };
     } catch (error) {
-        console.error("Error verifying session cookie:", error);
+        console.error("[ Server ] Error verifying session cookie:", error);
         return null;
     }
-};
+});
+
 
 export const getFeedData = cache(async () => {
     const currentUser = await getCurrentUser();
@@ -102,13 +107,8 @@ export const getFeedData = cache(async () => {
        return { feedItems: [], stories: [], currentUser: null };
     }
 
-    // Fetch posts
     const postsPromise = adminDb.collection('posts').orderBy('createdAt', 'desc').limit(20).get();
-    
-    // Fetch studios
     const studiosPromise = adminDb.collection('studio_profiles').orderBy('createdAt', 'desc').limit(10).get();
-
-    // Fetch all active stories via a collection group query
     const storiesPromise = adminDb.collectionGroup('stories').where('expiresAt', '>', new Date()).orderBy('expiresAt', 'desc').get();
     
     const [postsSnapshot, studiosSnapshot, storiesSnapshot] = await Promise.all([
@@ -117,7 +117,6 @@ export const getFeedData = cache(async () => {
         storiesSnapshot
     ]);
 
-    // Process feed items
     const feedItems: FeedItem[] = [];
     postsSnapshot.forEach(doc => {
         const data = doc.data();
@@ -130,7 +129,6 @@ export const getFeedData = cache(async () => {
 
     feedItems.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
     
-    // Process stories
     const storiesByUserId: Record<string, Story[]> = {};
     storiesSnapshot.forEach(doc => {
       const story = { id: doc.id, ...doc.data() } as Story & { userId: string };
@@ -154,7 +152,6 @@ export const getFeedData = cache(async () => {
     const finalStories: UserProfileWithStories[] = [];
     const myStories = storiesByUserId[currentUser.uid] || [];
 
-    // Add current user's story placeholder
     finalStories.push({
         id: currentUser.uid,
         username: 'My Story',
@@ -163,7 +160,6 @@ export const getFeedData = cache(async () => {
         isSelf: true
     });
     
-    // Add other users' stories
     for (const userId of userIdsWithStories) {
         if (userId !== currentUser.uid && userProfiles[userId]) {
             finalStories.push({
