@@ -1,39 +1,52 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // USERS
     match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
+    // USER PROFILES
     match /user_profiles/{userProfileId} {
       allow read: if request.auth != null;
       allow write: if request.auth != null && request.auth.uid == userProfileId;
     }
 
+    // PORTFOLIO ITEMS
     match /user_profiles/{userProfileId}/portfolio_items/{portfolioItemId} {
-        allow read, write: if request.auth != null && request.auth.uid == userProfileId;
-    }
-    
-    match /user_profiles/{userProfileId}/stories/{storyId} {
-        allow read, write: if request.auth != null && request.auth.uid == userProfileId;
+      allow read, write: if request.auth != null && request.auth.uid == userProfileId;
     }
 
+    // PROFILE STORIES (direct access)
+    match /user_profiles/{userProfileId}/stories/{storyId} {
+      allow read, write: if request.auth != null && request.auth.uid == userProfileId;
+    }
+
+    // COLLECTION GROUP stories (global read)
+    match /{path=**}/stories/{storyId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null &&
+                   request.auth.uid == request.resource.data.userId;
+    }
+
+    // POSTS
     match /posts/{postId} {
       allow read: if request.auth != null;
       allow write: if request.auth.uid == request.resource.data.userId;
     }
 
+    // STUDIOS
     match /studio_profiles/{studioProfileId} {
-        allow read: if request.auth != null;
-        allow write: if request.auth.uid == request.resource.data.userProfileId;
+      allow read: if request.auth != null;
+      allow write: if request.auth.uid == request.resource.data.userProfileId;
     }
 
+    // PROJECTS
     match /projects/{projectId} {
-       allow read: if request.auth != null;
-       allow write: if request.auth.uid == request.resource.data.ownerId;
+      allow read: if request.auth != null;
+      allow write: if request.auth.uid == request.resource.data.ownerId;
     }
   }
 }
