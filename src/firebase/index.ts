@@ -43,7 +43,7 @@ export function getSdks(firebaseApp: FirebaseApp) {
 
 export * from './provider';
 export * from './firestore/use-collection';
-export * from './firestore/use-doc';
+// export * from './firestore/use-doc'; // This is removed
 export * from './non-blocking-updates';
 export * from './non-blocking-login';
 export * from './errors';

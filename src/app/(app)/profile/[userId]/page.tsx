@@ -8,15 +8,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Briefcase, Heart, Mail, MessageCircle, PenSquare, Rss, Star, UserPlus, Users, Video, UserCheck, BarChart2, Loader2 } from "lucide-react";
-import { useState, useMemo, useTransition } from "react";
+import { useState, useMemo, useTransition, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { ResponsiveContainer, BarChart, XAxis, YAxis, Bar } from "recharts";
 import { useAuth } from "@/hooks/use-auth";
 import { PostCard, Post } from "@/components/post-card";
-import { collection, query, doc, updateDoc, arrayUnion, arrayRemove, where, getDocs, orderBy } from "firebase/firestore";
+import { collection, query, doc, updateDoc, arrayUnion, arrayRemove, where, getDocs, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useCollection } from "@/firebase/firestore/use-collection";
-import { useDoc } from "@/firebase/firestore/use-doc";
 import { useParams } from "next/navigation";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
@@ -65,12 +64,34 @@ export default function ProfilePage() {
     const profileUserId = params.userId as string;
     const [isPending, startTransition] = useTransition();
 
-    const profileDocRef = useMemoFirebase(
-        profileUserId ? doc(db, "user_profiles", profileUserId) : null,
-        [profileUserId]
-    );
+    const [profileData, setProfileData] = useState<UserProfileData | null>(null);
+    const [profileLoading, setProfileLoading] = useState(true);
 
-    const { data: profileData, isLoading: profileLoading } = useDoc<UserProfileData>(profileDocRef);
+    useEffect(() => {
+        if (!profileUserId) return;
+        setProfileLoading(true);
+
+        const docRef = doc(db, "user_profiles", profileUserId);
+        const unsubscribe = onSnapshot(docRef, (docSnap) => {
+            if (docSnap.exists()) {
+                setProfileData({ id: docSnap.id, ...docSnap.data() } as UserProfileData);
+            } else {
+                setProfileData(null);
+            }
+            setProfileLoading(false);
+        }, (error) => {
+            console.error("Error fetching profile:", error);
+            errorEmitter.emit('permission-error', new FirestorePermissionError({
+                path: docRef.path,
+                operation: 'get'
+            }));
+            setProfileData(null);
+            setProfileLoading(false);
+        });
+
+        return () => unsubscribe();
+    }, [profileUserId]);
+
     
     const isOwnProfile = user?.uid === profileUserId;
 
@@ -152,7 +173,7 @@ export default function ProfilePage() {
 
 
     const userPortfolioQuery = useMemoFirebase(
-        profileUserId ? collection(db, "user_profiles", profileUserId, "portfolio_items") : null,
+        profileUserId ? query(collection(db, "user_profiles", profileUserId, "portfolio_items")) : null,
         [profileUserId]
     );
     const { data: portfolioItems, isLoading: portfolioLoading } = useCollection<PortfolioItem>(userPortfolioQuery);
@@ -359,5 +380,3 @@ export default function ProfilePage() {
         </div>
     );
 }
-
-    
