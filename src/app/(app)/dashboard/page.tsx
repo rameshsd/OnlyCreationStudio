@@ -10,7 +10,7 @@ import React, { useState, useMemo, useTransition } from "react";
 import { PostCard, type Post } from "@/components/post-card";
 import { ShortsReelCard } from "@/components/shorts-reel-card";
 import { db } from "@/lib/firebase";
-import { collection, orderBy, query, limit, where, getDocs, doc, updateDoc, arrayUnion } from "firebase/firestore";
+import { collection, orderBy, query, limit, where, getDocs, doc, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
 import { generateMockTrendingTopics } from "@/lib/mock-data";
 import { useCollection } from "@/firebase/firestore/use-collection";
@@ -49,12 +49,13 @@ const SuggestionsCard = () => {
     const { toast } = useToast();
 
     React.useEffect(() => {
-        if (!user || !userData) return;
+        if (!user) return;
 
         const fetchSuggestions = async () => {
             try {
                 setLoading(true);
-                const currentUserFollowing = userData.following || [];
+                // Ensure userData is loaded and has a `following` array before proceeding.
+                const currentUserFollowing = userData?.following || [];
                 const usersToExclude = [user.uid, ...currentUserFollowing];
                 
                 // Firestore doesn't have a 'not-in' for more than 10 items easily,
@@ -82,7 +83,10 @@ const SuggestionsCard = () => {
             }
         };
 
-        fetchSuggestions();
+        // We depend on userData being loaded to know who we are already following.
+        if(userData) {
+            fetchSuggestions();
+        }
     }, [user, userData]);
 
     const handleFollow = (targetUserId: string) => {
@@ -170,7 +174,7 @@ const SuggestionsCard = () => {
                         <Button 
                             size="sm"
                             onClick={() => handleFollow(suggestedUser.id)}
-                            disabled={isPending || following.includes(suggestedUser.id)}
+                            disabled={isPending || following.includes(suggestedUser.id) || (userData?.following?.includes(suggestedUser.id) ?? false)}
                         >
                             {isPending && following.includes(suggestedUser.id) ? <Loader2 className="h-4 w-4 animate-spin"/> : 'Follow'}
                         </Button>
@@ -214,10 +218,16 @@ const PostSkeleton = () => (
 export default function DashboardPage() {
     const [activeFilter, setActiveFilter] = useState("All");
 
-    const postsQuery = useMemoFirebase(query(collection(db, "posts"), orderBy("createdAt", "desc")), []);
+    const postsQuery = useMemoFirebase(
+        () => query(collection(db, "posts"), orderBy("createdAt", "desc")),
+        []
+    );
     const { data: posts, isLoading: postsLoading } = useCollection<Post>(postsQuery);
 
-    const studiosQuery = useMemoFirebase(query(collection(db, "studio_profiles")), []);
+    const studiosQuery = useMemoFirebase(
+        () => query(collection(db, "studio_profiles")),
+        []
+    );
     const { data: studios, isLoading: studiosLoading } = useCollection<StudioProfile>(studiosQuery);
     
     const feedItems = useMemo<FeedItem[]>(() => {

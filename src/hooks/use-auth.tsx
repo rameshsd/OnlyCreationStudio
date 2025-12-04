@@ -1,10 +1,9 @@
 
-
 "use client";
 
 import * as React from 'react';
 import { getAuth, onIdTokenChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, User } from 'firebase/auth';
-import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, getDoc, DocumentSnapshot } from 'firebase/firestore';
 import { app } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -60,10 +59,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             return;
         }
         const userDocRef = doc(db, "user_profiles", currentUser.uid);
+        let userDoc: DocumentSnapshot;
         try {
-            const userDoc = await getDoc(userDocRef);
-            if (userDoc.exists()) {
-                setUserData({ id: userDoc.id, ...userDoc.data() } as UserData);
+            userDoc = await getDoc(userDocRef);
+             if (userDoc.exists()) {
+                const data = userDoc.data();
+                setUserData({
+                    id: userDoc.id,
+                    username: data.username,
+                    bio: data.bio,
+                    avatarUrl: data.avatarUrl,
+                    coverUrl: data.coverUrl,
+                    followers: data.followers || [],
+                    following: data.following || [],
+                    isVerified: data.isVerified,
+                    skills: data.skills,
+                });
             } else {
                 setUserData(null);
             }
@@ -117,7 +128,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         };
         
         const fullData = { id: user.uid, ...userProfileData };
-        setUserData(fullData);
+        
         await setDoc(userProfileRef, fullData).catch(serverError => {
             const permissionError = new FirestorePermissionError({
                 path: userProfileRef.path,
@@ -127,6 +138,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             errorEmitter.emit('permission-error', permissionError);
             throw serverError;
         });
+        setUserData(fullData);
         
         return userCredential;
     };
@@ -148,7 +160,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         };
         
         const fullData = { id: user.uid, ...userProfileData };
-        setUserData(fullData);
+        
         await setDoc(userProfileRef, fullData).catch(serverError => {
             const permissionError = new FirestorePermissionError({
                 path: userProfileRef.path,
@@ -158,6 +170,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             errorEmitter.emit('permission-error', permissionError);
             throw serverError;
         });
+        setUserData(fullData);
         
         return userCredential;
     };
@@ -181,3 +194,5 @@ export const useAuth = () => {
     }
     return context;
 };
+
+    

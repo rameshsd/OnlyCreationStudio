@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ResponsiveContainer, BarChart, XAxis, YAxis, Bar } from "recharts";
 import { useAuth } from "@/hooks/use-auth";
 import { PostCard, Post } from "@/components/post-card";
-import { collection, query, doc, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
+import { collection, query, doc, updateDoc, arrayUnion, arrayRemove, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useCollection } from "@/firebase/firestore/use-collection";
 import { useDoc } from "@/firebase/firestore/use-doc";
@@ -136,15 +136,17 @@ export default function ProfilePage() {
 
     const [isFavorited, setIsFavorited] = useState(false);
 
-    const allPostsQuery = useMemoFirebase(collection(db, "posts"), []);
-    const { data: allPosts, isLoading: postsLoading } = useCollection<Post>(allPostsQuery);
+     const userPostsQuery = useMemoFirebase(
+        profileUserId ? query(collection(db, "posts"), where("userId", "==", profileUserId)) : null,
+        [profileUserId]
+    );
 
-    const posts = useMemo(() => {
-        if (!allPosts || !profileUserId) return [];
-        return allPosts
-            .filter(post => post.userId === profileUserId)
-            .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-    }, [allPosts, profileUserId]);
+    const { data: posts, isLoading: postsLoading } = useCollection<Post>(userPostsQuery);
+
+    const sortedPosts = useMemo(() => {
+        if (!posts) return [];
+        return posts.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+    }, [posts]);
 
 
     const userPortfolioQuery = useMemoFirebase(
@@ -179,8 +181,11 @@ export default function ProfilePage() {
 
     if (!profileData) {
       return (
-          <div className="flex h-screen items-center justify-center">
-              <p>This user profile does not exist.</p>
+          <div className="flex h-screen items-center justify-center text-center">
+              <div>
+                <h1 className="text-2xl font-bold">Profile Not Found</h1>
+                <p className="text-muted-foreground">This user profile does not exist or could not be loaded.</p>
+              </div>
           </div>
       );
     }
@@ -274,8 +279,8 @@ export default function ProfilePage() {
                         <CardContent className="space-y-4">
                            {postsLoading ? (
                                <p>Loading posts...</p>
-                           ) : posts && posts.length > 0 ? (
-                               posts.map(post => <PostCard key={post.id} post={post} />)
+                           ) : sortedPosts && sortedPosts.length > 0 ? (
+                               sortedPosts.map(post => <PostCard key={post.id} post={post} />)
                            ) : (
                                <p className="text-muted-foreground">No posts yet.</p>
                            )}

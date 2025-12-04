@@ -12,7 +12,7 @@ import {
 import { errorEmitter } from "../error-emitter";
 import { FirestorePermissionError } from "../errors";
 
-export interface WithId<T> extends T {
+export interface WithId<T> {
   id: string;
 }
 
@@ -31,14 +31,15 @@ export function useDoc<T = any>(
 
   useEffect(() => {
     if (!memoizedDocRef) {
-      setData(null);
       setIsLoading(false);
+      setData(null);
+      setError(null);
       return;
     }
 
     setIsLoading(true);
     setError(null);
-    setData(null); // Reset data on new ref
+    setData(null);
 
     const unsubscribe = onSnapshot(
       memoizedDocRef,
@@ -47,16 +48,18 @@ export function useDoc<T = any>(
           const docData = { ...(snapshot.data() as T), id: snapshot.id };
           setData(docData);
         } else {
+          // Document does not exist
           setData(null);
         }
         setIsLoading(false);
         setError(null);
       },
       (err: FirestoreError) => {
+        // Permission error or other listener error
         const contextualError = new FirestorePermissionError({
           operation: 'get',
           path: memoizedDocRef.path
-        })
+        });
         setError(contextualError);
         setData(null);
         setIsLoading(false);
@@ -69,3 +72,5 @@ export function useDoc<T = any>(
 
   return { data, isLoading, error };
 }
+
+    
