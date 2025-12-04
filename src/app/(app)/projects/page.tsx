@@ -12,6 +12,8 @@ import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { errorEmitter } from '@/firebase/error-emitter';
+import { useMemoFirebase } from '@/firebase/useMemoFirebase';
+import { useCollection } from '@/firebase/firestore/use-collection';
 
 interface Project {
     id: string;
@@ -35,36 +37,14 @@ const ProjectCardSkeleton = () => (
 
 export default function ProjectsPage() {
     const { user } = useAuth();
-    const [projects, setProjects] = useState<Project[]>([]);
-    const [loading, setLoading] = useState(true);
+    
+    const projectsQuery = useMemoFirebase(
+        user ? query(collection(db, "projects"), where("ownerId", "==", user.uid)) : null,
+        [user]
+    );
+    
+    const { data: projects, isLoading: loading } = useCollection<Project>(projectsQuery);
 
-    useEffect(() => {
-        if (!user) {
-            setLoading(false);
-            return;
-        }
-
-        setLoading(true);
-        const q = query(collection(db, "projects"), where("ownerId", "==", user.uid));
-        
-        const unsubscribe = onSnapshot(q, (querySnapshot) => {
-            const projectsData: Project[] = [];
-            querySnapshot.forEach((doc) => {
-                projectsData.push({ id: doc.id, ...doc.data() } as Project);
-            });
-            setProjects(projectsData);
-            setLoading(false);
-        }, (serverError) => {
-            const permissionError = new FirestorePermissionError({
-                path: 'projects',
-                operation: 'list'
-            });
-            errorEmitter.emit('permission-error', permissionError);
-            setLoading(false);
-        });
-
-        return () => unsubscribe();
-    }, [user]);
 
     return (
         <div className="flex flex-col gap-8">
@@ -87,7 +67,7 @@ export default function ProjectsPage() {
                    <ProjectCardSkeleton />
                    <ProjectCardSkeleton />
                 </div>
-            ) : projects.length > 0 ? (
+            ) : projects && projects.length > 0 ? (
                 <div className="space-y-4">
                     {projects.map(project => (
                         <Link key={project.id} href={`/projects/${project.id}`}>

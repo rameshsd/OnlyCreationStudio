@@ -15,7 +15,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { PostCard, Post } from "@/components/post-card";
 import { collection, query, where, orderBy, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { useCollection, useDoc } from "@/firebase/firestore/use-doc";
+import { useCollection } from "@/firebase/firestore/use-collection";
+import { useDoc } from "@/firebase/firestore/use-doc";
 import { useMemoFirebase } from "@/firebase/useMemoFirebase";
 import { useParams } from "next/navigation";
 import { followUserAction, unfollowUserAction } from "./actions";
@@ -99,10 +100,10 @@ export default function ProfilePage() {
 
     const [isFavorited, setIsFavorited] = useState(false);
 
-    const userPostsQuery = useMemoFirebase(() => {
-        if (!profileUserId) return null;
-        return query(collection(db, "posts"), where("userId", "==", profileUserId), orderBy("createdAt", "desc"));
-    }, [profileUserId]);
+    const userPostsQuery = useMemoFirebase(
+        query(collection(db, "posts"), where("userId", "==", profileUserId), orderBy("createdAt", "desc")),
+        [profileUserId]
+    );
     const { data: posts, isLoading: postsLoading } = useCollection<Post>(userPostsQuery);
 
     const userPortfolioQuery = useMemoFirebase(() => {

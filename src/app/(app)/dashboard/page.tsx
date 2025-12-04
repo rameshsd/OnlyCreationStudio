@@ -13,7 +13,8 @@ import { db } from "@/lib/firebase";
 import { collection, orderBy, query } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
 import { generateMockSuggestions, generateMockTrendingTopics } from "@/lib/mock-data";
-import { useCollection, useMemoFirebase } from "@/firebase";
+import { useCollection } from "@/firebase/firestore/use-collection";
+import { useMemoFirebase } from "@/firebase/useMemoFirebase";
 import { StudioPostCard } from "@/components/studio-post-card";
 import type { FeedItem, StudioProfile } from "@/lib/get-feed-data";
 import { StoryReel } from "@/components/story-reel";
@@ -87,10 +88,10 @@ const PostSkeleton = () => (
 export default function DashboardPage() {
     const [activeFilter, setActiveFilter] = useState("All");
 
-    const postsQuery = useMemoFirebase(() => query(collection(db, "posts"), orderBy("createdAt", "desc")), []);
+    const postsQuery = useMemoFirebase(query(collection(db, "posts"), orderBy("createdAt", "desc")), []);
     const { data: posts, isLoading: postsLoading } = useCollection<Post>(postsQuery);
 
-    const studiosQuery = useMemoFirebase(() => query(collection(db, "studio_profiles")), []);
+    const studiosQuery = useMemoFirebase(query(collection(db, "studio_profiles")), []);
     const { data: studios, isLoading: studiosLoading } = useCollection<StudioProfile>(studiosQuery);
     
     const feedItems = useMemo<FeedItem[]>(() => {
