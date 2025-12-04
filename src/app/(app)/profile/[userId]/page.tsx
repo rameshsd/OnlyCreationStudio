@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ResponsiveContainer, BarChart, XAxis, YAxis, Bar } from "recharts";
 import { useAuth } from "@/hooks/use-auth";
 import { PostCard, Post } from "@/components/post-card";
-import { collection, query, doc, updateDoc, arrayUnion, arrayRemove, where } from "firebase/firestore";
+import { collection, query, doc, updateDoc, arrayUnion, arrayRemove, where, getDocs, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useCollection } from "@/firebase/firestore/use-collection";
 import { useDoc } from "@/firebase/firestore/use-doc";
@@ -136,17 +136,19 @@ export default function ProfilePage() {
 
     const [isFavorited, setIsFavorited] = useState(false);
 
-     const userPostsQuery = useMemoFirebase(
-        profileUserId ? query(collection(db, "posts"), where("userId", "==", profileUserId)) : null,
-        [profileUserId]
+    const allPostsQuery = useMemoFirebase(
+      query(collection(db, "posts")),
+      []
     );
 
-    const { data: posts, isLoading: postsLoading } = useCollection<Post>(userPostsQuery);
+    const { data: allPosts, isLoading: postsLoading } = useCollection<Post>(allPostsQuery);
 
-    const sortedPosts = useMemo(() => {
-        if (!posts) return [];
-        return posts.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-    }, [posts]);
+    const userPosts = useMemo(() => {
+        if (!allPosts || !profileUserId) return [];
+        return allPosts
+            .filter(post => post.userId === profileUserId)
+            .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+    }, [allPosts, profileUserId]);
 
 
     const userPortfolioQuery = useMemoFirebase(
@@ -258,7 +260,7 @@ export default function ProfilePage() {
                             <p className="text-sm text-muted-foreground">Following</p>
                         </div>
                          <div className="px-4 py-2 text-center">
-                            <p className="text-xl font-bold">{posts?.length || 0}</p>
+                            <p className="text-xl font-bold">{userPosts?.length || 0}</p>
                             <p className="text-sm text-muted-foreground">Posts</p>
                         </div>
                     </div>
@@ -279,8 +281,8 @@ export default function ProfilePage() {
                         <CardContent className="space-y-4">
                            {postsLoading ? (
                                <p>Loading posts...</p>
-                           ) : sortedPosts && sortedPosts.length > 0 ? (
-                               sortedPosts.map(post => <PostCard key={post.id} post={post} />)
+                           ) : userPosts && userPosts.length > 0 ? (
+                               userPosts.map(post => <PostCard key={post.id} post={post} />)
                            ) : (
                                <p className="text-muted-foreground">No posts yet.</p>
                            )}

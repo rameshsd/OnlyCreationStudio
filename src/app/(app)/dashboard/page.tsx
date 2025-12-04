@@ -219,13 +219,13 @@ export default function DashboardPage() {
     const [activeFilter, setActiveFilter] = useState("All");
 
     const postsQuery = useMemoFirebase(
-        () => query(collection(db, "posts"), orderBy("createdAt", "desc")),
+        query(collection(db, "posts"), orderBy("createdAt", "desc")),
         []
     );
     const { data: posts, isLoading: postsLoading } = useCollection<Post>(postsQuery);
 
     const studiosQuery = useMemoFirebase(
-        () => query(collection(db, "studio_profiles")),
+        query(collection(db, "studio_profiles")),
         []
     );
     const { data: studios, isLoading: studiosLoading } = useCollection<StudioProfile>(studiosQuery);
