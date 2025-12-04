@@ -11,7 +11,6 @@ import {
 } from "firebase/firestore";
 import { errorEmitter } from "../error-emitter";
 import { FirestorePermissionError } from "../errors";
-import { InternalQuery } from "./use-collection";
 
 export interface WithId<T> extends T {
   id: string;
@@ -24,7 +23,7 @@ export interface UseDocResult<T> {
 }
 
 export function useDoc<T = any>(
-  memoizedDocRef: (DocumentReference<DocumentData> & {__memo?: boolean}) | null
+  memoizedDocRef: DocumentReference<DocumentData> | null
 ): UseDocResult<T> {
   const [data, setData] = useState<WithId<T> | null>(null);
   const [isLoading, setIsLoading] = useState(true);

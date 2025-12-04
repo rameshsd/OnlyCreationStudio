@@ -40,8 +40,8 @@ export default function ExplorePage() {
       const usersRef = collection(db, "user_profiles");
       const q = query(
         usersRef,
-        where("username", ">=", searchQuery),
-        where("username", "<=", searchQuery + '\uf8ff'),
+        where("username", ">=", searchQuery.toLowerCase()),
+        where("username", "<=", searchQuery.toLowerCase() + '\uf8ff'),
         limit(20)
       );
 
