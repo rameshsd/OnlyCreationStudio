@@ -65,10 +65,10 @@ export default function ProfilePage() {
     const [isPending, startTransition] = useTransition();
 
 
-    const profileDocRef = useMemoFirebase(() => {
-        if (!profileUserId) return null;
-        return doc(db, "user_profiles", profileUserId);
-    }, [profileUserId]);
+    const profileDocRef = useMemoFirebase(
+        profileUserId ? doc(db, "user_profiles", profileUserId) : null,
+        [profileUserId]
+    );
 
     const { data: profileData, isLoading: profileLoading } = useDoc<UserProfileData>(profileDocRef);
     
@@ -101,15 +101,15 @@ export default function ProfilePage() {
     const [isFavorited, setIsFavorited] = useState(false);
 
     const userPostsQuery = useMemoFirebase(
-        query(collection(db, "posts"), where("userId", "==", profileUserId), orderBy("createdAt", "desc")),
+        profileUserId ? query(collection(db, "posts"), where("userId", "==", profileUserId), orderBy("createdAt", "desc")) : null,
         [profileUserId]
     );
     const { data: posts, isLoading: postsLoading } = useCollection<Post>(userPostsQuery);
 
-    const userPortfolioQuery = useMemoFirebase(() => {
-        if (!profileUserId) return null;
-        return collection(db, "user_profiles", profileUserId, "portfolio_items");
-    }, [profileUserId]);
+    const userPortfolioQuery = useMemoFirebase(
+        profileUserId ? collection(db, "user_profiles", profileUserId, "portfolio_items") : null,
+        [profileUserId]
+    );
     const { data: portfolioItems, isLoading: portfolioLoading } = useCollection<PortfolioItem>(userPortfolioQuery);
     
 

@@ -113,10 +113,10 @@ export default function StudioDetailPage() {
   const params = useParams<{ id: string }>();
   const studioId = params.id;
 
-  const studioDocRef = useMemoFirebase(() => {
-    if (!studioId) return null;
-    return doc(db, 'studio_profiles', studioId);
-  }, [studioId]);
+  const studioDocRef = useMemoFirebase(
+    studioId ? doc(db, 'studio_profiles', studioId) : null,
+    [studioId]
+  );
 
   const { data: studioData, isLoading } = useDoc<StudioProfile>(studioDocRef);
 
