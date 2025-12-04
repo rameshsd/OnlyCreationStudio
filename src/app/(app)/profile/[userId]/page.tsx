@@ -13,14 +13,14 @@ import { useToast } from "@/hooks/use-toast";
 import { ResponsiveContainer, BarChart, XAxis, YAxis, Bar } from "recharts";
 import { useAuth } from "@/hooks/use-auth";
 import { PostCard, Post } from "@/components/post-card";
-import { collection, query, where, orderBy, doc, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
+import { collection, query, doc, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useCollection } from "@/firebase/firestore/use-collection";
 import { useDoc } from "@/firebase/firestore/use-doc";
-import { useMemoFirebase } from "@/firebase/useMemoFirebase";
 import { useParams } from "next/navigation";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
+import { useMemoFirebase } from "@/firebase/useMemoFirebase";
 
 const statsData = [
   { month: "Jan", followers: 400 },
@@ -76,7 +76,7 @@ export default function ProfilePage() {
 
     const isFollowing = useMemo(() => {
         return currentUserData?.following?.includes(profileUserId);
-    }, [currentUserData, profileUserId]);
+    }, [currentUserData?.following, profileUserId]);
 
     const handleFollowToggle = async () => {
         if (isOwnProfile || !profileUserId || !user) return;
@@ -352,5 +352,3 @@ export default function ProfilePage() {
         </div>
     );
 }
-
-    
