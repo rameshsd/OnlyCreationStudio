@@ -8,12 +8,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Briefcase, Heart, Mail, MessageCircle, PenSquare, Rss, Star, UserPlus, Users, Video, UserCheck, BarChart2, Loader2 } from "lucide-react";
-import { useState, useMemo, useTransition } from "react";
+import { useState, useMemo, useTransition, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { ResponsiveContainer, BarChart, XAxis, YAxis, Bar } from "recharts";
 import { useAuth } from "@/hooks/use-auth";
 import { PostCard, Post } from "@/components/post-card";
-import { collection, query, where, orderBy, doc } from "firebase/firestore";
+import { collection, query, where, orderBy, doc, getDoc, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useCollection } from "@/firebase/firestore/use-collection";
 import { useDoc } from "@/firebase/firestore/use-doc";
@@ -64,7 +64,6 @@ export default function ProfilePage() {
     const profileUserId = params.userId as string;
     const [isPending, startTransition] = useTransition();
 
-
     const profileDocRef = useMemoFirebase(
         profileUserId ? doc(db, "user_profiles", profileUserId) : null,
         [profileUserId]
@@ -100,11 +99,14 @@ export default function ProfilePage() {
 
     const [isFavorited, setIsFavorited] = useState(false);
 
-    const userPostsQuery = useMemoFirebase(
-        profileUserId ? query(collection(db, "posts"), where("userId", "==", profileUserId), orderBy("createdAt", "desc")) : null,
-        [profileUserId]
-    );
-    const { data: posts, isLoading: postsLoading } = useCollection<Post>(userPostsQuery);
+    const allPostsQuery = useMemoFirebase(query(collection(db, "posts"), orderBy("createdAt", "desc")), []);
+    const { data: allPosts, isLoading: postsLoading } = useCollection<Post>(allPostsQuery);
+
+    const posts = useMemo(() => {
+        if (!allPosts || !profileUserId) return [];
+        return allPosts.filter(post => post.userId === profileUserId);
+    }, [allPosts, profileUserId]);
+
 
     const userPortfolioQuery = useMemoFirebase(
         profileUserId ? collection(db, "user_profiles", profileUserId, "portfolio_items") : null,
@@ -311,3 +313,5 @@ export default function ProfilePage() {
         </div>
     );
 }
+
+    
