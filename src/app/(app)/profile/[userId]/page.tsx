@@ -13,13 +13,14 @@ import { useToast } from "@/hooks/use-toast";
 import { ResponsiveContainer, BarChart, XAxis, YAxis, Bar } from "recharts";
 import { useAuth } from "@/hooks/use-auth";
 import { PostCard, Post } from "@/components/post-card";
-import { collection, query, doc, updateDoc, arrayUnion, arrayRemove, where, getDocs, onSnapshot } from "firebase/firestore";
+import { collection, query, doc, updateDoc, arrayUnion, arrayRemove, where, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useCollection } from "@/firebase/firestore/use-collection";
 import { useParams } from "next/navigation";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { useMemoFirebase } from "@/firebase/useMemoFirebase";
+import Link from "next/link";
 
 const statsData = [
   { month: "Jan", followers: 400 },
@@ -158,18 +159,11 @@ export default function ProfilePage() {
     const [isFavorited, setIsFavorited] = useState(false);
 
     const allPostsQuery = useMemoFirebase(
-      query(collection(db, "posts")),
-      []
+      query(collection(db, "posts"), where("userId", "==", profileUserId || "")),
+      [profileUserId]
     );
 
-    const { data: allPosts, isLoading: postsLoading } = useCollection<Post>(allPostsQuery);
-
-    const userPosts = useMemo(() => {
-        if (!allPosts || !profileUserId) return [];
-        return allPosts
-            .filter(post => post.userId === profileUserId)
-            .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-    }, [allPosts, profileUserId]);
+    const { data: userPosts, isLoading: postsLoading } = useCollection<Post>(allPostsQuery);
 
 
     const userPortfolioQuery = useMemoFirebase(
