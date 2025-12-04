@@ -9,6 +9,9 @@ import {
   DocumentSnapshot,
   DocumentReference,
 } from "firebase/firestore";
+import { errorEmitter } from "../error-emitter";
+import { FirestorePermissionError } from "../errors";
+import { InternalQuery } from "./use-collection";
 
 export interface WithId<T> extends T {
   id: string;
@@ -21,7 +24,7 @@ export interface UseDocResult<T> {
 }
 
 export function useDoc<T = any>(
-  memoizedDocRef: DocumentReference<DocumentData> | null
+  memoizedDocRef: (DocumentReference<DocumentData> & {__memo?: boolean}) | null
 ): UseDocResult<T> {
   const [data, setData] = useState<WithId<T> | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -50,10 +53,14 @@ export function useDoc<T = any>(
         setError(null);
       },
       (err: FirestoreError) => {
-        console.error("useDoc error:", err);
-        setError(err);
+        const contextualError = new FirestorePermissionError({
+          operation: 'get',
+          path: memoizedDocRef.path
+        })
+        setError(contextualError);
         setData(null);
         setIsLoading(false);
+        errorEmitter.emit('permission-error', contextualError);
       }
     );
 
