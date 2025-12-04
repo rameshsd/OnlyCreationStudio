@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
-import { collection, query, where, Timestamp, orderBy, collectionGroup, getDocs, doc } from 'firebase/firestore';
+import { collection, query, where, Timestamp, orderBy, getDoc, doc } from 'firebase/firestore';
 import { useCollection, useMemoFirebase } from '@/firebase';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
@@ -12,6 +12,7 @@ import { StoryViewer } from '@/components/story-viewer';
 import { AddStoryDialog } from '@/components/add-story-dialog';
 import type { Status, UserProfile, UserProfileWithStories } from '@/lib/types';
 import { Skeleton } from './ui/skeleton';
+import { collectionGroup } from 'firebase/firestore';
 
 const StoryReelSkeleton = () => (
     <div className="flex space-x-4 overflow-x-auto pb-4 -mx-4 px-4">
