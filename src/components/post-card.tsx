@@ -60,15 +60,17 @@ export function PostCard({ post }: { post: Post }) {
         <Card className="bg-card border-none rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
             <CardHeader className="p-4">
                  <div className="flex items-center gap-3">
-                    <Avatar className="h-11 w-11">
-                        <AvatarImage src={post.userAvatar} alt={post.username} data-ai-hint="user avatar" />
-                        <AvatarFallback>{post.username?.substring(0, 2).toUpperCase()}</AvatarFallback>
-                    </Avatar>
+                    <Link href={`/profile/${post.userId}`}>
+                        <Avatar className="h-11 w-11">
+                            <AvatarImage src={post.userAvatar} alt={post.username} data-ai-hint="user avatar" />
+                            <AvatarFallback>{post.username?.substring(0, 2).toUpperCase()}</AvatarFallback>
+                        </Avatar>
+                    </Link>
                     <div>
-                        <div className="flex items-center gap-1.5">
+                        <Link href={`/profile/${post.userId}`} className="flex items-center gap-1.5 hover:underline">
                             <p className="font-bold">{post.username}</p>
                             {post.userIsVerified && <Star className="h-4 w-4 text-blue-500 fill-current" />}
-                        </div>
+                        </Link>
                         <p className="text-xs text-muted-foreground">@{post.username} &middot; {formatTimestamp(post.createdAt)}</p>
                     </div>
                 </div>
