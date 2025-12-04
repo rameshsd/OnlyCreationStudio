@@ -12,7 +12,7 @@ import {
   doc,
 } from "firebase/firestore";
 
-import { useCollection } from "@/firebase";
+import { useCollection, useMemoFirebase } from "@/firebase";
 import { useAuth } from "@/hooks/use-auth";
 import { db } from "@/lib/firebase";
 
@@ -48,40 +48,41 @@ export function StoryReel() {
   const [profiles, setProfiles] = useState<UserProfile[]>([]);
   const [profilesLoading, setProfilesLoading] = useState(true);
 
-  // Current user + following
+  // Relevant user IDs
   const allRelevantUserIds = useMemo(() => {
     return [...new Set([user?.uid, ...(userData?.following || [])])].filter(
       Boolean
     ) as string[];
   }, [user, userData?.following]);
 
-  // ✅ SAFE QUERY — no "in" operator
-  const statusesQuery = useMemo(() => {
-    return query(
+  // 🔥 Properly memoized query using useMemoFirebase
+  const statusesQuery = useMemoFirebase(
+    () => query(
       collectionGroup(db, "statuses"),
       where("expiresAt", ">", Timestamp.now()),
       orderBy("expiresAt", "desc")
-    );
-  }, []);
+    ),
+    []
+  );
 
-  // Load all active statuses
+  // Fetch statuses
   const { data: allStatuses, isLoading: statusesLoading } =
     useCollection<Status>(statusesQuery);
 
-  // Filter only statuses of followed users + self
+  // Filter statuses by userIds
   const statuses = useMemo(() => {
     if (!allStatuses) return [];
     return allStatuses.filter((s) => allRelevantUserIds.includes(s.userId));
   }, [allStatuses, allRelevantUserIds]);
 
-  // Extract unique user IDs
+  // Extract userIds
   const uniqueUserIdsFromStories = useMemo(() => {
     const ids = new Set(statuses.map((s) => s.userId));
     if (user) ids.add(user.uid);
     return Array.from(ids);
   }, [statuses, user]);
 
-  // Fetch required user profiles
+  // Fetch user profiles
   useEffect(() => {
     if (authLoading) return;
 
@@ -149,6 +150,7 @@ export function StoryReel() {
       (u) => u.stories.length > 0 || u.id === user.uid
     );
 
+    // Sorting
     return arr.sort((a, b) => {
       if (a.id === user.uid) return -1;
       if (b.id === user.uid) return 1;
@@ -176,7 +178,6 @@ export function StoryReel() {
   return (
     <>
       <div className="flex space-x-4 overflow-x-auto pb-4 -mx-4 px-4">
-        
         {/* CURRENT USER */}
         {user && userData && (
           <div
