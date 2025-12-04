@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect } from "react";
 import {
   collectionGroup,
   query,
@@ -12,7 +12,7 @@ import {
   doc,
 } from "firebase/firestore";
 
-import { useCollection, useMemoFirebase } from "@/firebase";
+import { useCollection } from "@/firebase";
 import { useAuth } from "@/hooks/use-auth";
 import { db } from "@/lib/firebase";
 
@@ -55,7 +55,7 @@ export function StoryReel() {
     ) as string[];
   }, [user, userData?.following]);
 
-  // SAFE STATUSES QUERY — no IN operator
+  // ✅ SAFE QUERY — no "in" operator
   const statusesQuery = useMemo(() => {
     return query(
       collectionGroup(db, "statuses"),
@@ -64,25 +64,24 @@ export function StoryReel() {
     );
   }, []);
 
+  // Load all active statuses
   const { data: allStatuses, isLoading: statusesLoading } =
     useCollection<Status>(statusesQuery);
 
-  // Filter only stories from users relevant to current user
+  // Filter only statuses of followed users + self
   const statuses = useMemo(() => {
     if (!allStatuses) return [];
-    return allStatuses.filter((s) =>
-      allRelevantUserIds.includes(s.userId)
-    );
+    return allStatuses.filter((s) => allRelevantUserIds.includes(s.userId));
   }, [allStatuses, allRelevantUserIds]);
 
-  // Extract all unique user IDs from statuses
+  // Extract unique user IDs
   const uniqueUserIdsFromStories = useMemo(() => {
     const ids = new Set(statuses.map((s) => s.userId));
     if (user) ids.add(user.uid);
     return Array.from(ids);
   }, [statuses, user]);
 
-  // Fetch user profiles manually
+  // Fetch required user profiles
   useEffect(() => {
     if (authLoading) return;
 
@@ -133,12 +132,10 @@ export function StoryReel() {
 
     const map: Record<string, UserProfileWithStories> = {};
 
-    // Prime each profile
     profiles.forEach((p) => {
       map[p.id] = { ...p, stories: [], hasUnseen: false };
     });
 
-    // Add statuses
     statuses.forEach((st) => {
       if (map[st.userId]) {
         map[st.userId].stories.push(st);
@@ -152,26 +149,21 @@ export function StoryReel() {
       (u) => u.stories.length > 0 || u.id === user.uid
     );
 
-    // Sorting: user's story first, then unseen, then newest
     return arr.sort((a, b) => {
-      const aIsUser = a.id === user.uid;
-      const bIsUser = b.id === user.uid;
-
-      if (aIsUser && bIsUser) return 0;
-      if (aIsUser) return -1;
-      if (bIsUser) return 1;
+      if (a.id === user.uid) return -1;
+      if (b.id === user.uid) return 1;
 
       if (a.hasUnseen && !b.hasUnseen) return -1;
       if (!a.hasUnseen && b.hasUnseen) return 1;
 
-      const aT = a.stories[0]?.createdAt?.seconds || 0;
-      const bT = b.stories[0]?.createdAt?.seconds || 0;
-      return bT - aT;
+      const aTime = a.stories[0]?.createdAt.seconds || 0;
+      const bTime = b.stories[0]?.createdAt.seconds || 0;
+      return bTime - aTime;
     });
   }, [profiles, statuses, user]);
 
-  const handleStoryClick = (idx: number) => {
-    setSelectedUserIndex(idx);
+  const handleStoryClick = (index: number) => {
+    setSelectedUserIndex(index);
     setIsViewerOpen(true);
   };
 
@@ -179,12 +171,13 @@ export function StoryReel() {
   if (loading) return <StoryReelSkeleton />;
 
   const currentUser = usersWithStories.find((u) => u.id === user?.uid);
-  const hasMyStory = currentUser && currentUser.stories.length > 0;
+  const hasMyStory = !!currentUser && currentUser.stories.length > 0;
 
   return (
     <>
       <div className="flex space-x-4 overflow-x-auto pb-4 -mx-4 px-4">
-        {/* Current User */}
+        
+        {/* CURRENT USER */}
         {user && userData && (
           <div
             onClick={() =>
@@ -198,11 +191,7 @@ export function StoryReel() {
           >
             <div className="h-20 w-20 rounded-full p-1 relative">
               <Avatar className="h-full w-full">
-                <AvatarImage
-                  src={userData.avatarUrl}
-                  alt="Your story"
-                  data-ai-hint="user avatar"
-                />
+                <AvatarImage src={userData.avatarUrl} alt="Your story" />
                 <AvatarFallback>
                   {userData.username?.substring(0, 2) || "Me"}
                 </AvatarFallback>
@@ -226,7 +215,7 @@ export function StoryReel() {
           </div>
         )}
 
-        {/* Other users */}
+        {/* OTHER USERS */}
         {usersWithStories
           .filter((u) => u.id !== user?.uid)
           .map((storyUser) => {
@@ -268,7 +257,7 @@ export function StoryReel() {
           })}
       </div>
 
-      {/* Story viewer */}
+      {/* Story Viewer */}
       {isViewerOpen && usersWithStories.length > 0 && (
         <StoryViewer
           users={usersWithStories}
