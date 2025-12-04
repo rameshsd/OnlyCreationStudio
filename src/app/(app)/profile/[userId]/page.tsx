@@ -8,18 +8,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Briefcase, Heart, Mail, MessageCircle, PenSquare, Rss, Star, UserPlus, Users, Video, UserCheck, BarChart2, Loader2 } from "lucide-react";
-import { useState, useMemo, useTransition, useEffect } from "react";
+import { useState, useMemo, useTransition } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { ResponsiveContainer, BarChart, XAxis, YAxis, Bar } from "recharts";
 import { useAuth } from "@/hooks/use-auth";
 import { PostCard, Post } from "@/components/post-card";
-import { collection, query, where, orderBy, doc, getDoc, getDocs } from "firebase/firestore";
+import { collection, query, where, orderBy, doc, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useCollection } from "@/firebase/firestore/use-collection";
 import { useDoc } from "@/firebase/firestore/use-doc";
 import { useMemoFirebase } from "@/firebase/useMemoFirebase";
 import { useParams } from "next/navigation";
-import { followUserAction, unfollowUserAction } from "./actions";
+import { errorEmitter } from "@/firebase/error-emitter";
+import { FirestorePermissionError } from "@/firebase/errors";
 
 const statsData = [
   { month: "Jan", followers: 400 },
@@ -81,17 +82,53 @@ export default function ProfilePage() {
         if (isOwnProfile || !profileUserId || !user) return;
         
         startTransition(async () => {
-            const action = isFollowing ? unfollowUserAction : followUserAction;
-            const result = await action(user.uid, profileUserId);
+            const currentUserRef = doc(db, "user_profiles", user.uid);
+            const targetUserRef = doc(db, "user_profiles", profileUserId);
 
-            if (result.error) {
-                toast({ title: "Error", description: result.error, variant: "destructive" });
-            } else {
-                const toastTitle = isFollowing ? "Unfollowed" : "Followed";
-                const toastDescription = isFollowing 
-                    ? `You are no longer following ${profileData?.username}.`
-                    : `You are now following ${profileData?.username}.`;
-                toast({ title: toastTitle, description: toastDescription });
+            try {
+                if (isFollowing) {
+                    // Unfollow logic
+                    await updateDoc(currentUserRef, { following: arrayRemove(profileUserId) }).catch(err => {
+                        errorEmitter.emit('permission-error', new FirestorePermissionError({
+                            path: currentUserRef.path,
+                            operation: 'update',
+                            requestResourceData: { following: arrayRemove(profileUserId) }
+                        }));
+                        throw err;
+                    });
+                    await updateDoc(targetUserRef, { followers: arrayRemove(user.uid) }).catch(err => {
+                         errorEmitter.emit('permission-error', new FirestorePermissionError({
+                            path: targetUserRef.path,
+                            operation: 'update',
+                            requestResourceData: { followers: arrayRemove(user.uid) }
+                        }));
+                        throw err;
+                    });
+                    toast({ title: "Unfollowed", description: `You are no longer following ${profileData?.username}.` });
+                } else {
+                    // Follow logic
+                    await updateDoc(currentUserRef, { following: arrayUnion(profileUserId) }).catch(err => {
+                         errorEmitter.emit('permission-error', new FirestorePermissionError({
+                            path: currentUserRef.path,
+                            operation: 'update',
+                            requestResourceData: { following: arrayUnion(profileUserId) }
+                        }));
+                        throw err;
+                    });
+                    await updateDoc(targetUserRef, { followers: arrayUnion(user.uid) }).catch(err => {
+                         errorEmitter.emit('permission-error', new FirestorePermissionError({
+                            path: targetUserRef.path,
+                            operation: 'update',
+                            requestResourceData: { followers: arrayUnion(user.uid) }
+                        }));
+                        throw err;
+                    });
+                    toast({ title: "Followed", description: `You are now following ${profileData?.username}.` });
+                }
+            } catch (error) {
+                // The error is already emitted, so we don't need to toast it here.
+                // The FirebaseErrorListener will handle it.
+                console.error("Follow/Unfollow action failed:", error);
             }
         });
     };
@@ -99,12 +136,14 @@ export default function ProfilePage() {
 
     const [isFavorited, setIsFavorited] = useState(false);
 
-    const allPostsQuery = useMemoFirebase(query(collection(db, "posts"), orderBy("createdAt", "desc")), []);
+    const allPostsQuery = useMemoFirebase(collection(db, "posts"), []);
     const { data: allPosts, isLoading: postsLoading } = useCollection<Post>(allPostsQuery);
 
     const posts = useMemo(() => {
         if (!allPosts || !profileUserId) return [];
-        return allPosts.filter(post => post.userId === profileUserId);
+        return allPosts
+            .filter(post => post.userId === profileUserId)
+            .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
     }, [allPosts, profileUserId]);
 
 

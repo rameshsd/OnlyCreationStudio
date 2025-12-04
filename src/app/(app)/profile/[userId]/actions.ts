@@ -1,8 +1,13 @@
 'use server';
 
 import { adminDb } from '@/lib/firebase-admin';
-import { arrayRemove, arrayUnion } from 'firebase/firestore/lite';
+// arrayUnion and arrayRemove from 'firebase/firestore/lite' might not work with admin SDK.
+// It's better to use FieldValue from 'firebase-admin/firestore'.
+import { FieldValue } from 'firebase-admin/firestore';
 import { revalidatePath } from 'next/cache';
+
+// NOTE: This server-side logic is being deprecated in favor of client-side mutations
+// to enable better security rule debugging. It's kept here as a reference but is no longer called by the UI.
 
 export async function followUserAction(
   currentUserId: string,
@@ -17,8 +22,9 @@ export async function followUserAction(
     const targetUserRef = adminDb.doc(`user_profiles/${targetUserId}`);
 
     const batch = adminDb.batch();
-    batch.update(currentUserRef, { following: arrayUnion(targetUserId) });
-    batch.update(targetUserRef, { followers: arrayUnion(currentUserId) });
+    // Use FieldValue.arrayUnion for admin SDK
+    batch.update(currentUserRef, { following: FieldValue.arrayUnion(targetUserId) });
+    batch.update(targetUserRef, { followers: FieldValue.arrayUnion(currentUserId) });
 
     await batch.commit();
 
@@ -45,8 +51,9 @@ export async function unfollowUserAction(
     const targetUserRef = adminDb.doc(`user_profiles/${targetUserId}`);
 
     const batch = adminDb.batch();
-    batch.update(currentUserRef, { following: arrayRemove(targetUserId) });
-    batch.update(targetUserRef, { followers: arrayRemove(currentUserId) });
+     // Use FieldValue.arrayRemove for admin SDK
+    batch.update(currentUserRef, { following: FieldValue.arrayRemove(targetUserId) });
+    batch.update(targetUserRef, { followers: FieldValue.arrayRemove(currentUserId) });
 
     await batch.commit();
 
