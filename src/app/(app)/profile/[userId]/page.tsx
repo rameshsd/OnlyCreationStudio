@@ -105,7 +105,6 @@ export default function ProfilePage() {
         
         startTransition(async () => {
             const currentUserRef = doc(db, "user_profiles", user.uid);
-            const targetUserRef = doc(db, "user_profiles", profileUserId);
 
             try {
                 if (isFollowing) {
@@ -118,14 +117,6 @@ export default function ProfilePage() {
                         }));
                         throw err;
                     });
-                    await updateDoc(targetUserRef, { followers: arrayRemove(user.uid) }).catch(err => {
-                         errorEmitter.emit('permission-error', new FirestorePermissionError({
-                            path: targetUserRef.path,
-                            operation: 'update',
-                            requestResourceData: { followers: arrayRemove(user.uid) }
-                        }));
-                        throw err;
-                    });
                     toast({ title: "Unfollowed", description: `You are no longer following ${profileData?.username}.` });
                 } else {
                     // Follow logic
@@ -134,14 +125,6 @@ export default function ProfilePage() {
                             path: currentUserRef.path,
                             operation: 'update',
                             requestResourceData: { following: arrayUnion(profileUserId) }
-                        }));
-                        throw err;
-                    });
-                    await updateDoc(targetUserRef, { followers: arrayUnion(user.uid) }).catch(err => {
-                         errorEmitter.emit('permission-error', new FirestorePermissionError({
-                            path: targetUserRef.path,
-                            operation: 'update',
-                            requestResourceData: { followers: arrayUnion(user.uid) }
                         }));
                         throw err;
                     });
@@ -374,3 +357,5 @@ export default function ProfilePage() {
         </div>
     );
 }
+
+    

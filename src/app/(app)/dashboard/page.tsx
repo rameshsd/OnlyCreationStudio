@@ -94,7 +94,6 @@ const SuggestionsCard = () => {
 
         startTransition(async () => {
             const currentUserRef = doc(db, "user_profiles", user.uid);
-            const targetUserRef = doc(db, "user_profiles", targetUserId);
             
             try {
                 // Optimistically update UI
@@ -105,14 +104,6 @@ const SuggestionsCard = () => {
                         path: currentUserRef.path,
                         operation: 'update',
                         requestResourceData: { following: arrayUnion(targetUserId) }
-                    }));
-                    throw err;
-                });
-                await updateDoc(targetUserRef, { followers: arrayUnion(user.uid) }).catch(err => {
-                     errorEmitter.emit('permission-error', new FirestorePermissionError({
-                        path: targetUserRef.path,
-                        operation: 'update',
-                        requestResourceData: { followers: arrayUnion(user.uid) }
                     }));
                     throw err;
                 });
@@ -336,3 +327,5 @@ export default function DashboardPage() {
     </>
   );
 }
+
+    
