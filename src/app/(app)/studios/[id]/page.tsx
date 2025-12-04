@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -10,11 +10,11 @@ import { Calendar } from '@/components/ui/calendar';
 import { Badge } from '@/components/ui/badge';
 import { Star, MapPin, Camera, Mic, Lightbulb, Users, Clock, Loader2, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useDoc } from '@/firebase/firestore/use-doc';
-import { useMemoFirebase } from '@/firebase/useMemoFirebase';
-import { doc } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 // This would typically be fetched from an API
 const staticStudioData = {
@@ -113,12 +113,34 @@ export default function StudioDetailPage() {
   const params = useParams<{ id: string }>();
   const studioId = params.id;
 
-  const studioDocRef = useMemoFirebase(
-    studioId ? doc(db, 'studio_profiles', studioId) : null,
-    [studioId]
-  );
+  const [studioData, setStudioData] = useState<StudioProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  useEffect(() => {
+    if (!studioId) return;
+    setIsLoading(true);
 
-  const { data: studioData, isLoading } = useDoc<StudioProfile>(studioDocRef);
+    const docRef = doc(db, 'studio_profiles', studioId);
+
+    const unsubscribe = onSnapshot(docRef, (snapshot) => {
+        if (snapshot.exists()) {
+            setStudioData({ id: snapshot.id, ...snapshot.data() } as StudioProfile);
+        } else {
+            setStudioData(null);
+        }
+        setIsLoading(false);
+    }, (error) => {
+        console.error("Error fetching studio profile:", error);
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: docRef.path,
+            operation: 'get'
+        }));
+        setIsLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [studioId]);
+
 
   const handleBooking = () => {
     if (!date || !selectedTime) {
@@ -251,5 +273,3 @@ export default function StudioDetailPage() {
     </div>
   )
 }
-
-    
