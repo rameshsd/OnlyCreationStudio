@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
@@ -55,7 +56,7 @@ export function StoryReel() {
   }, [user, userData?.following]);
 
   // SAFE STATUSES QUERY — no IN operator
-  const statusesQuery = useMemoFirebase(() => {
+  const statusesQuery = useMemo(() => {
     return query(
       collectionGroup(db, "statuses"),
       where("expiresAt", ">", Timestamp.now()),
