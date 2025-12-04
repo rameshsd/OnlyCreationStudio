@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -28,7 +29,6 @@ export function useCollection<T = any>(
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<FirestoreError | Error | null>(null);
 
-  // ❗ key fix: Do NOT subscribe unless query is valid
   useEffect(() => {
     if (!memoizedQuery) {
       setData(null);
@@ -52,6 +52,7 @@ export function useCollection<T = any>(
         setError(null);
       },
       (err: FirestoreError) => {
+        console.error("useCollection error:", err);
         setError(err);
         setData(null);
         setIsLoading(false);

@@ -1,8 +1,8 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
 import {
-  doc,
   onSnapshot,
   DocumentData,
   FirestoreError,
@@ -50,6 +50,7 @@ export function useDoc<T = any>(
         setError(null);
       },
       (err: FirestoreError) => {
+        console.error("useDoc error:", err);
         setError(err);
         setData(null);
         setIsLoading(false);
