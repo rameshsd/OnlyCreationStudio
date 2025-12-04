@@ -1,8 +1,8 @@
 
 "use client";
 
-import { useState, useMemo } from 'react';
-import { collection, query, where, Timestamp, orderBy, collectionGroup } from 'firebase/firestore';
+import { useState, useMemo, useEffect } from 'react';
+import { collection, query, where, Timestamp, orderBy, collectionGroup, doc, getDoc } from 'firebase/firestore';
 import { useCollection, useMemoFirebase } from '@/firebase';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
@@ -30,46 +30,75 @@ export function StoryReel() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [selectedUserIndex, setSelectedUserIndex] = useState(0);
 
-  const storyUserIds = useMemo(() => {
-    if (!user) return [];
-    // Always include the current user's ID
-    const ids = [user.uid];
-    // Add IDs of users they are following
-    if (userData?.following && Array.isArray(userData.following)) {
-      ids.push(...userData.following);
-    }
-    // Return a unique set of IDs, ensuring it's never empty for the query
-    return [...new Set(ids)];
-  }, [user, userData]);
+  const [profiles, setProfiles] = useState<UserProfile[]>([]);
+  const [profilesLoading, setProfilesLoading] = useState(true);
+
+  const storyUserIdsFromStatuses = useMemo(() => {
+    // This will be used later to fetch profiles
+    return [];
+  }, []);
 
   const statusesQuery = useMemoFirebase(() => {
-    if (storyUserIds.length === 0) return null;
+    // A broader query to get stories from followed users + self
+    const allRelevantUserIds = [...new Set([user?.uid, ...(userData?.following || [])])].filter(Boolean);
+    if (allRelevantUserIds.length === 0) return null;
     return query(
       collectionGroup(db, 'statuses'),
-      where('userId', 'in', storyUserIds),
+      where('userId', 'in', allRelevantUserIds),
       where('expiresAt', '>', Timestamp.now()),
       orderBy('expiresAt', 'desc')
     );
-  }, [storyUserIds]);
+  }, [user, userData?.following]);
   
   const { data: statuses, isLoading: statusesLoading } = useCollection<Status>(statusesQuery);
   
-  const profilesQuery = useMemoFirebase(() => {
-    if (storyUserIds.length === 0) return null;
-    return query(
-        collection(db, 'user_profiles'), 
-        where('__name__', 'in', storyUserIds)
-    );
-  }, [storyUserIds]);
+  const uniqueUserIdsFromStories = useMemo(() => {
+    if (!statuses) return [];
+    const ids = new Set(statuses.map(s => s.userId));
+    if(user) ids.add(user.uid); // Always ensure current user is in the list for their avatar
+    return Array.from(ids);
+  }, [statuses, user]);
 
-  const { data: profiles, isLoading: profilesLoading } = useCollection<UserProfile>(profilesQuery);
+
+  useEffect(() => {
+    if (uniqueUserIdsFromStories.length === 0) {
+      setProfilesLoading(false);
+      setProfiles(user && userData ? [userData as UserProfile] : []);
+      return;
+    }
+
+    setProfilesLoading(true);
+    const fetchProfiles = async () => {
+      try {
+        const profilePromises = uniqueUserIdsFromStories.map(id => getDoc(doc(db, "user_profiles", id)));
+        const profileDocs = await Promise.all(profilePromises);
+        const fetchedProfiles = profileDocs
+          .filter(docSnap => docSnap.exists())
+          .map(docSnap => ({ id: docSnap.id, ...docSnap.data() } as UserProfile));
+        
+        // Ensure current user's profile is included if they have no stories
+        if (user && userData && !fetchedProfiles.some(p => p.id === user.uid)) {
+            fetchedProfiles.push(userData as UserProfile);
+        }
+
+        setProfiles(fetchedProfiles);
+      } catch (error) {
+        console.error("Error fetching user profiles for stories:", error);
+      } finally {
+        setProfilesLoading(false);
+      }
+    };
+
+    fetchProfiles();
+  }, [uniqueUserIdsFromStories, user, userData]);
+
 
   const usersWithStories = useMemo<UserProfileWithStories[]>(() => {
     if (!statuses || !profiles || !user) return [];
     
     const profileMap: { [id: string]: UserProfile } = {};
     profiles.forEach(p => {
-        profileMap[p.id] = p;
+        if(p) profileMap[p.id] = p;
     });
 
     const userStoryMap: { [key: string]: UserProfileWithStories } = {};
@@ -85,6 +114,7 @@ export function StoryReel() {
                 };
             }
             userStoryMap[status.userId].stories.push(status);
+            // Story is unseen if the current user's ID is not in the viewers list
             if (!status.viewers.includes(user.uid)) {
                 userStoryMap[status.userId].hasUnseen = true;
             }
@@ -93,8 +123,9 @@ export function StoryReel() {
 
     const filteredUsers = Object.values(userStoryMap);
     
+    // Sort logic
     return filteredUsers.sort((a, b) => {
-        // Current user's stories always first
+        // Current user's stories always first if they exist
         if (a.id === user.uid) return -1;
         if (b.id === user.uid) return 1;
 
@@ -119,42 +150,60 @@ export function StoryReel() {
       return <StoryReelSkeleton />;
   }
 
+  const currentUserHasStory = usersWithStories.some(u => u.id === user?.uid);
+
   return (
     <>
       <div className="flex space-x-4 overflow-x-auto pb-4 -mx-4 px-4">
-        <div 
-          onClick={() => setIsAddDialogOpen(true)}
-          className="flex flex-col items-center gap-2 flex-shrink-0 w-20 cursor-pointer"
-        >
-          <div className="h-20 w-20 rounded-full p-1 relative">
-            <Avatar className="h-full w-full">
-              <AvatarImage src={userData?.avatarUrl} alt="Your story" data-ai-hint="user avatar" />
-              <AvatarFallback>{userData?.username?.substring(0, 2) || 'Me'}</AvatarFallback>
-            </Avatar>
-            <div className="absolute bottom-0 right-0 bg-primary text-primary-foreground rounded-full h-6 w-6 flex items-center justify-center border-2 border-background">
-              <Plus className="h-4 w-4" />
-            </div>
-          </div>
-          <span className="text-xs font-medium truncate w-full text-center">Your Story</span>
-        </div>
-
-        {usersWithStories.map((storyUser, index) => (
-          <div 
-            onClick={() => handleStoryClick(index)} 
-            key={storyUser.id} 
-            className="flex flex-col items-center gap-2 flex-shrink-0 w-20 cursor-pointer"
-          >
-            <div className={`h-20 w-20 rounded-full p-0.5 ${storyUser.hasUnseen ? 'bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-500' : 'bg-gray-300'}`}>
-              <div className="bg-background rounded-full p-1 w-full h-full">
-                <Avatar className="h-full w-full">
-                  <AvatarImage src={storyUser.avatarUrl} alt={storyUser.username} data-ai-hint="user avatar" />
-                  <AvatarFallback>{storyUser.username.substring(0, 2)}</AvatarFallback>
-                </Avatar>
+        {/* Your Story button - shows if you have a story or not */}
+        {user && userData && (
+            currentUserHasStory ? (
+                // Find own user in the sorted list to open it
+                <div onClick={() => handleStoryClick(usersWithStories.findIndex(u=>u.id === user.uid))} className="flex flex-col items-center gap-2 flex-shrink-0 w-20 cursor-pointer">
+                     <div className={`h-20 w-20 rounded-full p-0.5 ${usersWithStories.find(u=>u.id === user.uid)?.hasUnseen ? 'bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-500' : 'bg-gray-300'}`}>
+                        <div className="bg-background rounded-full p-1 w-full h-full">
+                            <Avatar className="h-full w-full">
+                                <AvatarImage src={userData.avatarUrl} alt={userData.username} data-ai-hint="user avatar" />
+                                <AvatarFallback>{userData.username.substring(0, 2)}</AvatarFallback>
+                            </Avatar>
+                        </div>
+                    </div>
+                    <span className="text-xs font-medium truncate w-full text-center">Your Story</span>
+                </div>
+            ) : (
+                // If no story, show the "Add" button
+                <div onClick={() => setIsAddDialogOpen(true)} className="flex flex-col items-center gap-2 flex-shrink-0 w-20 cursor-pointer">
+                    <div className="h-20 w-20 rounded-full p-1 relative">
+                        <Avatar className="h-full w-full">
+                            <AvatarImage src={userData.avatarUrl} alt="Your story" data-ai-hint="user avatar" />
+                            <AvatarFallback>{userData.username?.substring(0, 2) || 'Me'}</AvatarFallback>
+                        </Avatar>
+                        <div className="absolute bottom-0 right-0 bg-primary text-primary-foreground rounded-full h-6 w-6 flex items-center justify-center border-2 border-background">
+                            <Plus className="h-4 w-4" />
+                        </div>
+                    </div>
+                    <span className="text-xs font-medium truncate w-full text-center">Your Story</span>
+                </div>
+            )
+        )}
+        
+        {/* Other users' stories */}
+        {usersWithStories.filter(storyUser => storyUser.id !== user?.uid).map((storyUser, index) => {
+            const overallIndex = usersWithStories.findIndex(u => u.id === storyUser.id);
+            return (
+              <div onClick={() => handleStoryClick(overallIndex)} key={storyUser.id} className="flex flex-col items-center gap-2 flex-shrink-0 w-20 cursor-pointer">
+                <div className={`h-20 w-20 rounded-full p-0.5 ${storyUser.hasUnseen ? 'bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-500' : 'bg-gray-300'}`}>
+                  <div className="bg-background rounded-full p-1 w-full h-full">
+                    <Avatar className="h-full w-full">
+                      <AvatarImage src={storyUser.avatarUrl} alt={storyUser.username} data-ai-hint="user avatar" />
+                      <AvatarFallback>{storyUser.username.substring(0, 2)}</AvatarFallback>
+                    </Avatar>
+                  </div>
+                </div>
+                <span className="text-xs font-medium truncate w-full text-center">{storyUser.username}</span>
               </div>
-            </div>
-            <span className="text-xs font-medium truncate w-full text-center">{storyUser.username}</span>
-          </div>
-        ))}
+            )
+        })}
       </div>
       
       {isViewerOpen && usersWithStories.length > 0 && (

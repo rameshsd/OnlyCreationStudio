@@ -116,12 +116,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             skills: ["Content Creator"]
         };
         
-        setUserData({ id: user.uid, ...userProfileData });
-        await setDoc(userProfileRef, userProfileData).catch(serverError => {
+        const fullData = { id: user.uid, ...userProfileData };
+        setUserData(fullData);
+        await setDoc(userProfileRef, fullData).catch(serverError => {
             const permissionError = new FirestorePermissionError({
                 path: userProfileRef.path,
                 operation: 'create',
-                requestResourceData: userProfileData
+                requestResourceData: fullData
             });
             errorEmitter.emit('permission-error', permissionError);
             throw serverError;
@@ -146,12 +147,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             skills: ["Studio Rental", "Production Services"]
         };
         
-        setUserData({ id: user.uid, ...userProfileData });
-        await setDoc(userProfileRef, userProfileData).catch(serverError => {
+        const fullData = { id: user.uid, ...userProfileData };
+        setUserData(fullData);
+        await setDoc(userProfileRef, fullData).catch(serverError => {
             const permissionError = new FirestorePermissionError({
                 path: userProfileRef.path,
                 operation: 'create',
-                requestResourceData: userProfileData
+                requestResourceData: fullData
             });
             errorEmitter.emit('permission-error', permissionError);
             throw serverError;
