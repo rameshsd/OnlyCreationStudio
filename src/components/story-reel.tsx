@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
@@ -128,7 +127,7 @@ export function StoryReel() {
   }, [uniqueUserIdsFromStories, user, userData, authLoading]);
 
   // Combine profiles + statuses
-  const usersWithStories = useMemo<UserProfileWithStories[]>((() => {
+  const usersWithStories = useMemo<UserProfileWithStories[]>(() => {
     if (!profiles || !user) return [];
 
     const map: Record<string, UserProfileWithStories> = {};
@@ -168,7 +167,7 @@ export function StoryReel() {
       const bT = b.stories[0]?.createdAt?.seconds || 0;
       return bT - aT;
     });
-  })(), [profiles, statuses, user]);
+  }, [profiles, statuses, user]);
 
   const handleStoryClick = (idx: number) => {
     setSelectedUserIndex(idx);
