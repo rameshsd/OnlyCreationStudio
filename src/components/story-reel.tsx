@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -56,12 +57,10 @@ export function StoryReel() {
     ) as string[];
   }, [user, userData?.following]);
 
-  // Query for all active statuses
+  // Query for all statuses, will filter client-side to avoid index requirement
   const statusesQuery = useMemoFirebase(
     query(
-      collectionGroup(db, "statuses"),
-      where("expiresAt", ">", Timestamp.now())
-      // orderBy("expiresAt", "desc") // Temporarily removed to prevent index error
+      collectionGroup(db, "statuses")
     ),
     []
   );
@@ -70,10 +69,13 @@ export function StoryReel() {
   const { data: allStatuses, isLoading: statusesLoading } =
     useCollection<Status>(statusesQuery);
 
-  // Filter by userId
+  // Filter by expiration and userId on the client
   const statuses = useMemo(() => {
     if (!allStatuses) return [];
-    return allStatuses.filter((s) => relevantUserIds.includes(s.userId));
+    const now = Timestamp.now();
+    return allStatuses.filter(s => 
+        s.expiresAt > now && relevantUserIds.includes(s.userId)
+    );
   }, [allStatuses, relevantUserIds]);
 
   const uniqueStoryUserIds = useMemo(() => {
