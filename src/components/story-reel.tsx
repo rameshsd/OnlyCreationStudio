@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -55,9 +54,8 @@ export function StoryReel() {
     ) as string[];
   }, [user, userData?.following]);
 
-  // 🔥 Properly memoized query using useMemoFirebase
   const statusesQuery = useMemoFirebase(
-    () => query(
+    query(
       collectionGroup(db, "statuses"),
       where("expiresAt", ">", Timestamp.now()),
       orderBy("expiresAt", "desc")
