@@ -214,10 +214,10 @@ const PostSkeleton = () => (
 export default function DashboardPage() {
     const [activeFilter, setActiveFilter] = useState("All");
 
-    const postsQuery = useMemoFirebase(() => query(collection(db, "posts"), orderBy("createdAt", "desc")), []);
+    const postsQuery = useMemoFirebase(query(collection(db, "posts"), orderBy("createdAt", "desc")), []);
     const { data: posts, isLoading: postsLoading } = useCollection<Post>(postsQuery);
 
-    const studiosQuery = useMemoFirebase(() => query(collection(db, "studio_profiles")), []);
+    const studiosQuery = useMemoFirebase(query(collection(db, "studio_profiles")), []);
     const { data: studios, isLoading: studiosLoading } = useCollection<StudioProfile>(studiosQuery);
     
     const feedItems = useMemo<FeedItem[]>(() => {
@@ -326,3 +326,5 @@ export default function DashboardPage() {
     </>
   );
 }
+
+    

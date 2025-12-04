@@ -12,6 +12,7 @@ import { useMemoFirebase } from '@/firebase/useMemoFirebase';
 import { collection, query } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardContent } from '@/components/ui/card';
 
 interface StudioProfile {
     id: string;
@@ -108,3 +109,5 @@ export default function StudiosPage() {
         </div>
     );
 }
+
+    
