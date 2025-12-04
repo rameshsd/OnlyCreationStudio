@@ -154,12 +154,6 @@ export const useFirebaseApp = (): FirebaseApp => {
   return firebaseApp;
 };
 
-export function useMemoFirebase<T extends Object>(val: T, deps: any[]) {
-  const memo = useMemo(() => val, deps);
-  return memo;
-}
-
-
 /**
  * Hook specifically for accessing the authenticated user's state.
  * This provides the User object, loading status, and any auth errors.

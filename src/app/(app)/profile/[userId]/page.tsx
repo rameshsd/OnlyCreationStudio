@@ -15,7 +15,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { PostCard, Post } from "@/components/post-card";
 import { collection, query, where, orderBy, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { useCollection, useDoc, useMemoFirebase } from "@/firebase";
+import { useCollection, useDoc } from "@/firebase/firestore/use-doc";
+import { useMemoFirebase } from "@/firebase/useMemoFirebase";
 import { useParams } from "next/navigation";
 import { followUserAction, unfollowUserAction } from "./actions";
 
