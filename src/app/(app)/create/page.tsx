@@ -54,7 +54,7 @@ export default function CreatePostPage() {
         });
         return;
     }
-    if (!user || !userData) {
+    if (!user) {
       toast({
         title: "Not authenticated",
         description: "You must be logged in to create a post.",
@@ -83,9 +83,9 @@ export default function CreatePostPage() {
 
       const postData = {
         userId: user.uid,
-        username: userData.username,
-        userAvatar: userData.avatarUrl || '',
-        userIsVerified: userData.isVerified || false,
+        username: userData?.username || user.email?.split('@')[0] || 'Anonymous',
+        userAvatar: userData?.avatarUrl || '',
+        userIsVerified: userData?.isVerified || false,
         caption: caption,
         media: mediaUrl ? [{ type: resourceType, url: mediaUrl }] : [],
         likes: 0,
