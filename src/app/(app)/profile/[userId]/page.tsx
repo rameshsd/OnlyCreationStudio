@@ -87,8 +87,8 @@ export default function ProfilePage() {
                 setProfileData(null);
             }
             setProfileLoading(false);
-        }, (error) => {
-            console.error("Error fetching profile:", error);
+        }, (serverError) => {
+            console.error("Error fetching profile:", serverError);
             errorEmitter.emit('permission-error', new FirestorePermissionError({
                 path: docRef.path,
                 operation: 'get'
@@ -101,12 +101,22 @@ export default function ProfilePage() {
         const followersQuery = query(collection(db, "follows"), where("followingId", "==", profileUserId));
         const unsubFollowers = onSnapshot(followersQuery, (snapshot) => {
             setFollowersCount(snapshot.size);
+        }, (serverError) => {
+             errorEmitter.emit('permission-error', new FirestorePermissionError({
+                path: 'follows',
+                operation: 'list'
+            }));
         });
 
         // Listen for following count
         const followingQuery = query(collection(db, "follows"), where("followerId", "==", profileUserId));
         const unsubFollowing = onSnapshot(followingQuery, (snapshot) => {
             setFollowingCount(snapshot.size);
+        }, (serverError) => {
+             errorEmitter.emit('permission-error', new FirestorePermissionError({
+                path: 'follows',
+                operation: 'list'
+            }));
         });
         
         // Check if current user is following this profile
@@ -117,6 +127,11 @@ export default function ProfilePage() {
                 const following = doc.exists();
                 setIsFollowing(following);
                 setFollowDocExists(following);
+            }, (serverError) => {
+                 errorEmitter.emit('permission-error', new FirestorePermissionError({
+                    path: followDocRef.path,
+                    operation: 'get'
+                }));
             });
         }
         
@@ -128,6 +143,11 @@ export default function ProfilePage() {
             } else {
                 setStudioId(null);
             }
+        }).catch(serverError => {
+             errorEmitter.emit('permission-error', new FirestorePermissionError({
+                path: `studio_profiles`,
+                operation: 'list',
+            }));
         });
 
         return () => {
@@ -157,21 +177,24 @@ export default function ProfilePage() {
                     });
                     toast({ title: "Unfollowed", description: `You are no longer following ${profileData?.username}.` });
                 } else { // Follow
-                    await setDoc(followDocRef, {
+                    const followData = {
                       followerId: user.uid,
                       followingId: profileUserId,
                       createdAt: serverTimestamp()
-                    }).catch(err => {
+                    };
+                    await setDoc(followDocRef, followData).catch(err => {
                          errorEmitter.emit('permission-error', new FirestorePermissionError({
                             path: followDocRef.path,
                             operation: 'create',
-                            requestResourceData: { followerId: user.uid, followingId: profileUserId }
+                            requestResourceData: followData
                         }));
                         throw err;
                     });
                     toast({ title: "Followed", description: `You are now following ${profileData?.username}.` });
                 }
             } catch (error) {
+                // The emitted error will be caught by the global listener,
+                // so we don't need to show a generic toast here.
                 console.error("Follow/Unfollow action failed:", error);
             }
         });
