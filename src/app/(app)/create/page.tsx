@@ -47,6 +47,7 @@ export default function CreatePostPage() {
       });
       return;
     }
+
     if (authLoading) {
         toast({
             title: "Authenticating...",
@@ -54,6 +55,7 @@ export default function CreatePostPage() {
         });
         return;
     }
+    
     if (!user) {
       toast({
         title: "Not authenticated",
@@ -96,13 +98,14 @@ export default function CreatePostPage() {
 
       await addDoc(collection(db, 'posts'), postData).catch(serverError => {
         const permissionError = new FirestorePermissionError({
-            path: 'posts',
+            path: `posts`, // No specific ID needed for collection creation
             operation: 'create',
             requestResourceData: postData,
         });
         errorEmitter.emit('permission-error', permissionError);
-        // Re-throw the original error if you want to see it in the console as well
-        throw serverError;
+        // We re-throw so the outer catch can handle generic errors,
+        // but we avoid showing a generic toast for permission errors.
+        throw permissionError;
       });
 
       toast({
@@ -111,9 +114,10 @@ export default function CreatePostPage() {
       });
       router.push('/dashboard');
     } catch (error: any) {
-      console.error("Error creating post:", error);
-      // Avoid showing a toast if it's a permission error that's already handled globally
+      // Only show a toast if the error is NOT our specific permission error,
+      // as that one is handled globally by the FirebaseErrorListener.
       if (!(error instanceof FirestorePermissionError)) {
+          console.error("Error creating post:", error);
           toast({
             title: "Error creating post",
             description: error.message || "Failed to create post. Please try again.",
