@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ResponsiveContainer, BarChart, XAxis, YAxis, Bar } from "recharts";
 import { useAuth } from "@/hooks/use-auth";
 import { PostCard, Post } from "@/components/post-card";
-import { collection, query, doc, onSnapshot, where, serverTimestamp, setDoc, deleteDoc, getDoc, getDocs } from "firebase/firestore";
+import { collection, query, doc, onSnapshot, where, serverTimestamp, setDoc, deleteDoc, getDoc, getDocs, limit } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useCollection } from "@/firebase/firestore/use-collection";
 import { useParams } from "next/navigation";
