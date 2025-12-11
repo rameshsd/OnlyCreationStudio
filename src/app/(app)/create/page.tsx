@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -18,7 +19,7 @@ import { FirestorePermissionError } from '@/firebase/errors';
 import { errorEmitter } from '@/firebase/error-emitter';
 
 export default function CreatePostPage() {
-  const { user, userData } = useAuth();
+  const { user, userData, loading: authLoading } = useAuth();
   const [caption, setCaption] = useState('');
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -45,6 +46,13 @@ export default function CreatePostPage() {
         variant: "destructive",
       });
       return;
+    }
+    if (authLoading) {
+        toast({
+            title: "Authenticating...",
+            description: "Please wait while we verify your session.",
+        });
+        return;
     }
     if (!user || !userData) {
       toast({
@@ -117,6 +125,8 @@ export default function CreatePostPage() {
     }
   };
 
+  const isFormDisabled = loading || authLoading;
+
   return (
     <div className="mx-auto max-w-2xl">
       <Card>
@@ -131,7 +141,7 @@ export default function CreatePostPage() {
               value={caption}
               onChange={(e) => setCaption(e.target.value)}
               rows={5}
-              disabled={loading}
+              disabled={isFormDisabled}
             />
             {previewUrl && (
                 <div className="relative aspect-video rounded-lg overflow-hidden border bg-black">
@@ -148,13 +158,13 @@ export default function CreatePostPage() {
                 <Film className="h-5 w-5" />
                 <span>Add a photo or video</span>
               </Label>
-              <Input id="picture" type="file" className="sr-only" onChange={handleFileChange} accept="image/*,video/*" disabled={loading} />
+              <Input id="picture" type="file" className="sr-only" onChange={handleFileChange} accept="image/*,video/*" disabled={isFormDisabled} />
             </div>
           </CardContent>
           <CardFooter className="flex justify-end">
-            <Button type="submit" disabled={loading}>
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Post
+            <Button type="submit" disabled={isFormDisabled}>
+              {(loading || authLoading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {authLoading ? 'Verifying...' : (loading ? 'Posting...' : 'Post')}
             </Button>
           </CardFooter>
         </form>
