@@ -8,9 +8,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Calendar } from '@/components/ui/calendar';
 import { Badge } from '@/components/ui/badge';
-import { Star, MapPin, Camera, Mic, Lightbulb, Users, Clock, Loader2, AlertTriangle } from 'lucide-react';
+import { Star, MapPin, Camera, Mic, Lightbulb, Users, Clock, Loader2, AlertTriangle, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { doc, onSnapshot, collection, query, where, addDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, onSnapshot, collection, query, where, addDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -19,6 +19,9 @@ import { useAuth } from '@/hooks/use-auth';
 import { format } from 'date-fns';
 import { useCollection } from '@/firebase/firestore/use-collection';
 import { useMemoFirebase } from '@/firebase/useMemoFirebase';
+import Link from 'next/link';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+
 
 const timeSlots = [
     "09:00 AM", "10:00 AM", "11:00 AM",
@@ -58,6 +61,11 @@ interface Booking {
     id: string;
     date: string;
     time: string;
+}
+
+interface OwnerProfile {
+    username: string;
+    avatarUrl: string;
 }
 
 
@@ -125,6 +133,7 @@ export default function StudioDetailPage() {
   const { user } = useAuth();
 
   const [studioData, setStudioData] = useState<StudioProfile | null>(null);
+  const [ownerData, setOwnerData] = useState<OwnerProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
@@ -135,7 +144,17 @@ export default function StudioDetailPage() {
 
     const unsubscribe = onSnapshot(docRef, (snapshot) => {
         if (snapshot.exists()) {
-            setStudioData({ id: snapshot.id, ...snapshot.data() } as StudioProfile);
+            const data = { id: snapshot.id, ...snapshot.data() } as StudioProfile;
+            setStudioData(data);
+
+            if (data.userProfileId) {
+                const ownerRef = doc(db, 'user_profiles', data.userProfileId);
+                getDoc(ownerRef).then(ownerSnap => {
+                    if (ownerSnap.exists()) {
+                        setOwnerData(ownerSnap.data() as OwnerProfile);
+                    }
+                }).catch(err => console.error("Error fetching owner profile:", err));
+            }
         } else {
             setStudioData(null);
         }
@@ -238,7 +257,7 @@ export default function StudioDetailPage() {
     <div className="flex flex-col gap-8">
       <div>
         <h1 className="text-3xl md:text-4xl font-bold tracking-tight">{studioData.studioName}</h1>
-        <div className="flex items-center gap-4 text-muted-foreground mt-2">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-muted-foreground mt-2">
             <div className="flex items-center gap-1">
                 <Star className="w-5 h-5 text-primary fill-primary" />
                 <span className="font-bold">{studioData.rating || '4.9'}</span> ({studioData.reviewCount || 128} reviews)
@@ -247,6 +266,15 @@ export default function StudioDetailPage() {
                 <MapPin className="w-5 h-5" />
                 <span>{studioData.location}</span>
             </div>
+            {ownerData && (
+                <Link href={`/profile/${studioData.userProfileId}`} className="flex items-center gap-2 hover:text-primary transition-colors">
+                    <Avatar className="h-6 w-6">
+                        <AvatarImage src={ownerData.avatarUrl} alt={ownerData.username} />
+                        <AvatarFallback>{ownerData.username.substring(0,1)}</AvatarFallback>
+                    </Avatar>
+                    <span className="font-medium text-sm">Owned by {ownerData.username}</span>
+                </Link>
+            )}
         </div>
       </div>
       
