@@ -7,13 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Briefcase, Heart, Mail, MessageCircle, PenSquare, Rss, Star, UserPlus, Users, Video, UserCheck, BarChart2, Loader2 } from "lucide-react";
+import { Briefcase, Heart, Mail, MessageCircle, PenSquare, Rss, Star, UserPlus, Users, Video, UserCheck, BarChart2, Loader2, Camera } from "lucide-react";
 import { useState, useMemo, useTransition, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { ResponsiveContainer, BarChart, XAxis, YAxis, Bar } from "recharts";
 import { useAuth } from "@/hooks/use-auth";
 import { PostCard, Post } from "@/components/post-card";
-import { collection, query, doc, onSnapshot, where, serverTimestamp, setDoc, deleteDoc, getDoc } from "firebase/firestore";
+import { collection, query, doc, onSnapshot, where, serverTimestamp, setDoc, deleteDoc, getDoc, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useCollection } from "@/firebase/firestore/use-collection";
 import { useParams } from "next/navigation";
@@ -65,6 +65,7 @@ export default function ProfilePage() {
 
     const [profileData, setProfileData] = useState<UserProfileData | null>(null);
     const [profileLoading, setProfileLoading] = useState(true);
+    const [studioId, setStudioId] = useState<string | null>(null);
 
     const [isFollowing, setIsFollowing] = useState(false);
     const [followDocExists, setFollowDocExists] = useState(false);
@@ -109,20 +110,31 @@ export default function ProfilePage() {
         });
         
         // Check if current user is following this profile
+        let unsubIsFollowing = () => {};
         if (user) {
             const followDocRef = doc(db, "follows", `${user.uid}_${profileUserId}`);
-            const unsubIsFollowing = onSnapshot(followDocRef, (doc) => {
+            unsubIsFollowing = onSnapshot(followDocRef, (doc) => {
                 const following = doc.exists();
                 setIsFollowing(following);
                 setFollowDocExists(following);
             });
-            return () => unsubIsFollowing();
         }
+        
+        // Check if this user owns a studio
+        const studioQuery = query(collection(db, "studio_profiles"), where("userProfileId", "==", profileUserId), limit(1));
+        getDocs(studioQuery).then(snapshot => {
+            if (!snapshot.empty) {
+                setStudioId(snapshot.docs[0].id);
+            } else {
+                setStudioId(null);
+            }
+        });
 
         return () => {
             unsubscribe();
             unsubFollowers();
             unsubFollowing();
+            unsubIsFollowing();
         }
     }, [profileUserId, user]);
 
@@ -258,7 +270,9 @@ export default function ProfilePage() {
                                             <Heart className={isFavorited ? 'fill-current' : ''} /> {isFavorited ? "Favorited" : "Favorite"}
                                         </Button>
                                         <Button onClick={() => handleComingSoon('Messaging')}><Mail /> Message</Button>
-                                        <Button variant="secondary" onClick={() => handleComingSoon('Collab Requests')}><Briefcase /> Collab Request</Button>
+                                        {studioId && (
+                                             <Button asChild variant="secondary"><Link href={`/studios/${studioId}`}><Camera /> View Studio</Link></Button>
+                                        )}
                                     </>
                                 )}
                             </div>
