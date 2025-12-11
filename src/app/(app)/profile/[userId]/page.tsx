@@ -21,6 +21,8 @@ import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { useMemoFirebase } from "@/firebase/useMemoFirebase";
 import Link from "next/link";
+import { FollowListDialog } from "@/components/follow-list-dialog";
+
 
 const statsData = [
   { month: "Jan", followers: 400 },
@@ -73,6 +75,10 @@ export default function ProfilePage() {
     // State for counts
     const [followersCount, setFollowersCount] = useState(0);
     const [followingCount, setFollowingCount] = useState(0);
+    
+    // State for dialogs
+    const [dialogOpen, setDialogOpen] = useState(false);
+    const [dialogType, setDialogType] = useState<'followers' | 'following'>('followers');
 
 
     useEffect(() => {
@@ -160,6 +166,11 @@ export default function ProfilePage() {
 
     
     const isOwnProfile = user?.uid === profileUserId;
+    
+    const handleOpenDialog = (type: 'followers' | 'following') => {
+        setDialogType(type);
+        setDialogOpen(true);
+    };
 
     const handleFollowToggle = async () => {
         if (isOwnProfile || !profileUserId || !user) return;
@@ -253,6 +264,14 @@ export default function ProfilePage() {
     }
 
     return (
+        <>
+        <FollowListDialog 
+            userId={profileUserId} 
+            type={dialogType}
+            open={dialogOpen} 
+            onOpenChange={setDialogOpen}
+            initialCount={dialogType === 'followers' ? followersCount : followingCount}
+        />
         <div className="flex flex-col gap-8">
             <Card className="overflow-hidden">
                 <div className="relative h-48 w-full md:h-64 bg-secondary">
@@ -313,14 +332,14 @@ export default function ProfilePage() {
                     </div>
 
                      <div className="mt-6 grid grid-cols-3 divide-x rounded-lg border">
-                        <div className="px-4 py-2 text-center">
+                        <button onClick={() => handleOpenDialog('followers')} className="px-4 py-2 text-center hover:bg-accent transition-colors rounded-l-lg focus:outline-none focus:ring-2 focus:ring-ring">
                             <p className="text-xl font-bold">{followersCount}</p>
                             <p className="text-sm text-muted-foreground">Followers</p>
-                        </div>
-                        <div className="px-4 py-2 text-center">
+                        </button>
+                        <button onClick={() => handleOpenDialog('following')} className="px-4 py-2 text-center hover:bg-accent transition-colors focus:outline-none focus:ring-2 focus:ring-ring">
                             <p className="text-xl font-bold">{followingCount}</p>
                             <p className="text-sm text-muted-foreground">Following</p>
-                        </div>
+                        </button>
                          <div className="px-4 py-2 text-center">
                             <p className="text-xl font-bold">{userPosts?.length || 0}</p>
                             <p className="text-sm text-muted-foreground">Posts</p>
@@ -419,5 +438,6 @@ export default function ProfilePage() {
                 </TabsContent>
             </Tabs>
         </div>
+        </>
     );
 }
