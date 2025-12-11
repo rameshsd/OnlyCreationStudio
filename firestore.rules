@@ -31,6 +31,14 @@ service cloud.firestore {
       allow read: if isSignedIn();
     }
 
+    match /follows/{followId} {
+      allow read: if isSignedIn();
+      // Users can only create/delete their own follow actions.
+      // The document ID must be followerId_followingId
+      allow create: if isSignedIn() && request.auth.uid == request.resource.data.followerId && followId == request.resource.data.followerId + '_' + request.resource.data.followingId;
+      allow delete: if isSignedIn() && request.auth.uid == followId.split('_')[0];
+    }
+
     match /posts/{postId} {
       // Any signed-in user can read posts
       allow read: if isSignedIn();

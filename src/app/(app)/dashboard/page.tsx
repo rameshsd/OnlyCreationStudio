@@ -6,11 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardFooter } from "@/components/ui/card";
 import { Plus, Search, Bell, Rss, TrendingUp, Users, Video, UserPlus, Loader2 } from "lucide-react";
 import Link from "next/link";
-import React, { useState, useMemo, useTransition } from "react";
+import React, { useState, useMemo, useTransition, useEffect } from "react";
 import { PostCard, type Post } from "@/components/post-card";
 import { ShortsReelCard } from "@/components/shorts-reel-card";
 import { db } from "@/lib/firebase";
-import { collection, orderBy, query, limit, where, getDocs, doc, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
+import { collection, orderBy, query, limit, getDocs, doc, setDoc, deleteDoc, serverTimestamp, where } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
 import { generateMockTrendingTopics } from "@/lib/mock-data";
 import { useCollection } from "@/firebase/firestore/use-collection";
@@ -41,26 +41,29 @@ interface Suggestion {
 }
 
 const SuggestionsCard = () => {
-    const { user, userData } = useAuth();
+    const { user } = useAuth();
     const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
     const [loading, setLoading] = useState(true);
     const [following, setFollowing] = useState<string[]>([]);
     const [isPending, startTransition] = useTransition();
     const { toast } = useToast();
 
-    React.useEffect(() => {
+    // Memoize the query for currently followed users
+    const followingQuery = useMemoFirebase(
+      user ? query(collection(db, "follows"), where("followerId", "==", user.uid)) : null,
+      [user]
+    );
+    const { data: followingDocs } = useCollection(followingQuery);
+    const followingIds = useMemo(() => followingDocs?.map(doc => doc.followingId) || [], [followingDocs]);
+
+    useEffect(() => {
         if (!user) return;
 
         const fetchSuggestions = async () => {
             try {
                 setLoading(true);
-                // Ensure userData is loaded and has a `following` array before proceeding.
-                const currentUserFollowing = userData?.following || [];
-                const usersToExclude = [user.uid, ...currentUserFollowing];
+                const usersToExclude = [user.uid, ...followingIds];
                 
-                // Firestore doesn't have a 'not-in' for more than 10 items easily,
-                // so we fetch a bunch and filter client-side. This isn't scalable for
-                // millions of users, but is fine for a demo app.
                 const q = query(collection(db, "user_profiles"), limit(20));
                 const querySnapshot = await getDocs(q);
                 
@@ -75,7 +78,7 @@ const SuggestionsCard = () => {
                         });
                     }
                 });
-                setSuggestions(fetchedUsers.slice(0, 5)); // Take top 5 after filtering
+                setSuggestions(fetchedUsers.slice(0, 5));
             } catch (e) {
                 console.error("Failed to fetch suggestions:", e);
             } finally {
@@ -83,27 +86,29 @@ const SuggestionsCard = () => {
             }
         };
 
-        // We depend on userData being loaded to know who we are already following.
-        if(userData) {
+        if (followingIds) {
             fetchSuggestions();
         }
-    }, [user, userData]);
+    }, [user, followingIds]);
 
     const handleFollow = (targetUserId: string) => {
-        if (!user || !userData) return;
+        if (!user) return;
 
         startTransition(async () => {
-            const currentUserRef = doc(db, "user_profiles", user.uid);
+            const followDocRef = doc(db, "follows", `${user.uid}_${targetUserId}`);
             
             try {
-                // Optimistically update UI
-                setFollowing(prev => [...prev, targetUserId]);
+                setFollowing(prev => [...prev, targetUserId]); // Optimistic update
 
-                await updateDoc(currentUserRef, { following: arrayUnion(targetUserId) }).catch(err => {
+                await setDoc(followDocRef, {
+                  followerId: user.uid,
+                  followingId: targetUserId,
+                  createdAt: serverTimestamp()
+                }).catch(err => {
                      errorEmitter.emit('permission-error', new FirestorePermissionError({
-                        path: currentUserRef.path,
-                        operation: 'update',
-                        requestResourceData: { following: arrayUnion(targetUserId) }
+                        path: followDocRef.path,
+                        operation: 'create',
+                        requestResourceData: { followerId: user.uid, followingId: targetUserId }
                     }));
                     throw err;
                 });
@@ -111,8 +116,7 @@ const SuggestionsCard = () => {
                 toast({ title: "Followed user" });
             } catch (error) {
                 console.error("Failed to follow user:", error);
-                 // Revert optimistic update on error
-                setFollowing(prev => prev.filter(id => id !== targetUserId));
+                 setFollowing(prev => prev.filter(id => id !== targetUserId)); // Revert on error
             }
         });
     };
@@ -165,7 +169,7 @@ const SuggestionsCard = () => {
                         <Button 
                             size="sm"
                             onClick={() => handleFollow(suggestedUser.id)}
-                            disabled={isPending || following.includes(suggestedUser.id) || (userData?.following?.includes(suggestedUser.id) ?? false)}
+                            disabled={isPending || following.includes(suggestedUser.id) || followingIds.includes(suggestedUser.id)}
                         >
                             {isPending && following.includes(suggestedUser.id) ? <Loader2 className="h-4 w-4 animate-spin"/> : 'Follow'}
                         </Button>
@@ -327,5 +331,3 @@ export default function DashboardPage() {
     </>
   );
 }
-
-    

@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ResponsiveContainer, BarChart, XAxis, YAxis, Bar } from "recharts";
 import { useAuth } from "@/hooks/use-auth";
 import { PostCard, Post } from "@/components/post-card";
-import { collection, query, doc, updateDoc, arrayUnion, arrayRemove, where, onSnapshot } from "firebase/firestore";
+import { collection, query, doc, onSnapshot, where, serverTimestamp, setDoc, deleteDoc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useCollection } from "@/firebase/firestore/use-collection";
 import { useParams } from "next/navigation";
@@ -51,15 +51,13 @@ interface UserProfileData {
     bio?: string;
     avatarUrl?: string;
     coverUrl?: string;
-    followers?: string[];
-    following?: string[];
     isVerified?: boolean;
     skills?: string[];
 }
 
 
 export default function ProfilePage() {
-    const { user, loading: authLoading, userData: currentUserData } = useAuth();
+    const { user, loading: authLoading } = useAuth();
     const { toast } = useToast();
     const params = useParams();
     const profileUserId = params.userId as string;
@@ -67,6 +65,14 @@ export default function ProfilePage() {
 
     const [profileData, setProfileData] = useState<UserProfileData | null>(null);
     const [profileLoading, setProfileLoading] = useState(true);
+
+    const [isFollowing, setIsFollowing] = useState(false);
+    const [followDocExists, setFollowDocExists] = useState(false);
+
+    // State for counts
+    const [followersCount, setFollowersCount] = useState(0);
+    const [followingCount, setFollowingCount] = useState(0);
+
 
     useEffect(() => {
         if (!profileUserId) return;
@@ -90,49 +96,70 @@ export default function ProfilePage() {
             setProfileLoading(false);
         });
 
-        return () => unsubscribe();
-    }, [profileUserId]);
+        // Listen for follower count
+        const followersQuery = query(collection(db, "follows"), where("followingId", "==", profileUserId));
+        const unsubFollowers = onSnapshot(followersQuery, (snapshot) => {
+            setFollowersCount(snapshot.size);
+        });
+
+        // Listen for following count
+        const followingQuery = query(collection(db, "follows"), where("followerId", "==", profileUserId));
+        const unsubFollowing = onSnapshot(followingQuery, (snapshot) => {
+            setFollowingCount(snapshot.size);
+        });
+        
+        // Check if current user is following this profile
+        if (user) {
+            const followDocRef = doc(db, "follows", `${user.uid}_${profileUserId}`);
+            const unsubIsFollowing = onSnapshot(followDocRef, (doc) => {
+                const following = doc.exists();
+                setIsFollowing(following);
+                setFollowDocExists(following);
+            });
+            return () => unsubIsFollowing();
+        }
+
+        return () => {
+            unsubscribe();
+            unsubFollowers();
+            unsubFollowing();
+        }
+    }, [profileUserId, user]);
 
     
     const isOwnProfile = user?.uid === profileUserId;
-
-    const isFollowing = useMemo(() => {
-        return currentUserData?.following?.includes(profileUserId);
-    }, [currentUserData?.following, profileUserId]);
 
     const handleFollowToggle = async () => {
         if (isOwnProfile || !profileUserId || !user) return;
         
         startTransition(async () => {
-            const currentUserRef = doc(db, "user_profiles", user.uid);
-
+            const followDocRef = doc(db, "follows", `${user.uid}_${profileUserId}`);
             try {
-                if (isFollowing) {
-                    // Unfollow logic
-                    await updateDoc(currentUserRef, { following: arrayRemove(profileUserId) }).catch(err => {
+                if (followDocExists) { // Unfollow
+                    await deleteDoc(followDocRef).catch(err => {
                         errorEmitter.emit('permission-error', new FirestorePermissionError({
-                            path: currentUserRef.path,
-                            operation: 'update',
-                            requestResourceData: { following: arrayRemove(profileUserId) }
+                            path: followDocRef.path,
+                            operation: 'delete',
                         }));
                         throw err;
                     });
                     toast({ title: "Unfollowed", description: `You are no longer following ${profileData?.username}.` });
-                } else {
-                    // Follow logic
-                    await updateDoc(currentUserRef, { following: arrayUnion(profileUserId) }).catch(err => {
+                } else { // Follow
+                    await setDoc(followDocRef, {
+                      followerId: user.uid,
+                      followingId: profileUserId,
+                      createdAt: serverTimestamp()
+                    }).catch(err => {
                          errorEmitter.emit('permission-error', new FirestorePermissionError({
-                            path: currentUserRef.path,
-                            operation: 'update',
-                            requestResourceData: { following: arrayUnion(profileUserId) }
+                            path: followDocRef.path,
+                            operation: 'create',
+                            requestResourceData: { followerId: user.uid, followingId: profileUserId }
                         }));
                         throw err;
                     });
                     toast({ title: "Followed", description: `You are now following ${profileData?.username}.` });
                 }
             } catch (error) {
-                // The error is already emitted, so we don't need to toast it here.
-                // The FirebaseErrorListener will handle it.
                 console.error("Follow/Unfollow action failed:", error);
             }
         });
@@ -250,11 +277,11 @@ export default function ProfilePage() {
 
                      <div className="mt-6 grid grid-cols-3 divide-x rounded-lg border">
                         <div className="px-4 py-2 text-center">
-                            <p className="text-xl font-bold">{profileData.followers?.length || 0}</p>
+                            <p className="text-xl font-bold">{followersCount}</p>
                             <p className="text-sm text-muted-foreground">Followers</p>
                         </div>
                         <div className="px-4 py-2 text-center">
-                            <p className="text-xl font-bold">{profileData.following?.length || 0}</p>
+                            <p className="text-xl font-bold">{followingCount}</p>
                             <p className="text-sm text-muted-foreground">Following</p>
                         </div>
                          <div className="px-4 py-2 text-center">
@@ -357,5 +384,3 @@ export default function ProfilePage() {
         </div>
     );
 }
-
-    

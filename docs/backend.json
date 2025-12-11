@@ -63,6 +63,27 @@
         "username"
       ]
     },
+    "Follow": {
+        "title": "Follow",
+        "type": "object",
+        "description": "Represents a follow relationship between two users.",
+        "properties": {
+            "followerId": {
+                "type": "string",
+                "description": "The UID of the user who is following."
+            },
+            "followingId": {
+                "type": "string",
+                "description": "The UID of the user being followed."
+            },
+            "createdAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "Timestamp of when the follow action occurred."
+            }
+        },
+        "required": ["followerId", "followingId", "createdAt"]
+    },
     "Post": {
       "title": "Post",
       "type": "object",
@@ -282,6 +303,14 @@
           },
           "description": "Stores individual status updates for a user. Allows for a collection group query on 'statuses'."
         }
+      },
+      {
+          "path": "/follows/{followId}",
+          "definition": {
+              "entityName": "Follow",
+              "schema": { "$ref": "#/entities/Follow" },
+              "description": "Stores follow relationships. Document ID is a composite of followerId_followingId."
+          }
       },
       {
         "path": "/posts/{postId}",

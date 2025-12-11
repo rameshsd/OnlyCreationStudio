@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import { getAuth, onIdTokenChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, User } from 'firebase/auth';
-import { getFirestore, doc, setDoc, getDoc, DocumentSnapshot } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, getDoc, DocumentSnapshot, collection, query, where, onSnapshot } from 'firebase/firestore';
 import { app } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -18,10 +18,11 @@ interface UserData {
     bio?: string;
     avatarUrl?: string;
     coverUrl?: string;
-    followers?: string[];
-    following?: string[];
     isVerified?: boolean;
     skills?: string[];
+    // Deprecated, will be removed
+    followers?: string[];
+    following?: string[];
 }
 
 interface AuthContextType {
@@ -70,8 +71,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                     bio: data.bio,
                     avatarUrl: data.avatarUrl,
                     coverUrl: data.coverUrl,
-                    followers: data.followers || [],
-                    following: data.following || [],
                     isVerified: data.isVerified,
                     skills: data.skills,
                 });
@@ -121,8 +120,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             bio: "New to OnlyCreation!",
             avatarUrl: `https://api.dicebear.com/7.x/initials/svg?seed=${username}`,
             coverUrl: "https://images.unsplash.com/photo-1507525428034-b723a9ce6890?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-            followers: [],
-            following: [],
             isVerified: false,
             skills: ["Content Creator"]
         };
@@ -153,8 +150,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             bio: "Studio Owner",
             avatarUrl: `https://api.dicebear.com/7.x/initials/svg?seed=${username}`,
             coverUrl: "https://images.unsplash.com/photo-1507525428034-b723a9ce6890?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-            followers: [],
-            following: [],
             isVerified: false,
             skills: ["Studio Rental", "Production Services"]
         };
@@ -194,5 +189,3 @@ export const useAuth = () => {
     }
     return context;
 };
-
-    
