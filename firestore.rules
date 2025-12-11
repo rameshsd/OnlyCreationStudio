@@ -55,5 +55,13 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow write: if isSignedIn() && request.auth.uid == request.resource.data.ownerId;
     }
+
+    match /studio_profiles/{studioProfileId}/bookings/{bookingId} {
+      // Any signed-in user can see what's booked.
+      allow read: if isSignedIn();
+      // Any signed-in user can create a booking for themselves.
+      allow create: if isSignedIn() && request.auth.uid == request.resource.data.userId;
+      // Future rules: allow owner to delete/update. For now, this is secure.
+    }
   }
 }

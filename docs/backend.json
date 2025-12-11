@@ -264,6 +264,20 @@
         "createdAt",
         "expiresAt"
       ]
+    },
+    "Booking": {
+      "title": "Booking",
+      "type": "object",
+      "description": "Represents a booking for a studio.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the booking." },
+        "studioId": { "type": "string", "description": "ID of the studio being booked." },
+        "userId": { "type": "string", "description": "ID of the user making the booking." },
+        "date": { "type": "string", "description": "The date of the booking in YYYY-MM-DD format." },
+        "time": { "type": "string", "description": "The time slot of the booking." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp of when the booking was made." }
+      },
+      "required": ["id", "studioId", "userId", "date", "time", "createdAt"]
     }
   },
   "auth": {
@@ -340,6 +354,14 @@
             "$ref": "#/entities/StudioProfile"
           },
           "description": "A top-level collection for all studio profiles."
+        }
+      },
+      {
+        "path": "/studio_profiles/{studioProfileId}/bookings/{bookingId}",
+        "definition": {
+          "entityName": "Booking",
+          "schema": { "$ref": "#/entities/Booking" },
+          "description": "Stores booking information for a specific studio."
         }
       }
     ],
