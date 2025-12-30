@@ -21,7 +21,9 @@ export async function followUserAction(
 
     const batch = adminDb.batch();
 
+    // Add target to current user's following list
     batch.update(currentUserRef, { following: FieldValue.arrayUnion(targetUserId) });
+    // Add current user to target's followers list
     batch.update(targetUserRef, { followers: FieldValue.arrayUnion(currentUserId) });
 
     await batch.commit();
@@ -52,9 +54,11 @@ export async function unfollowUserAction(
     const targetUserRef = adminDb.doc(`user_profiles/${targetUserId}`);
 
     const batch = adminDb.batch();
-
+    
+    // Remove target from current user's following list
     batch.update(currentUserRef, { following: FieldValue.arrayRemove(targetUserId) });
-    batch.update(targetUserRef, { followers: FieldValue.arrayRemove(currentUserId) });
+    // Remove current user from target's followers list
+    batch.update(targetUserRef, { followers: FieldValue.arrayRemove(targetUserId) });
 
     await batch.commit();
 

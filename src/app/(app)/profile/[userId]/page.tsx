@@ -20,6 +20,8 @@ import { useDoc } from "@/firebase/firestore/use-doc";
 import { useParams } from "next/navigation";
 import { useMemoFirebase } from "@/firebase/useMemoFirebase";
 import { followUserAction, unfollowUserAction } from "./actions";
+import { FirestorePermissionError } from "@/firebase/errors";
+import { errorEmitter } from "@/firebase/error-emitter";
 
 const statsData = [
   { month: "Jan", followers: 400 },
@@ -74,8 +76,8 @@ export default function ProfilePage() {
     const isOwnProfile = user?.uid === profileUserId;
 
     const isFollowing = useMemo(() => {
-        return profileData?.followers?.includes(user?.uid || '');
-    }, [profileData?.followers, user?.uid]);
+        return currentUserData?.following?.includes(profileUserId);
+    }, [currentUserData?.following, profileUserId]);
 
     const handleFollowToggle = async () => {
         if (isOwnProfile || !profileUserId || !user) return;
