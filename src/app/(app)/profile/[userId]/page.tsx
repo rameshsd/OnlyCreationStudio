@@ -13,14 +13,13 @@ import { useToast } from "@/hooks/use-toast";
 import { ResponsiveContainer, BarChart, XAxis, YAxis, Bar } from "recharts";
 import { useAuth } from "@/hooks/use-auth";
 import { PostCard, Post } from "@/components/post-card";
-import { collection, query, doc, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
+import { collection, query, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useCollection } from "@/firebase/firestore/use-collection";
 import { useDoc } from "@/firebase/firestore/use-doc";
 import { useParams } from "next/navigation";
-import { errorEmitter } from "@/firebase/error-emitter";
-import { FirestorePermissionError } from "@/firebase/errors";
 import { useMemoFirebase } from "@/firebase/useMemoFirebase";
+import { followUserAction, unfollowUserAction } from "./actions";
 
 const statsData = [
   { month: "Jan", followers: 400 },
@@ -75,60 +74,23 @@ export default function ProfilePage() {
     const isOwnProfile = user?.uid === profileUserId;
 
     const isFollowing = useMemo(() => {
-        return currentUserData?.following?.includes(profileUserId);
-    }, [currentUserData?.following, profileUserId]);
+        return profileData?.followers?.includes(user?.uid || '');
+    }, [profileData?.followers, user?.uid]);
 
     const handleFollowToggle = async () => {
         if (isOwnProfile || !profileUserId || !user) return;
         
         startTransition(async () => {
-            const currentUserRef = doc(db, "user_profiles", user.uid);
-            const targetUserRef = doc(db, "user_profiles", profileUserId);
+            const action = isFollowing ? unfollowUserAction : followUserAction;
+            const result = await action(user.uid, profileUserId);
 
-            try {
-                if (isFollowing) {
-                    // Unfollow logic
-                    await updateDoc(currentUserRef, { following: arrayRemove(profileUserId) }).catch(err => {
-                        errorEmitter.emit('permission-error', new FirestorePermissionError({
-                            path: currentUserRef.path,
-                            operation: 'update',
-                            requestResourceData: { following: arrayRemove(profileUserId) }
-                        }));
-                        throw err;
-                    });
-                    await updateDoc(targetUserRef, { followers: arrayRemove(user.uid) }).catch(err => {
-                         errorEmitter.emit('permission-error', new FirestorePermissionError({
-                            path: targetUserRef.path,
-                            operation: 'update',
-                            requestResourceData: { followers: arrayRemove(user.uid) }
-                        }));
-                        throw err;
-                    });
-                    toast({ title: "Unfollowed", description: `You are no longer following ${profileData?.username}.` });
-                } else {
-                    // Follow logic
-                    await updateDoc(currentUserRef, { following: arrayUnion(profileUserId) }).catch(err => {
-                         errorEmitter.emit('permission-error', new FirestorePermissionError({
-                            path: currentUserRef.path,
-                            operation: 'update',
-                            requestResourceData: { following: arrayUnion(profileUserId) }
-                        }));
-                        throw err;
-                    });
-                    await updateDoc(targetUserRef, { followers: arrayUnion(user.uid) }).catch(err => {
-                         errorEmitter.emit('permission-error', new FirestorePermissionError({
-                            path: targetUserRef.path,
-                            operation: 'update',
-                            requestResourceData: { followers: arrayUnion(user.uid) }
-                        }));
-                        throw err;
-                    });
-                    toast({ title: "Followed", description: `You are now following ${profileData?.username}.` });
-                }
-            } catch (error) {
-                // The error is already emitted, so we don't need to toast it here.
-                // The FirebaseErrorListener will handle it.
-                console.error("Follow/Unfollow action failed:", error);
+            if (result.error) {
+                toast({ title: "Error", description: result.error, variant: "destructive" });
+            } else {
+                 toast({ 
+                    title: isFollowing ? "Unfollowed" : "Followed", 
+                    description: `You are ${isFollowing ? 'no longer' : 'now'} following ${profileData?.username}.`
+                });
             }
         });
     };
