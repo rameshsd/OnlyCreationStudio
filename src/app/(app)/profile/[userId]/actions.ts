@@ -1,3 +1,4 @@
+
 'use server';
 
 import { adminDb } from '@/lib/firebase-admin';
@@ -58,7 +59,7 @@ export async function unfollowUserAction(
     // Remove target from current user's following list
     batch.update(currentUserRef, { following: FieldValue.arrayRemove(targetUserId) });
     // Remove current user from target's followers list
-    batch.update(targetUserRef, { followers: FieldValue.arrayRemove(targetUserId) });
+    batch.update(targetUserRef, { followers: FieldValue.arrayRemove(currentUserId) });
 
     await batch.commit();
 
