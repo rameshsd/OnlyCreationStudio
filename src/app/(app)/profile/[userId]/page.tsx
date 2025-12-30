@@ -1,4 +1,3 @@
-
 "use client";
 
 import Image from "next/image";
@@ -13,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ResponsiveContainer, BarChart, XAxis, YAxis, Bar } from "recharts";
 import { useAuth } from "@/hooks/use-auth";
 import { PostCard, Post } from "@/components/post-card";
-import { collection, query, doc } from "firebase/firestore";
+import { collection, query, where, doc, onSnapshot, getDocs, limit } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useCollection } from "@/firebase/firestore/use-collection";
 import { useParams } from "next/navigation";
@@ -21,6 +20,8 @@ import { useMemoFirebase } from "@/firebase/useMemoFirebase";
 import { followUserAction, unfollowUserAction } from "./actions";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { errorEmitter } from "@/firebase/error-emitter";
+import { FollowListDialog } from "@/components/follow-list-dialog";
+import Link from "next/link";
 
 const statsData = [
   { month: "Jan", followers: 400 },
@@ -68,7 +69,6 @@ export default function ProfilePage() {
     const [studioId, setStudioId] = useState<string | null>(null);
 
     const [isFollowing, setIsFollowing] = useState(false);
-    const [followDocExists, setFollowDocExists] = useState(false);
 
     // State for counts
     const [followersCount, setFollowersCount] = useState(0);
@@ -78,6 +78,10 @@ export default function ProfilePage() {
     const [dialogOpen, setDialogOpen] = useState(false);
     const [dialogType, setDialogType] = useState<'followers' | 'following'>('followers');
 
+    const handleOpenDialog = (type: 'followers' | 'following') => {
+        setDialogType(type);
+        setDialogOpen(true);
+    };
 
     useEffect(() => {
         if (!profileUserId) return;
@@ -130,7 +134,6 @@ export default function ProfilePage() {
             unsubIsFollowing = onSnapshot(followDocRef, (doc) => {
                 const following = doc.exists();
                 setIsFollowing(following);
-                setFollowDocExists(following);
             }, (serverError) => {
                  errorEmitter.emit('permission-error', new FirestorePermissionError({
                     path: followDocRef.path,
@@ -165,10 +168,6 @@ export default function ProfilePage() {
     
     const isOwnProfile = user?.uid === profileUserId;
 
-    const isFollowing = useMemo(() => {
-        return currentUserData?.following?.includes(profileUserId);
-    }, [currentUserData?.following, profileUserId]);
-
     const handleFollowToggle = async () => {
         if (isOwnProfile || !profileUserId || !user) return;
         
@@ -191,7 +190,7 @@ export default function ProfilePage() {
     const [isFavorited, setIsFavorited] = useState(false);
 
     const allPostsQuery = useMemoFirebase(
-      query(collection(db, "posts"), where("userId", "==", profileUserId || "")),
+      profileUserId ? query(collection(db, "posts"), where("userId", "==", profileUserId)) : null,
       [profileUserId]
     );
 
