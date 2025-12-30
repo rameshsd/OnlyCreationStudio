@@ -15,6 +15,9 @@ export async function followUserAction(
    if (!currentUserId) {
     return { error: "You must be logged in to follow a user." };
   }
+   if (!currentUserId) {
+    return { error: "You must be logged in to follow a user." };
+  }
 
   try {
     const currentUserRef = adminDb.doc(`user_profiles/${currentUserId}`);
@@ -49,12 +52,16 @@ export async function unfollowUserAction(
    if (!currentUserId) {
     return { error: "You must be logged in to unfollow a user." };
   }
+   if (!currentUserId) {
+    return { error: "You must be logged in to unfollow a user." };
+  }
 
   try {
     const currentUserRef = adminDb.doc(`user_profiles/${currentUserId}`);
     const targetUserRef = adminDb.doc(`user_profiles/${targetUserId}`);
 
     const batch = adminDb.batch();
+
     
     // Remove target from current user's following list
     batch.update(currentUserRef, { following: FieldValue.arrayRemove(targetUserId) });
