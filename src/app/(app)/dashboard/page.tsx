@@ -250,7 +250,7 @@ export default function DashboardPage() {
             <div className="flex flex-col gap-8 text-foreground">
                 <StoryReel />
                 
-                <div className="flex items-center gap-2 overflow-x-auto pb-2 -mx-4 px-4">
+                <div className="hidden lg:flex items-center gap-2 overflow-x-auto pb-2 -mx-4 px-4">
                     {feedFilters.map(filter => (
                         <Button
                             key={filter.label}

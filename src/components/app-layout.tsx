@@ -23,6 +23,8 @@ import {
   LogOut,
   Loader2,
   FolderKanban,
+  Bell,
+  Heart,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
@@ -249,18 +251,29 @@ export function AppLayout({ children }: { children: ReactNode }) {
         </aside>
 
         {/* Mobile Header */}
-        <header className="fixed top-0 left-0 right-0 z-20 flex items-center justify-between border-b bg-background/80 backdrop-blur-sm px-4 h-20 lg:hidden">
-            <MobileSidebar />
-            <Logo className="w-32" />
-            <ModeToggle />
+        <header className="fixed top-0 left-0 right-0 z-20 flex items-center justify-between border-b bg-background/80 backdrop-blur-sm px-4 h-16 lg:hidden">
+            <Link href="/dashboard">
+                <Logo className="w-32" />
+            </Link>
+            <div className="flex items-center gap-2">
+                <Button variant="ghost" size="icon">
+                    <Search className="h-5 w-5" />
+                    <span className="sr-only">Search</span>
+                </Button>
+                <Button variant="ghost" size="icon">
+                    <Heart className="h-5 w-5" />
+                    <span className="sr-only">Notifications</span>
+                </Button>
+                <ModeToggle />
+            </div>
         </header>
 
          <main
           className={cn(
             'w-full lg:ml-64',
             isShortsPage
-              ? 'h-screen pt-20 lg:h-screen lg:pt-0'
-              : 'pt-24 lg:pt-6 p-4 lg:p-6 pb-24'
+              ? 'h-screen pt-16 lg:h-screen lg:pt-0'
+              : 'pt-20 lg:pt-6 p-4 lg:p-6 pb-24'
           )}
         >
           <div className="w-full max-w-7xl mx-auto">
