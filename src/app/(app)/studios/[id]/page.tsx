@@ -184,6 +184,12 @@ export default function StudioDetailPage() {
     ? `https://www.google.com/maps?q=${studioData.location.latitude},${studioData.location.longitude}`
     : `https://www.google.com/maps?q=${encodeURIComponent(studioData.location.address)}`;
 
+  const staticMapApiKey = 'Q3A33a_R-30O0p_T22zDs9xHkS9w3u8IuDW5WzR3E-8';
+  const mapImageUrl = hasCoordinates 
+    ? `https://image.maps.ls.hereapi.com/mia/1.6/mapview?apiKey=${staticMapApiKey}&c=${studioData.location.latitude},${studioData.location.longitude}&z=15&w=800&h=450`
+    : `https://placehold.co/800x450?text=Location+Not+Set`;
+
+
   return (
     <div className="flex flex-col gap-8">
       <div>
@@ -247,8 +253,14 @@ export default function StudioDetailPage() {
                     <CardTitle>Location</CardTitle>
                 </CardHeader>
                 <CardContent>
-                   <div className="aspect-[16/9] bg-secondary rounded-lg overflow-hidden relative flex items-center justify-center">
-                     <p className="text-muted-foreground">{studioData.location?.address || 'Address not provided.'}</p>
+                   <div className="aspect-[16/9] bg-secondary rounded-lg overflow-hidden relative">
+                     {hasCoordinates ? (
+                        <Image src={mapImageUrl} alt={`Map of ${studioData.studioName}`} fill className="object-cover" />
+                     ) : (
+                        <div className="flex items-center justify-center h-full">
+                           <p className="text-muted-foreground">Location map will appear here once set.</p>
+                        </div>
+                     )}
                      <div className="absolute bottom-4 right-4">
                         <Button asChild>
                             <Link href={googleMapsUrl} target="_blank" rel="noopener noreferrer">
@@ -310,3 +322,5 @@ export default function StudioDetailPage() {
     </div>
   )
 }
+
+    

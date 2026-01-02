@@ -53,12 +53,6 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
-      {
-        protocol: 'https',
-        hostname: 'api.mapbox.com',
-        port: '',
-        pathname: '/**',
-      }
     ],
   },
   experimental: {
@@ -78,3 +72,5 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
+
+    
