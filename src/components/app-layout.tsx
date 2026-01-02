@@ -275,7 +275,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
             'w-full lg:ml-64',
             isShortsPage
               ? 'h-screen pt-16 lg:h-screen lg:pt-0'
-              : 'pt-20 lg:pt-6 p-4 lg:p-6 pb-24'
+              : 'p-4 pb-24 pt-20 lg:p-6 lg:pt-6'
           )}
         >
           <div className="w-full max-w-7xl mx-auto">
