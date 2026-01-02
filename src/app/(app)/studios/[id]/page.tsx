@@ -7,17 +7,15 @@ import { useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Calendar } from '@/components/ui/calendar';
-import { Star, MapPin, Camera, Mic, Lightbulb, Users, Clock, Loader2, AlertTriangle, Edit, Navigation } from 'lucide-react';
+import { Star, MapPin, Camera, Mic, Lightbulb, Users, Clock, Loader2, AlertTriangle, Edit } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useDoc } from '@/firebase/firestore/use-doc';
 import { useMemoFirebase } from '@/firebase/useMemoFirebase';
-import { doc } from 'firebase/firestore';
+import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/hooks/use-auth';
 import { LocationEditor } from './location-editor';
-import { OlaMap } from "@/components/maps/OlaMap";
-
 
 // This would typically be fetched from an API
 const staticStudioData = {
@@ -145,46 +143,6 @@ export default function StudioDetailPage() {
 
   const isOwner = user?.uid === studioData?.userProfileId;
 
-  const handleNavigation = (isHomeProduction: boolean) => {
-    if (!navigator.geolocation) {
-      toast({ title: "Geolocation not supported", description: "Your browser doesn't support geolocation.", variant: "destructive" });
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude: currentLat, longitude: currentLng } = position.coords;
-        let origin: string, destination: string;
-
-        if (isHomeProduction) {
-          // Studio owner travels to customer
-          if (!studioData?.location.latitude || !studioData?.location.longitude) {
-            toast({ title: "Studio Location Missing", description: "Cannot generate route.", variant: "destructive" });
-            return;
-          }
-          origin = `${studioData.location.latitude},${studioData.location.longitude}`;
-          destination = `${currentLat},${currentLng}`;
-        } else {
-          // Customer travels to studio
-          if (!studioData?.location.latitude || !studioData?.location.longitude) {
-            toast({ title: "Studio Location Missing", description: "Cannot generate route.", variant: "destructive" });
-            return;
-          }
-          origin = `${currentLat},${currentLng}`;
-          destination = `${studioData.location.latitude},${studioData.location.longitude}`;
-        }
-        
-        const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}`;
-        window.open(googleMapsUrl, '_blank');
-      },
-      () => {
-        toast({ title: "Geolocation failed", description: "Could not get your location. Please ensure location services are enabled.", variant: "destructive" });
-      },
-      { enableHighAccuracy: true }
-    );
-  };
-
-
   const handleBooking = () => {
     if (!date || !selectedTime) {
       toast({ title: "Incomplete Selection", description: "Please select a date and time slot to book.", variant: "destructive" });
@@ -196,13 +154,6 @@ export default function StudioDetailPage() {
     toast({
       title: "Booking Confirmed!",
       description: `You've booked ${studioData?.studioName} on ${date.toLocaleDateString()} at ${selectedTime}.`,
-      action: (
-        <Button onClick={() => handleNavigation(!!isHomeProduction)} className="gap-2">
-            <Navigation className="h-4 w-4" />
-            Begin Navigation
-        </Button>
-      ),
-      duration: 10000,
     });
   };
 
@@ -211,6 +162,7 @@ export default function StudioDetailPage() {
         title: "Location Updated",
         description: "The studio location has been successfully updated.",
     });
+    // This will trigger the useDoc hook to refetch the data
     mutate();
   }
 
@@ -274,6 +226,27 @@ export default function StudioDetailPage() {
              <div key={`placeholder-${i}`} className="bg-secondary rounded-lg aspect-square" />
          ))}
       </div>
+
+       {studioData.location?.latitude && studioData.location?.longitude && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Location</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="aspect-video w-full rounded-lg overflow-hidden">
+                <iframe
+                    width="100%"
+                    height="100%"
+                    style={{ border: 0 }}
+                    loading="lazy"
+                    allowFullScreen
+                    referrerPolicy="no-referrer-when-downgrade"
+                    src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&q=${studioData.location.latitude},${studioData.location.longitude}`}>
+                </iframe>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
