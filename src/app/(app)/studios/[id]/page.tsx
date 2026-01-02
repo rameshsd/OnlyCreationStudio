@@ -7,7 +7,7 @@ import { useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Calendar } from '@/components/ui/calendar';
-import { Star, MapPin, Camera, Mic, Lightbulb, Users, Clock, Loader2, AlertTriangle, Edit } from 'lucide-react';
+import { Star, MapPin, Camera, Mic, Lightbulb, Users, Clock, Loader2, AlertTriangle, Edit, ArrowUpRight } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useDoc } from '@/firebase/firestore/use-doc';
 import { useMemoFirebase } from '@/firebase/useMemoFirebase';
@@ -16,6 +16,8 @@ import { db } from '@/lib/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/hooks/use-auth';
 import { LocationEditor } from './location-editor';
+import Link from 'next/link';
+
 
 // This would typically be fetched from an API
 const staticStudioData = {
@@ -177,6 +179,14 @@ export default function StudioDetailPage() {
     default: Star,
   };
 
+  const hasCoordinates = studioData.location?.latitude && studioData.location?.longitude;
+  const mapImageUrl = hasCoordinates
+    ? `https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/pin-s+0074e4(${studioData.location.longitude},${studioData.location.latitude})/${studioData.location.longitude},${studioData.location.latitude},14/600x400?access_token=pk.eyJ1IjoiZmlyZWJhc2Utc3R1ZGlvIiwiYSI6ImNseGo1bnFwZTBpMGQya3FucG9yY3cxY3kifQ.t360nFpmoJ_e8yNs_h_g1w`
+    : 'https://placehold.co/600x400/27272a/71717a?text=Location+Not+Set';
+  
+  const googleMapsUrl = hasCoordinates
+    ? `https://www.google.com/maps?q=${studioData.location.latitude},${studioData.location.longitude}`
+    : `https://www.google.com/maps?q=${encodeURIComponent(studioData.location.address)}`;
 
   return (
     <div className="flex flex-col gap-8">
@@ -215,7 +225,7 @@ export default function StudioDetailPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 space-y-8">
             <Card>
                 <CardHeader>
                     <CardTitle>About the Studio</CardTitle>
@@ -234,6 +244,25 @@ export default function StudioDetailPage() {
                             );
                         })}
                     </div>
+                </CardContent>
+            </Card>
+             <Card>
+                <CardHeader>
+                    <CardTitle>Location</CardTitle>
+                </CardHeader>
+                <CardContent>
+                   <div className="aspect-[16/9] bg-secondary rounded-lg overflow-hidden relative">
+                     <Image src={mapImageUrl} alt={`Map of ${studioData.studioName}`} fill className="object-cover" />
+                     <div className="absolute inset-0 bg-black/10"></div>
+                     <div className="absolute bottom-4 right-4">
+                        <Button asChild>
+                            <Link href={googleMapsUrl} target="_blank" rel="noopener noreferrer">
+                                View on Google Maps
+                                <ArrowUpRight className="h-4 w-4 ml-2" />
+                            </Link>
+                        </Button>
+                     </div>
+                   </div>
                 </CardContent>
             </Card>
         </div>
