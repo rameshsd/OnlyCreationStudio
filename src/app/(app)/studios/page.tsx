@@ -17,7 +17,11 @@ import { Card, CardContent } from '@/components/ui/card';
 interface StudioProfile {
     id: string;
     studioName: string;
-    location: string;
+    location: {
+        address: string;
+        latitude?: number;
+        longitude?: number;
+    };
     price: number;
     photos: string[];
     // These are placeholders, adapt as needed from your actual data
@@ -48,7 +52,7 @@ export default function StudiosPage() {
     const adaptedStudios = studios?.map(studio => ({
         id: studio.id,
         name: studio.studioName,
-        location: studio.location,
+        location: studio.location?.address || 'No location set',
         price: studio.price || 0,
         imageUrl: studio.photos?.[0] || 'https://placehold.co/600x400',
         rating: studio.rating || 4.5,

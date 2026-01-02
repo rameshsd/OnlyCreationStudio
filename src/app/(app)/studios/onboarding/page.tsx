@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
-import { Trash2, Info, Percent, Upload, Plus, X, Loader2 } from 'lucide-react';
+import { Trash2, Info, Percent, Upload, Plus, X, Loader2, LocateFixed } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
@@ -38,7 +38,7 @@ const amenitiesList = [
 
 export default function StudioOnboardingPage() {
     const [step, setStep] = useState(1);
-    const totalSteps = 5;
+    const totalSteps = 6;
     const [loading, setLoading] = useState(false);
     const { user } = useAuth();
     const router = useRouter();
@@ -47,21 +47,25 @@ export default function StudioOnboardingPage() {
     // --- State for all form fields ---
     // Step 1
     const [studioName, setStudioName] = useState('');
-    const [address, setAddress] = useState('');
     const [description, setDescription] = useState('');
     const [studioType, setStudioType] = useState('');
     // Step 2
-    const [amenities, setAmenities] = useState<string[]>([]);
+    const [address, setAddress] = useState('');
+    const [latitude, setLatitude] = useState('');
+    const [longitude, setLongitude] = useState('');
+    const [geoLoading, setGeoLoading] = useState(false);
     // Step 3
+    const [amenities, setAmenities] = useState<string[]>([]);
+    // Step 4
     const [equipmentInput, setEquipmentInput] = useState('');
     const [equipment, setEquipment] = useState<string[]>([]);
-    // Step 4
+    // Step 5
     const [price, setPrice] = useState('');
     const [priceUnit, setPriceUnit] = useState('hour');
     const [contactNumber, setContactNumber] = useState('');
     const [isDiscounted, setIsDiscounted] = useState(false);
     const [discountPercentage, setDiscountPercentage] = useState('');
-    // Step 5
+    // Step 6
     const [profilePhoto, setProfilePhoto] = useState<File | null>(null);
     const [galleryPhotos, setGalleryPhotos] = useState<File[]>([]);
     const [profilePhotoPreview, setProfilePhotoPreview] = useState<string | null>(null);
@@ -105,7 +109,11 @@ export default function StudioOnboardingPage() {
             const studioData = {
                 userProfileId: user.uid,
                 studioName,
-                location: address,
+                location: {
+                  address: address,
+                  latitude: parseFloat(latitude) || null,
+                  longitude: parseFloat(longitude) || null,
+                },
                 description,
                 type: studioType,
                 amenities,
@@ -196,8 +204,6 @@ export default function StudioOnboardingPage() {
             setGalleryPhotos(combinedFiles);
 
             const newPreviews = combinedFiles.map(file => URL.createObjectURL(file));
-            // To prevent memory leaks, revoke old object URLs before creating new ones if needed,
-            // but for simplicity, we are re-generating them all here.
             setGalleryPreviews(newPreviews);
         }
     };
@@ -213,6 +219,26 @@ export default function StudioOnboardingPage() {
             URL.revokeObjectURL(removedUrl[0]);
         }
         setGalleryPreviews(newPreviews);
+    };
+
+    const handleGetCurrentLocation = () => {
+      if (!navigator.geolocation) {
+        toast({ title: "Geolocation not supported", description: "Your browser doesn't support this feature.", variant: "destructive" });
+        return;
+      }
+      setGeoLoading(true);
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setLatitude(position.coords.latitude.toString());
+          setLongitude(position.coords.longitude.toString());
+          setGeoLoading(false);
+          toast({ title: "Location Fetched!", description: "Coordinates have been filled in." });
+        },
+        () => {
+          setGeoLoading(false);
+          toast({ title: "Geolocation failed", description: "Could not get your location.", variant: "destructive" });
+        }
+      );
     };
 
 
@@ -241,10 +267,6 @@ export default function StudioOnboardingPage() {
                                     <Input id="studio-name" placeholder="Enter your studio name" value={studioName} onChange={(e) => setStudioName(e.target.value)} disabled={loading} />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="address">Address *</Label>
-                                    <Textarea id="address" rows={4} value={address} onChange={(e) => setAddress(e.target.value)} disabled={loading}/>
-                                </div>
-                                 <div className="space-y-2">
                                     <Label htmlFor="description">Description *</Label>
                                     <Textarea id="description" rows={4} value={description} onChange={(e) => setDescription(e.target.value)} disabled={loading} />
                                 </div>
@@ -268,6 +290,33 @@ export default function StudioOnboardingPage() {
                     )}
 
                     {step === 2 && (
+                         <CardContent className="pt-6">
+                            <h2 className="text-xl font-semibold mb-6">Studio Location</h2>
+                             <div className="space-y-6">
+                                <div className="space-y-2">
+                                    <Label htmlFor="address">Address *</Label>
+                                    <Textarea id="address" placeholder="Enter the full studio address" rows={3} value={address} onChange={(e) => setAddress(e.target.value)} disabled={loading} />
+                                </div>
+                                <Button variant="outline" onClick={handleGetCurrentLocation} disabled={geoLoading || loading}>
+                                    {geoLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LocateFixed className="mr-2 h-4 w-4" />}
+                                    Use My Current Location
+                                </Button>
+                                <p className="text-sm text-muted-foreground">Or enter coordinates manually:</p>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="latitude">Latitude</Label>
+                                        <Input id="latitude" placeholder="e.g. 28.6139" value={latitude} onChange={(e) => setLatitude(e.target.value)} disabled={loading} />
+                                    </div>
+                                     <div className="space-y-2">
+                                        <Label htmlFor="longitude">Longitude</Label>
+                                        <Input id="longitude" placeholder="e.g. 77.2090" value={longitude} onChange={(e) => setLongitude(e.target.value)} disabled={loading} />
+                                    </div>
+                                </div>
+                            </div>
+                        </CardContent>
+                    )}
+
+                    {step === 3 && (
                          <CardContent className="pt-6">
                             <h2 className="text-xl font-semibold mb-2">Amenities</h2>
                             <p className="text-muted-foreground mb-6">Select all amenities available at your studio</p>
@@ -296,7 +345,7 @@ export default function StudioOnboardingPage() {
                         </CardContent>
                     )}
                     
-                    {step === 3 && (
+                    {step === 4 && (
                         <CardContent className="pt-6">
                             <h2 className="text-xl font-semibold mb-2">Equipment</h2>
                             <p className="text-muted-foreground mb-6">Add equipment available for use at your studio</p>
@@ -330,7 +379,7 @@ export default function StudioOnboardingPage() {
                         </CardContent>
                     )}
                     
-                    {step === 4 && (
+                    {step === 5 && (
                         <CardContent className="pt-6">
                             <h2 className="text-xl font-semibold mb-6">Pricing &amp; Contact</h2>
                             <div className="space-y-6">
@@ -405,7 +454,7 @@ export default function StudioOnboardingPage() {
                         </CardContent>
                     )}
 
-                    {step === 5 && (
+                    {step === 6 && (
                          <CardContent className="pt-6">
                             <h2 className="text-xl font-semibold mb-6">Photos</h2>
                              <div className="space-y-8">
@@ -495,3 +544,5 @@ export default function StudioOnboardingPage() {
         </div>
     );
 }
+
+    
