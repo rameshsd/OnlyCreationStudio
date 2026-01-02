@@ -197,13 +197,6 @@ export default function StudioDetailPage() {
     ? `https://www.google.com/maps?q=${studioData.location.latitude},${studioData.location.longitude}`
     : `https://www.google.com/maps?q=${encodeURIComponent(studioData.location.address)}`;
 
-  // IMPORTANT: This API key is public and safe to use. It's for a static map image service.
-  const staticMapApiKey = 'Q3A33a_R-30O0p_T22zDs9xHkS9w3u8IuDW5WzR3E-8';
-  const mapImageUrl = hasCoordinates 
-    ? `https://image.maps.ls.hereapi.com/mia/1.6/mapview?apiKey=${staticMapApiKey}&c=${studioData.location.latitude},${studioData.location.longitude}&z=15&w=800&h=450`
-    : `https://placehold.co/800x450?text=Location+Not+Set`;
-
-
   return (
     <div className="flex flex-col gap-8">
       <div>
@@ -267,16 +260,14 @@ export default function StudioDetailPage() {
                     <CardTitle>Location</CardTitle>
                 </CardHeader>
                 <CardContent>
-                   <div className="aspect-[16/9] bg-secondary rounded-lg overflow-hidden relative">
-                     <Image src={mapImageUrl} alt={`Map of ${studioData.studioName}`} fill className="object-cover" />
-                     <div className="absolute bottom-4 right-4">
-                        <Button asChild>
-                            <Link href={googleMapsUrl} target="_blank" rel="noopener noreferrer">
-                                View on Google Maps
-                                <ArrowUpRight className="h-4 w-4 ml-2" />
-                            </Link>
-                        </Button>
-                     </div>
+                   <div className="space-y-4">
+                    <p className="text-muted-foreground">{studioData.location?.address}</p>
+                     <Button asChild>
+                        <Link href={googleMapsUrl} target="_blank" rel="noopener noreferrer">
+                            View Location on Google Maps
+                            <ArrowUpRight className="h-4 w-4 ml-2" />
+                        </Link>
+                    </Button>
                    </div>
                 </CardContent>
             </Card>
