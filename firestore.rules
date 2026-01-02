@@ -40,10 +40,11 @@ service cloud.firestore {
     }
 
     match /posts/{postId} {
-      // Any signed-in user can read posts
       allow read: if isSignedIn();
-      // Only the owner can write a post
-      allow write: if isSignedIn() && request.auth.uid == request.resource.data.userId;
+      // Any authenticated user can create a post if they are the author.
+      allow create: if isSignedIn() && request.auth.uid == request.resource.data.userId;
+      // Only the author of an existing post can update or delete it.
+      allow update, delete: if isSignedIn() && request.auth.uid == resource.data.userId;
     }
 
     match /studio_profiles/{studioProfileId} {
