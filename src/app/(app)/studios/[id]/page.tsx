@@ -194,7 +194,7 @@ export default function StudioDetailPage() {
 
   const hasCoordinates = studioData.location?.latitude && studioData.location?.longitude;
   const mapImageUrl = hasCoordinates
-    ? `https://image.maps.ls.hereapi.com/mia/1.6/mapview?c=${studioData.location.latitude}%2C${studioData.location.longitude}&z=14&w=600&h=400&apiKey=YOUR_HERE_API_KEY`
+    ? `https://image.maps.ls.hereapi.com/mia/1.6/mapview?c=${studioData.location.latitude}%2C${studioData.location.longitude}&z=14&w=600&h=400&apiKey=ewC-8X2uSoaM55fW5Rz8aF7aBBEeLg-n5S6j5iMucgY`
     : 'https://placehold.co/600x400/27272a/71717a?text=Location+Not+Set';
   
   const googleMapsUrl = hasCoordinates
@@ -265,7 +265,7 @@ export default function StudioDetailPage() {
                 </CardHeader>
                 <CardContent>
                    <div className="aspect-[16/9] bg-secondary rounded-lg overflow-hidden relative">
-                     <Image src={mapImageUrl.replace('YOUR_HERE_API_KEY', 'ewC-8X2uSoaM55fW5Rz8aF7aBBEeLg-n5S6j5iMucgY')} alt={`Map of ${studioData.studioName}`} fill className="object-cover" />
+                     <Image src={mapImageUrl} alt={`Map of ${studioData.studioName}`} fill className="object-cover" />
                      <div className="absolute inset-0 bg-black/10"></div>
                      <div className="absolute bottom-4 right-4">
                         <Button asChild>
