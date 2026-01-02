@@ -7,18 +7,24 @@ import { useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Calendar } from '@/components/ui/calendar';
-import { Star, MapPin, Camera, Mic, Lightbulb, Users, Clock, Loader2, AlertTriangle, Edit, Navigation, Home, Building } from 'lucide-react';
+import { Star, MapPin, Camera, Mic, Lightbulb, Users, Clock, Loader2, AlertTriangle, Edit } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useDoc } from '@/firebase/firestore/use-doc';
 import { useMemoFirebase } from '@/firebase/useMemoFirebase';
-import { doc, updateDoc, collection, query, where, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/hooks/use-auth';
 import { LocationEditor } from './location-editor';
-import { OlaMap } from '@/components/maps/OlaMap';
-import { useCollection } from '@/firebase/firestore/use-collection';
-import { format } from 'date-fns';
+
+// This would typically be fetched from an API
+const staticStudioData = {
+  availability: [
+    { time: "09:00 AM" }, { time: "10:00 AM" }, { time: "11:00 AM" },
+    { time: "12:00 PM", booked: true }, { time: "01:00 PM" }, { time: "02:00 PM" },
+    { time: "03:00 PM", booked: true }, { time: "04:00 PM" }, { time: "05:00 PM" },
+  ]
+};
 
 interface FirestoreTimestamp {
     seconds: number;
@@ -123,8 +129,6 @@ export default function StudioDetailPage() {
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [selectedTime, setSelectedTime] = useState<string | undefined>();
   const [isLocationEditorOpen, setIsLocationEditorOpen] = useState(false);
-  const [isBooking, setIsBooking] = useState(false);
-
   const { toast } = useToast();
   const params = useParams<{ id: string }>();
   const studioId = params.id;
@@ -136,6 +140,8 @@ export default function StudioDetailPage() {
   );
 
   const { data: studioData, isLoading, mutate } = useDoc<StudioProfile>(studioDocRef);
+
+  const isOwner = user?.uid === studioData?.userProfileId;
 
   const bookingsQuery = useMemoFirebase(
     studioId && date ? query(
@@ -209,39 +215,10 @@ export default function StudioDetailPage() {
       toast({ title: "Incomplete Selection", description: "Please select a date and time slot to book.", variant: "destructive" });
       return;
     }
-
-    setIsBooking(true);
-    try {
-        const bookingData = {
-            userId: user.uid,
-            date: format(date, 'yyyy-MM-dd'),
-            time: selectedTime,
-            isHomeProduction,
-            createdAt: serverTimestamp(),
-        };
-
-        const bookingsColRef = collection(db, 'studio_profiles', studioId, 'bookings');
-        await addDoc(bookingsColRef, bookingData);
-
-        const bookingTypeMessage = isHomeProduction ? 'Home Production session' : 'studio session';
-        toast({
-          title: "Booking Confirmed!",
-          description: `You've booked a ${bookingTypeMessage} with ${studioData?.studioName} on ${date.toLocaleDateString()} at ${selectedTime}.`,
-          action: (
-            <Button onClick={() => handleNavigation(isHomeProduction)} className="gap-2">
-                <Navigation className="h-4 w-4" />
-                Begin Navigation
-            </Button>
-          ),
-          duration: 10000,
-        });
-
-    } catch (e) {
-        console.error("Booking failed", e);
-        toast({title: "Booking failed", description: "Could not complete your booking. Please try again.", variant: "destructive"})
-    } finally {
-        setIsBooking(false);
-    }
+    toast({
+      title: "Booking Confirmed!",
+      description: `You've booked ${studioData?.studioName} on ${date.toLocaleDateString()} at ${selectedTime}.`,
+    });
   };
 
   const onLocationUpdate = () => {
@@ -249,6 +226,7 @@ export default function StudioDetailPage() {
         title: "Location Updated",
         description: "The studio location has been successfully updated.",
     });
+    // This will trigger the useDoc hook to refetch the data
     mutate();
   }
 
@@ -312,6 +290,27 @@ export default function StudioDetailPage() {
              <div key={`placeholder-${i}`} className="bg-secondary rounded-lg aspect-square" />
          ))}
       </div>
+
+       {studioData.location?.latitude && studioData.location?.longitude && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Location</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="aspect-video w-full rounded-lg overflow-hidden">
+                <iframe
+                    width="100%"
+                    height="100%"
+                    style={{ border: 0 }}
+                    loading="lazy"
+                    allowFullScreen
+                    referrerPolicy="no-referrer-when-downgrade"
+                    src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&q=${studioData.location.latitude},${studioData.location.longitude}`}>
+                </iframe>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
@@ -425,3 +424,5 @@ export default function StudioDetailPage() {
     </div>
   )
 }
+
+    
