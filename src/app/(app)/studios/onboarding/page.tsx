@@ -36,6 +36,8 @@ const amenitiesList = [
     "Props", "Coffee & Tea",
 ];
 
+const servicesList = ["Photography", "Videography", "Home Video Production"];
+
 export default function StudioOnboardingPage() {
     const [step, setStep] = useState(1);
     const totalSteps = 6;
@@ -49,6 +51,8 @@ export default function StudioOnboardingPage() {
     const [studioName, setStudioName] = useState('');
     const [description, setDescription] = useState('');
     const [studioType, setStudioType] = useState('');
+    const [services, setServices] = useState<string[]>([]);
+
     // Step 2
     const [address, setAddress] = useState('');
     const [latitude, setLatitude] = useState('');
@@ -124,10 +128,9 @@ export default function StudioOnboardingPage() {
                 isDiscounted,
                 discountPercentage: isDiscounted ? parseFloat(discountPercentage) : 0,
                 photos: allPhotos,
-                // These are placeholders as they are not in the form
                 size: 'Medium',
                 qualityGrade: 'A',
-                services: ['Photography', 'Videography'],
+                services: services,
                 createdAt: serverTimestamp(),
             };
 
@@ -163,6 +166,14 @@ export default function StudioOnboardingPage() {
             prev.includes(amenity) 
                 ? prev.filter(item => item !== amenity) 
                 : [...prev, amenity]
+        );
+    };
+
+    const handleServiceChange = (service: string) => {
+        setServices(prev =>
+            prev.includes(service)
+                ? prev.filter(item => item !== service)
+                : [...prev, service]
         );
     };
 
@@ -284,6 +295,28 @@ export default function StudioOnboardingPage() {
                                             <SelectItem value="other">Other</SelectItem>
                                         </SelectContent>
                                     </Select>
+                                </div>
+                                <div className="space-y-4">
+                                  <Label>Services Offered *</Label>
+                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                      {servicesList.map(service => (
+                                          <Label 
+                                              key={service}
+                                              className={cn(
+                                                  "flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition-colors",
+                                                  services.includes(service) ? "bg-primary/10 border-primary" : "hover:bg-accent",
+                                                  loading && "cursor-not-allowed opacity-50"
+                                              )}
+                                          >
+                                              <Checkbox 
+                                                  checked={services.includes(service)}
+                                                  onCheckedChange={() => handleServiceChange(service)}
+                                                  disabled={loading}
+                                              />
+                                              <span>{service}</span>
+                                          </Label>
+                                      ))}
+                                  </div>
                                 </div>
                             </div>
                         </CardContent>

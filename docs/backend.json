@@ -209,6 +209,14 @@
             "type": "string",
             "format": "uri"
           }
+        },
+        "services": {
+            "type": "array",
+            "description": "List of services offered by the studio.",
+            "items": {
+                "type": "string",
+                "enum": ["Photography", "Videography", "Home Video Production"]
+            }
         }
       },
       "required": [
