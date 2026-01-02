@@ -11,7 +11,7 @@ import { Star, MapPin, Camera, Mic, Lightbulb, Users, Clock, Loader2, AlertTrian
 import { useToast } from '@/hooks/use-toast';
 import { useDoc } from '@/firebase/firestore/use-doc';
 import { useMemoFirebase } from '@/firebase/useMemoFirebase';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/hooks/use-auth';
@@ -193,10 +193,6 @@ export default function StudioDetailPage() {
   };
 
   const hasCoordinates = studioData.location?.latitude && studioData.location?.longitude;
-  const mapImageUrl = hasCoordinates
-    ? `https://image.maps.ls.hereapi.com/mia/1.6/mapview?c=${studioData.location.latitude}%2C${studioData.location.longitude}&z=14&w=600&h=400&apiKey=ewC-8X2uSoaM55fW5Rz8aF7aBBEeLg-n5S6j5iMucgY`
-    : 'https://placehold.co/600x400/27272a/71717a?text=Location+Not+Set';
-  
   const googleMapsUrl = hasCoordinates
     ? `https://www.google.com/maps?q=${studioData.location.latitude},${studioData.location.longitude}`
     : `https://www.google.com/maps?q=${encodeURIComponent(studioData.location.address)}`;
@@ -264,9 +260,8 @@ export default function StudioDetailPage() {
                     <CardTitle>Location</CardTitle>
                 </CardHeader>
                 <CardContent>
-                   <div className="aspect-[16/9] bg-secondary rounded-lg overflow-hidden relative">
-                     <Image src={mapImageUrl} alt={`Map of ${studioData.studioName}`} fill className="object-cover" />
-                     <div className="absolute inset-0 bg-black/10"></div>
+                   <div className="aspect-[16/9] bg-secondary rounded-lg overflow-hidden relative flex items-center justify-center">
+                     <p className="text-muted-foreground">{studioData.location?.address || 'Address not provided.'}</p>
                      <div className="absolute bottom-4 right-4">
                         <Button asChild>
                             <Link href={googleMapsUrl} target="_blank" rel="noopener noreferrer">
