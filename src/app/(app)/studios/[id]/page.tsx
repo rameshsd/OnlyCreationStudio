@@ -7,7 +7,7 @@ import { useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Calendar } from '@/components/ui/calendar';
-import { Star, MapPin, Camera, Mic, Lightbulb, Users, Clock, Loader2, AlertTriangle, Edit, Navigation } from 'lucide-react';
+import { Star, MapPin, Camera, Mic, Lightbulb, Users, Clock, Loader2, AlertTriangle, Edit, Navigation, Home, Building } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useDoc } from '@/firebase/firestore/use-doc';
 import { useMemoFirebase } from '@/firebase/useMemoFirebase';
@@ -158,6 +158,7 @@ export default function StudioDetailPage() {
 
 
   const isOwner = user?.uid === studioData?.userProfileId;
+  const offersHomeProduction = studioData?.services?.includes("Home Video Production");
 
   const handleNavigation = (isHomeProduction: boolean) => {
     if (!navigator.geolocation) {
@@ -199,7 +200,7 @@ export default function StudioDetailPage() {
   };
 
 
-  const handleBooking = async () => {
+  const handleBooking = async (isHomeProduction: boolean = false) => {
     if (!user) {
         toast({ title: "Not logged in", description: "You must be logged in to book a studio.", variant: "destructive" });
         return;
@@ -215,19 +216,19 @@ export default function StudioDetailPage() {
             userId: user.uid,
             date: format(date, 'yyyy-MM-dd'),
             time: selectedTime,
+            isHomeProduction,
             createdAt: serverTimestamp(),
         };
 
         const bookingsColRef = collection(db, 'studio_profiles', studioId, 'bookings');
         await addDoc(bookingsColRef, bookingData);
 
-        const isHomeProduction = studioData?.services?.includes("Home Video Production");
-
+        const bookingTypeMessage = isHomeProduction ? 'Home Production session' : 'studio session';
         toast({
           title: "Booking Confirmed!",
-          description: `You've booked ${studioData?.studioName} on ${date.toLocaleDateString()} at ${selectedTime}.`,
+          description: `You've booked a ${bookingTypeMessage} with ${studioData?.studioName} on ${date.toLocaleDateString()} at ${selectedTime}.`,
           action: (
-            <Button onClick={() => handleNavigation(!!isHomeProduction)} className="gap-2">
+            <Button onClick={() => handleNavigation(isHomeProduction)} className="gap-2">
                 <Navigation className="h-4 w-4" />
                 Begin Navigation
             </Button>
@@ -389,10 +390,25 @@ export default function StudioDetailPage() {
                     </div>
                 </CardContent>
                 <CardFooter>
-                    <Button className="w-full" onClick={handleBooking} disabled={!date || !selectedTime || isBooking || bookingsLoading}>
-                       {isBooking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                       <Clock className="mr-2 h-4 w-4"/> Book Now
-                    </Button>
+                    <div className="w-full flex flex-col gap-2">
+                        {offersHomeProduction ? (
+                            <>
+                                <Button className="w-full" onClick={() => handleBooking(false)} disabled={!date || !selectedTime || isBooking || bookingsLoading}>
+                                    {isBooking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    <Building className="mr-2 h-4 w-4"/> Book Studio Session
+                                </Button>
+                                <Button variant="secondary" className="w-full" onClick={() => handleBooking(true)} disabled={!date || !selectedTime || isBooking || bookingsLoading}>
+                                    {isBooking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    <Home className="mr-2 h-4 w-4"/> Book Home Production
+                                </Button>
+                            </>
+                        ) : (
+                            <Button className="w-full" onClick={() => handleBooking(false)} disabled={!date || !selectedTime || isBooking || bookingsLoading}>
+                                {isBooking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                <Clock className="mr-2 h-4 w-4"/> Book Now
+                            </Button>
+                        )}
+                    </div>
                 </CardFooter>
             </Card>
         </div>
