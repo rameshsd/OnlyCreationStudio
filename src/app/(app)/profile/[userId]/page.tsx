@@ -1,3 +1,4 @@
+
 "use client";
 
 import Image from "next/image";
@@ -11,13 +12,17 @@ import { useState, useMemo, useTransition, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { ResponsiveContainer, BarChart, XAxis, YAxis, Bar } from "recharts";
 import { useAuth } from "@/hooks/use-auth";
-import { PostCard, Post } from "@/components/post-card";
-import { collection, query, doc } from "firebase/firestore";
+import { PostCard, type Post } from "@/components/post-card";
+import { collection, query, where, doc, onSnapshot, getDocs, limit } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useCollection } from "@/firebase/firestore/use-collection";
 import { useParams } from "next/navigation";
 import { useMemoFirebase } from "@/firebase/useMemoFirebase";
 import { followUserAction, unfollowUserAction } from "./actions";
+import { FirestorePermissionError } from "@/firebase/errors";
+import { errorEmitter } from "@/firebase/error-emitter";
+import { FollowListDialog } from "@/components/follow-list-dialog";
+
 
 const statsData = [
   { month: "Jan", followers: 400 },
@@ -54,7 +59,7 @@ interface UserProfileData {
 
 
 export default function ProfilePage() {
-    const { user, loading: authLoading } = useAuth();
+    const { user, userData, loading: authLoading } = useAuth();
     const { toast } = useToast();
     const params = useParams();
     const profileUserId = params.userId as string;
@@ -78,6 +83,7 @@ export default function ProfilePage() {
         setDialogType(type);
         setDialogOpen(true);
     };
+
 
     useEffect(() => {
         if (!profileUserId) return;
@@ -128,8 +134,7 @@ export default function ProfilePage() {
         if (user) {
             const followDocRef = doc(db, "follows", `${user.uid}_${profileUserId}`);
             unsubIsFollowing = onSnapshot(followDocRef, (doc) => {
-                const following = doc.exists();
-                setIsFollowing(following);
+                setIsFollowing(doc.exists());
             }, (serverError) => {
                  errorEmitter.emit('permission-error', new FirestorePermissionError({
                     path: followDocRef.path,
@@ -163,10 +168,6 @@ export default function ProfilePage() {
 
     
     const isOwnProfile = user?.uid === profileUserId;
-
-    const isFollowing = useMemo(() => {
-        return profileData?.followers?.includes(user?.uid || '');
-    }, [profileData?.followers, user?.uid]);
 
     const handleFollowToggle = async () => {
         if (isOwnProfile || !profileUserId || !user) return;
@@ -416,3 +417,5 @@ export default function ProfilePage() {
         </>
     );
 }
+
+    
