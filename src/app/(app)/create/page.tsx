@@ -4,19 +4,20 @@
 import { useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { Loader2, Film, ImageIcon } from 'lucide-react';
+import { Loader2, Film, ImageIcon, X } from 'lucide-react';
 import Image from 'next/image';
-import { uploadPhoto } from './actions';
+import { uploadPhoto } from '@/app/(app)/create/actions';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { errorEmitter } from '@/firebase/error-emitter';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Separator } from '@/components/ui/separator';
 
 export default function CreatePostPage() {
   const { user, userData, loading: authLoading } = useAuth();
@@ -36,6 +37,13 @@ export default function CreatePostPage() {
       setIsImage(file.type.startsWith('image/'));
     }
   };
+  
+  const removeMedia = () => {
+    setMediaFile(null);
+    setPreviewUrl(null);
+    const fileInput = document.getElementById('media-input') as HTMLInputElement;
+    if(fileInput) fileInput.value = '';
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,20 +55,13 @@ export default function CreatePostPage() {
       });
       return;
     }
-    if (authLoading) {
+    if (authLoading || !user) {
         toast({
-            title: "Authenticating...",
-            description: "Please wait while we verify your session.",
+            title: "Authentication Error",
+            description: "Please wait for authentication to complete or log in.",
+            variant: "destructive",
         });
         return;
-    }
-    if (!user) {
-      toast({
-        title: "Not authenticated",
-        description: "You must be logged in to create a post.",
-        variant: "destructive",
-      });
-      return;
     }
 
     setLoading(true);
@@ -101,7 +102,6 @@ export default function CreatePostPage() {
             requestResourceData: postData,
         });
         errorEmitter.emit('permission-error', permissionError);
-        // Re-throw the original error if you want to see it in the console as well
         throw serverError;
       });
 
@@ -111,8 +111,7 @@ export default function CreatePostPage() {
       });
       router.push('/dashboard');
     } catch (error: any) {
-      console.error("Error creating post:", error);
-      // Avoid showing a toast if it's a permission error that's already handled globally
+      // Avoid showing a toast if it's a permission error handled globally
       if (!(error instanceof FirestorePermissionError)) {
           toast({
             title: "Error creating post",
@@ -128,47 +127,71 @@ export default function CreatePostPage() {
   const isFormDisabled = loading || authLoading;
 
   return (
-    <div className="mx-auto max-w-2xl">
-      <Card>
-        <form onSubmit={handleSubmit}>
-          <CardHeader>
-            <CardTitle>Create a New Post</CardTitle>
-            <CardDescription>Share what's on your mind with your followers.</CardDescription>
+    <div className="mx-auto max-w-2xl px-2 sm:px-0">
+      <form onSubmit={handleSubmit}>
+        <Card className="shadow-lg">
+          <CardHeader className="p-4">
+             <div className="flex items-center gap-4">
+                <Avatar>
+                    <AvatarImage src={userData?.avatarUrl} alt={userData?.username} />
+                    <AvatarFallback>{userData?.username?.substring(0, 2).toUpperCase()}</AvatarFallback>
+                </Avatar>
+                <div>
+                    <p className="font-semibold">{userData?.username || "User"}</p>
+                    <p className="text-xs text-muted-foreground">Share with your followers</p>
+                </div>
+            </div>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <Textarea
-              placeholder="What's happening?"
+          <CardContent className="p-0">
+             <Textarea
+              placeholder={`What's on your mind, ${userData?.username || 'User'}?`}
               value={caption}
               onChange={(e) => setCaption(e.target.value)}
               rows={5}
               disabled={isFormDisabled}
+              className="border-0 border-y text-base focus-visible:ring-0 focus-visible:ring-offset-0 resize-none rounded-none"
             />
             {previewUrl && (
-                <div className="relative aspect-video rounded-lg overflow-hidden border bg-black">
-                    {isImage ? (
-                        <Image src={previewUrl} alt="Image preview" fill className="object-contain" />
-                    ) : (
-                        <video src={previewUrl} controls className="h-full w-full object-contain" />
-                    )}
+                <div className="p-4">
+                    <div className="relative aspect-video rounded-lg overflow-hidden border bg-black">
+                        {isImage ? (
+                            <Image src={previewUrl} alt="Image preview" fill className="object-contain" />
+                        ) : (
+                            <video src={previewUrl} controls className="h-full w-full object-contain" />
+                        )}
+                        <Button 
+                            variant="destructive" size="icon" 
+                            className="absolute top-2 right-2 h-7 w-7"
+                            onClick={removeMedia}
+                        >
+                            <X className="h-4 w-4"/>
+                        </Button>
+                    </div>
                 </div>
             )}
-            <div>
-              <Label htmlFor="picture" className="flex items-center gap-2 cursor-pointer text-muted-foreground hover:text-primary">
-                <ImageIcon className="h-5 w-5" />
-                <Film className="h-5 w-5" />
-                <span>Add a photo or video</span>
-              </Label>
-              <Input id="picture" type="file" className="sr-only" onChange={handleFileChange} accept="image/*,video/*" disabled={isFormDisabled} />
+            
+            <div className="p-4 flex items-center justify-around border-t">
+                <Input id="media-input" type="file" className="sr-only" onChange={handleFileChange} accept="image/*,video/*" disabled={isFormDisabled} />
+                <label htmlFor="media-input" className="flex items-center gap-2 cursor-pointer text-muted-foreground hover:text-primary transition-colors p-2 rounded-md">
+                     <ImageIcon className="h-6 w-6 text-green-500" />
+                     <span className="font-medium text-sm">Photo</span>
+                </label>
+                <label htmlFor="media-input" className="flex items-center gap-2 cursor-pointer text-muted-foreground hover:text-primary transition-colors p-2 rounded-md">
+                    <Film className="h-6 w-6 text-blue-500" />
+                    <span className="font-medium text-sm">Video</span>
+                </label>
             </div>
           </CardContent>
-          <CardFooter className="flex justify-end">
-            <Button type="submit" disabled={isFormDisabled}>
+          <CardFooter className="p-4">
+            <Button type="submit" disabled={isFormDisabled || (!caption.trim() && !mediaFile)} className="w-full">
               {(loading || authLoading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {authLoading ? 'Verifying...' : (loading ? 'Posting...' : 'Post')}
             </Button>
           </CardFooter>
-        </form>
-      </Card>
+        </Card>
+      </form>
     </div>
   );
 }
+
+    
