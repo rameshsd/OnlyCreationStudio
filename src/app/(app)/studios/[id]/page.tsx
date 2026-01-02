@@ -11,20 +11,14 @@ import { Star, MapPin, Camera, Mic, Lightbulb, Users, Clock, Loader2, AlertTrian
 import { useToast } from '@/hooks/use-toast';
 import { useDoc } from '@/firebase/firestore/use-doc';
 import { useMemoFirebase } from '@/firebase/useMemoFirebase';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, collection, query, where, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/hooks/use-auth';
 import { LocationEditor } from './location-editor';
-
-// This would typically be fetched from an API
-const staticStudioData = {
-  availability: [
-    { time: "09:00 AM" }, { time: "10:00 AM" }, { time: "11:00 AM" },
-    { time: "12:00 PM", booked: true }, { time: "01:00 PM" }, { time: "02:00 PM" },
-    { time: "03:00 PM", booked: true }, { time: "04:00 PM" }, { time: "05:00 PM" },
-  ]
-};
+import { OlaMap } from '@/components/maps/OlaMap';
+import { useCollection } from '@/firebase/firestore/use-collection';
+import { format } from 'date-fns';
 
 interface FirestoreTimestamp {
     seconds: number;
@@ -129,6 +123,8 @@ export default function StudioDetailPage() {
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [selectedTime, setSelectedTime] = useState<string | undefined>();
   const [isLocationEditorOpen, setIsLocationEditorOpen] = useState(false);
+  const [isBooking, setIsBooking] = useState(false);
+
   const { toast } = useToast();
   const params = useParams<{ id: string }>();
   const studioId = params.id;
@@ -140,6 +136,26 @@ export default function StudioDetailPage() {
   );
 
   const { data: studioData, isLoading, mutate } = useDoc<StudioProfile>(studioDocRef);
+
+  const bookingsQuery = useMemoFirebase(
+    studioId && date ? query(
+      collection(db, 'studio_profiles', studioId, 'bookings'),
+      where('date', '==', format(date, 'yyyy-MM-dd'))
+    ) : null,
+    [studioId, date]
+  );
+  
+  const { data: bookings, isLoading: bookingsLoading } = useCollection<Booking>(bookingsQuery);
+
+  const bookedTimeSlots = useMemo(() => new Set(bookings?.map(b => b.time) || []), [bookings]);
+
+  const timeSlots = useMemo(() => {
+    return Array.from({ length: 9 }, (_, i) => {
+        const hour = 9 + i;
+        return `${hour.toString().padStart(2, '0')}:00`;
+    });
+  }, []);
+
 
   const isOwner = user?.uid === studioData?.userProfileId;
 
@@ -183,25 +199,48 @@ export default function StudioDetailPage() {
   };
 
 
-  const handleBooking = () => {
+  const handleBooking = async () => {
+    if (!user) {
+        toast({ title: "Not logged in", description: "You must be logged in to book a studio.", variant: "destructive" });
+        return;
+    }
     if (!date || !selectedTime) {
       toast({ title: "Incomplete Selection", description: "Please select a date and time slot to book.", variant: "destructive" });
       return;
     }
 
-    const isHomeProduction = studioData?.services?.includes("Home Video Production");
+    setIsBooking(true);
+    try {
+        const bookingData = {
+            userId: user.uid,
+            date: format(date, 'yyyy-MM-dd'),
+            time: selectedTime,
+            createdAt: serverTimestamp(),
+        };
 
-    toast({
-      title: "Booking Confirmed!",
-      description: `You've booked ${studioData?.studioName} on ${date.toLocaleDateString()} at ${selectedTime}.`,
-      action: (
-        <Button onClick={() => handleNavigation(!!isHomeProduction)} className="gap-2">
-            <Navigation className="h-4 w-4" />
-            Begin Navigation
-        </Button>
-      ),
-      duration: 10000,
-    });
+        const bookingsColRef = collection(db, 'studio_profiles', studioId, 'bookings');
+        await addDoc(bookingsColRef, bookingData);
+
+        const isHomeProduction = studioData?.services?.includes("Home Video Production");
+
+        toast({
+          title: "Booking Confirmed!",
+          description: `You've booked ${studioData?.studioName} on ${date.toLocaleDateString()} at ${selectedTime}.`,
+          action: (
+            <Button onClick={() => handleNavigation(!!isHomeProduction)} className="gap-2">
+                <Navigation className="h-4 w-4" />
+                Begin Navigation
+            </Button>
+          ),
+          duration: 10000,
+        });
+
+    } catch (e) {
+        console.error("Booking failed", e);
+        toast({title: "Booking failed", description: "Could not complete your booking. Please try again.", variant: "destructive"})
+    } finally {
+        setIsBooking(false);
+    }
   };
 
   const onLocationUpdate = () => {
@@ -272,27 +311,6 @@ export default function StudioDetailPage() {
              <div key={`placeholder-${i}`} className="bg-secondary rounded-lg aspect-square" />
          ))}
       </div>
-
-       {studioData.location?.latitude && studioData.location?.longitude && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Location</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="aspect-video w-full rounded-lg overflow-hidden">
-                <iframe
-                    width="100%"
-                    height="100%"
-                    style={{ border: 0 }}
-                    loading="lazy"
-                    allowFullScreen
-                    referrerPolicy="no-referrer-when-downgrade"
-                    src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&q=${studioData.location.latitude},${studioData.location.longitude}`}>
-                </iframe>
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
@@ -391,5 +409,3 @@ export default function StudioDetailPage() {
     </div>
   )
 }
-
-    
