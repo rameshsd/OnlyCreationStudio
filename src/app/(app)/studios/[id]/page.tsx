@@ -205,7 +205,6 @@ export default function StudioDetailPage() {
         title: "Location Updated",
         description: "The studio location has been successfully updated.",
     });
-    // This will trigger the useDoc hook to refetch the data
     mutate();
   }
 
