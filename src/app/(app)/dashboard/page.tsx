@@ -117,14 +117,6 @@ export default function DashboardPage() {
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         <div className="lg:col-span-8">
             <div className="flex flex-col gap-8 text-foreground">
-                <header className="flex justify-between items-center md:hidden">
-                    <h1 className="text-2xl font-bold">OnlyCreation</h1>
-                    <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="icon"><Search className="h-6 w-6" /></Button>
-                        <Button variant="ghost" size="icon"><Bell className="h-6 w-6" /></Button>
-                    </div>
-                </header>
-
                 <StoryReel />
                 
                 <div className="flex items-center gap-2 overflow-x-auto pb-2 -mx-4 px-4">
