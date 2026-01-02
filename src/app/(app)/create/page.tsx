@@ -14,7 +14,7 @@ import { db } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { Loader2, Film, ImageIcon } from 'lucide-react';
 import Image from 'next/image';
-import { uploadPhoto } from './actions';
+import { uploadPhoto } from '@/app/(app)/create/actions';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { errorEmitter } from '@/firebase/error-emitter';
 
