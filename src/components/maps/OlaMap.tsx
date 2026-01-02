@@ -3,7 +3,6 @@
 import { useEffect, useRef } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
-import { olaLightStyle } from "@/lib/maps/olaLightStyle";
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN!;
 
@@ -24,7 +23,7 @@ export function OlaMap({ latitude, longitude }: OlaMapProps) {
 
     const map = new mapboxgl.Map({
       container: mapRef.current,
-      style: olaLightStyle as mapboxgl.Style,
+      style: "mapbox://styles/rameshsd/cmjwm3i1n00no01qvgkrqejv8",
       center: [longitude, latitude],
       zoom: 14
     });
