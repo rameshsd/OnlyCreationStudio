@@ -25,6 +25,7 @@ import {
   FolderKanban,
   Bell,
   Heart,
+  Menu,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
@@ -77,7 +78,7 @@ function MobileSidebar() {
     <Sheet>
       <SheetTrigger asChild>
         <Button variant="ghost" size="icon">
-          <LayoutGrid />
+          <Menu />
           <span className="sr-only">Open Menu</span>
         </Button>
       </SheetTrigger>
@@ -252,6 +253,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
         {/* Mobile Header */}
         <header className="fixed top-0 left-0 right-0 z-20 flex items-center justify-between border-b bg-background/80 backdrop-blur-sm px-4 h-16 lg:hidden">
+            <MobileSidebar />
             <Link href="/dashboard">
                 <Logo className="w-32" />
             </Link>
