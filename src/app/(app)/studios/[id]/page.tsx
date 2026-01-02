@@ -7,7 +7,7 @@ import { useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Calendar } from '@/components/ui/calendar';
-import { Star, MapPin, Camera, Mic, Lightbulb, Users, Clock, Loader2, AlertTriangle, Edit, ArrowUpRight } from 'lucide-react';
+import { Star, MapPin, Camera, Mic, Lightbulb, Users, Clock, Loader2, AlertTriangle, Edit } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useDoc } from '@/firebase/firestore/use-doc';
 import { useMemoFirebase } from '@/firebase/useMemoFirebase';
@@ -16,7 +16,7 @@ import { db } from '@/lib/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/hooks/use-auth';
 import { LocationEditor } from './location-editor';
-import Link from 'next/link';
+import { OlaMap } from "@/components/maps/OlaMap";
 
 
 // This would typically be fetched from an API
@@ -181,10 +181,6 @@ export default function StudioDetailPage() {
 
   const hasCoordinates = studioData.location?.latitude && studioData.location?.longitude;
   
-  const openStreetMapEmbedUrl = hasCoordinates 
-  ? `https://www.openstreetmap.org/export/embed.html?bbox=${studioData.location.longitude - 0.005},${studioData.location.latitude - 0.005},${studioData.location.longitude + 0.005},${studioData.location.latitude + 0.005}&layer=mapnik&marker=${studioData.location.latitude},${studioData.location.longitude}`
-  : null;
-
   return (
     <div className="flex flex-col gap-8">
       <div>
@@ -247,24 +243,18 @@ export default function StudioDetailPage() {
                 <CardHeader>
                     <CardTitle>Location</CardTitle>
                 </CardHeader>
-                <CardContent>
-                   <div className="space-y-4">
-                      {openStreetMapEmbedUrl ? (
-                        <div className="aspect-video w-full">
-                          <iframe
-                            width="100%"
-                            height="100%"
-                            style={{ border: 0 }}
-                            loading="lazy"
-                            allowFullScreen
-                            src={openStreetMapEmbedUrl}
-                          ></iframe>
-                        </div>
-                      ) : (
-                        <p className="text-muted-foreground">Location coordinates not set. Only the address is available.</p>
-                      )}
-                      <p className="text-muted-foreground">{studioData.location?.address}</p>
-                   </div>
+                <CardContent className="space-y-4">
+                    {hasCoordinates ? (
+                        <OlaMap
+                            latitude={studioData.location.latitude!}
+                            longitude={studioData.location.longitude!}
+                        />
+                    ) : (
+                        <p className="text-muted-foreground">
+                            Location coordinates not set. Only the address is available.
+                        </p>
+                    )}
+                    <p className="text-muted-foreground">{studioData.location.address}</p>
                 </CardContent>
             </Card>
         </div>
