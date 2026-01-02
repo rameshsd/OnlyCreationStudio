@@ -197,6 +197,7 @@ export default function StudioDetailPage() {
     ? `https://www.google.com/maps?q=${studioData.location.latitude},${studioData.location.longitude}`
     : `https://www.google.com/maps?q=${encodeURIComponent(studioData.location.address)}`;
 
+  // IMPORTANT: This API key is public and safe to use. It's for a static map image service.
   const staticMapApiKey = 'Q3A33a_R-30O0p_T22zDs9xHkS9w3u8IuDW5WzR3E-8';
   const mapImageUrl = hasCoordinates 
     ? `https://image.maps.ls.hereapi.com/mia/1.6/mapview?apiKey=${staticMapApiKey}&c=${studioData.location.latitude},${studioData.location.longitude}&z=15&w=800&h=450`
@@ -267,13 +268,7 @@ export default function StudioDetailPage() {
                 </CardHeader>
                 <CardContent>
                    <div className="aspect-[16/9] bg-secondary rounded-lg overflow-hidden relative">
-                     {hasCoordinates ? (
-                        <Image src={mapImageUrl} alt={`Map of ${studioData.studioName}`} fill className="object-cover" />
-                     ) : (
-                        <div className="flex items-center justify-center h-full">
-                           <p className="text-muted-foreground">Location map will appear here once set.</p>
-                        </div>
-                     )}
+                     <Image src={mapImageUrl} alt={`Map of ${studioData.studioName}`} fill className="object-cover" />
                      <div className="absolute bottom-4 right-4">
                         <Button asChild>
                             <Link href={googleMapsUrl} target="_blank" rel="noopener noreferrer">
