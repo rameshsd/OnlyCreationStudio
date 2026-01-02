@@ -30,6 +30,12 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
       {
+        protocol: 'https' ,
+        hostname: 'image.maps.ls.hereapi.com' ,
+        port: '' ,
+        pathname: '/**'
+      },
+      {
         protocol: 'https',
         hostname: 'storage.googleapis.com',
         port: '',
