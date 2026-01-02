@@ -7,7 +7,7 @@ import { useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Calendar } from '@/components/ui/calendar';
-import { Star, MapPin, Camera, Mic, Lightbulb, Users, Clock, Loader2, AlertTriangle, Edit } from 'lucide-react';
+import { Star, MapPin, Camera, Mic, Lightbulb, Users, Clock, Loader2, AlertTriangle, Edit, Navigation } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useDoc } from '@/firebase/firestore/use-doc';
 import { useMemoFirebase } from '@/firebase/useMemoFirebase';
@@ -143,6 +143,30 @@ export default function StudioDetailPage() {
 
   const isOwner = user?.uid === studioData?.userProfileId;
 
+  const handleGetDirections = () => {
+    if (!studioData?.location.latitude || !studioData?.location.longitude) {
+      toast({ title: "Location not available", description: "This studio does not have coordinates set.", variant: "destructive" });
+      return;
+    }
+    if (!navigator.geolocation) {
+      toast({ title: "Geolocation not supported", description: "Your browser doesn't support geolocation.", variant: "destructive" });
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${latitude},${longitude}&destination=${studioData.location.latitude},${studioData.location.longitude}`;
+        window.open(googleMapsUrl, '_blank');
+      },
+      () => {
+        toast({ title: "Geolocation failed", description: "Could not get your location. Please ensure location services are enabled.", variant: "destructive" });
+      },
+      { enableHighAccuracy: true }
+    );
+  };
+
+
   const handleBooking = () => {
     if (!date || !selectedTime) {
       toast({ title: "Incomplete Selection", description: "Please select a date and time slot to book.", variant: "destructive" });
@@ -154,6 +178,13 @@ export default function StudioDetailPage() {
     toast({
       title: "Booking Confirmed!",
       description: `You've booked ${studioData?.studioName} on ${date.toLocaleDateString()} at ${selectedTime}.`,
+      action: (
+        <Button onClick={handleGetDirections} className="gap-2">
+            <Navigation className="h-4 w-4" />
+            Get Directions
+        </Button>
+      ),
+      duration: 10000, // Keep toast open longer
     });
   };
 
