@@ -180,9 +180,9 @@ export default function StudioDetailPage() {
   };
 
   const hasCoordinates = studioData.location?.latitude && studioData.location?.longitude;
-  const googleMapsUrl = hasCoordinates
-    ? `https://www.google.com/maps?q=${studioData.location.latitude},${studioData.location.longitude}`
-    : `https://www.google.com/maps?q=${encodeURIComponent(studioData.location.address)}`;
+  const googleMapsEmbedUrl = hasCoordinates
+    ? `https://www.google.com/maps/embed/v1/place?key=YOUR_API_KEY_HERE&q=${studioData.location.latitude},${studioData.location.longitude}`
+    : `https://www.google.com/maps/embed/v1/place?key=YOUR_API_KEY_HERE&q=${encodeURIComponent(studioData.location.address)}`;
 
   return (
     <div className="flex flex-col gap-8">
@@ -248,13 +248,21 @@ export default function StudioDetailPage() {
                 </CardHeader>
                 <CardContent>
                    <div className="space-y-4">
-                    <p className="text-muted-foreground">{studioData.location?.address}</p>
-                     <Button asChild>
-                        <Link href={googleMapsUrl} target="_blank" rel="noopener noreferrer">
-                            View Location on Google Maps
-                            <ArrowUpRight className="h-4 w-4 ml-2" />
-                        </Link>
-                    </Button>
+                      {hasCoordinates ? (
+                        <div className="aspect-video w-full">
+                          <iframe
+                            width="100%"
+                            height="100%"
+                            style={{ border: 0 }}
+                            loading="lazy"
+                            allowFullScreen
+                            src={`https://www.google.com/maps/embed/v1/view?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&center=${studioData.location.latitude},${studioData.location.longitude}&zoom=15`}
+                          ></iframe>
+                        </div>
+                      ) : (
+                        <p className="text-muted-foreground">Location coordinates not set. Only the address is available.</p>
+                      )}
+                      <p className="text-muted-foreground">{studioData.location?.address}</p>
                    </div>
                 </CardContent>
             </Card>
@@ -308,5 +316,3 @@ export default function StudioDetailPage() {
     </div>
   )
 }
-
-    
