@@ -143,11 +143,7 @@ export default function StudioDetailPage() {
 
   const isOwner = user?.uid === studioData?.userProfileId;
 
-  const handleGetDirections = () => {
-    if (!studioData?.location.latitude || !studioData?.location.longitude) {
-      toast({ title: "Location not available", description: "This studio does not have coordinates set.", variant: "destructive" });
-      return;
-    }
+  const handleNavigation = (isHomeProduction: boolean) => {
     if (!navigator.geolocation) {
       toast({ title: "Geolocation not supported", description: "Your browser doesn't support geolocation.", variant: "destructive" });
       return;
@@ -155,8 +151,28 @@ export default function StudioDetailPage() {
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const { latitude, longitude } = position.coords;
-        const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${latitude},${longitude}&destination=${studioData.location.latitude},${studioData.location.longitude}`;
+        const { latitude: currentLat, longitude: currentLng } = position.coords;
+        let origin: string, destination: string;
+
+        if (isHomeProduction) {
+          // Studio owner travels to customer
+          if (!studioData?.location.latitude || !studioData?.location.longitude) {
+            toast({ title: "Studio Location Missing", description: "Cannot generate route.", variant: "destructive" });
+            return;
+          }
+          origin = `${studioData.location.latitude},${studioData.location.longitude}`;
+          destination = `${currentLat},${currentLng}`;
+        } else {
+          // Customer travels to studio
+          if (!studioData?.location.latitude || !studioData?.location.longitude) {
+            toast({ title: "Studio Location Missing", description: "Cannot generate route.", variant: "destructive" });
+            return;
+          }
+          origin = `${currentLat},${currentLng}`;
+          destination = `${studioData.location.latitude},${studioData.location.longitude}`;
+        }
+        
+        const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}`;
         window.open(googleMapsUrl, '_blank');
       },
       () => {
@@ -179,12 +195,12 @@ export default function StudioDetailPage() {
       title: "Booking Confirmed!",
       description: `You've booked ${studioData?.studioName} on ${date.toLocaleDateString()} at ${selectedTime}.`,
       action: (
-        <Button onClick={handleGetDirections} className="gap-2">
+        <Button onClick={() => handleNavigation(!!isHomeProduction)} className="gap-2">
             <Navigation className="h-4 w-4" />
-            Get Directions
+            Begin Navigation
         </Button>
       ),
-      duration: 10000, // Keep toast open longer
+      duration: 10000,
     });
   };
 
@@ -193,7 +209,6 @@ export default function StudioDetailPage() {
         title: "Location Updated",
         description: "The studio location has been successfully updated.",
     });
-    // This will trigger the useDoc hook to refetch the data
     mutate();
   }
 
