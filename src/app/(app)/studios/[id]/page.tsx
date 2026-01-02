@@ -180,9 +180,10 @@ export default function StudioDetailPage() {
   };
 
   const hasCoordinates = studioData.location?.latitude && studioData.location?.longitude;
-  const googleMapsEmbedUrl = hasCoordinates
-    ? `https://www.google.com/maps/embed/v1/place?key=YOUR_API_KEY_HERE&q=${studioData.location.latitude},${studioData.location.longitude}`
-    : `https://www.google.com/maps/embed/v1/place?key=YOUR_API_KEY_HERE&q=${encodeURIComponent(studioData.location.address)}`;
+  
+  const openStreetMapEmbedUrl = hasCoordinates 
+  ? `https://www.openstreetmap.org/export/embed.html?bbox=${studioData.location.longitude - 0.005},${studioData.location.latitude - 0.005},${studioData.location.longitude + 0.005},${studioData.location.latitude + 0.005}&layer=mapnik&marker=${studioData.location.latitude},${studioData.location.longitude}`
+  : null;
 
   return (
     <div className="flex flex-col gap-8">
@@ -248,7 +249,7 @@ export default function StudioDetailPage() {
                 </CardHeader>
                 <CardContent>
                    <div className="space-y-4">
-                      {hasCoordinates ? (
+                      {openStreetMapEmbedUrl ? (
                         <div className="aspect-video w-full">
                           <iframe
                             width="100%"
@@ -256,7 +257,7 @@ export default function StudioDetailPage() {
                             style={{ border: 0 }}
                             loading="lazy"
                             allowFullScreen
-                            src={`https://www.google.com/maps/embed/v1/view?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&center=${studioData.location.latitude},${studioData.location.longitude}&zoom=15`}
+                            src={openStreetMapEmbedUrl}
                           ></iframe>
                         </div>
                       ) : (
