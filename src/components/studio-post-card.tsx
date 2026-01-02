@@ -25,7 +25,7 @@ export function StudioPostCard({ studio }: { studio: StudioProfile }) {
                         </Avatar>
                         <div>
                             <Link href={`/studios/${studio.id}`} className="font-bold hover:underline">{studio.studioName}</Link>
-                            <p className="text-xs text-muted-foreground flex items-center gap-1">{studio.location}</p>
+                            <p className="text-xs text-muted-foreground flex items-center gap-1">{studio.location?.address}</p>
                         </div>
                     </div>
                      <div className="flex items-center gap-2 flex-shrink-0 text-xs text-muted-foreground">
@@ -74,7 +74,7 @@ export function StudioPostCard({ studio }: { studio: StudioProfile }) {
                  <div className="w-full flex justify-between items-center">
                     <div className="flex items-center gap-2 text-muted-foreground text-sm">
                         <MapPin className="h-4 w-4" />
-                        <span>{studio.location}</span>
+                        <span>{studio.location?.address}</span>
                     </div>
                     <div className="text-lg font-bold text-primary">
                         ₹{studio.price}/hour
@@ -84,3 +84,5 @@ export function StudioPostCard({ studio }: { studio: StudioProfile }) {
         </Card>
     );
 }
+
+    

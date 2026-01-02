@@ -164,8 +164,22 @@
           "description": "Name of the studio."
         },
         "location": {
-          "type": "string",
-          "description": "Location of the studio."
+          "type": "object",
+          "description": "Location of the studio, including address and coordinates.",
+          "properties": {
+            "address": {
+              "type": "string",
+              "description": "The full address of the studio."
+            },
+            "latitude": {
+              "type": "number",
+              "description": "The latitude of the studio location."
+            },
+            "longitude": {
+              "type": "number",
+              "description": "The longitude of the studio location."
+            }
+          }
         },
         "photos": {
           "type": "array",
@@ -317,3 +331,5 @@
     "reasoning": "This simplified structure directly matches the user's confirmed list of collections: users, user_profiles, posts, projects, and studio_profiles. It uses a flat architecture for scalable queries, especially for the main post feed. User data is split between private 'users' and public 'user_profiles' for security. Statuses are a subcollection under user_profiles to enable efficient querying and collection group scans."
   }
 }
+
+    

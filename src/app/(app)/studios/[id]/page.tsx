@@ -7,14 +7,15 @@ import { useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Calendar } from '@/components/ui/calendar';
-import { Badge } from '@/components/ui/badge';
-import { Star, MapPin, Camera, Mic, Lightbulb, Users, Clock, Loader2, AlertTriangle } from 'lucide-react';
+import { Star, MapPin, Camera, Mic, Lightbulb, Users, Clock, Loader2, AlertTriangle, Edit } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useDoc } from '@/firebase/firestore/use-doc';
 import { useMemoFirebase } from '@/firebase/useMemoFirebase';
-import { doc } from 'firebase/firestore';
+import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/hooks/use-auth';
+import { LocationEditor } from './location-editor';
 
 // This would typically be fetched from an API
 const staticStudioData = {
@@ -32,8 +33,13 @@ interface FirestoreTimestamp {
 
 export interface StudioProfile {
     id: string;
+    userProfileId?: string;
     studioName: string;
-    location: string;
+    location: {
+        address: string;
+        latitude?: number;
+        longitude?: number;
+    };
     description: string;
     type: string;
     amenities: string[];
@@ -109,16 +115,20 @@ const StudioDetailSkeleton = () => (
 export default function StudioDetailPage() {
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [selectedTime, setSelectedTime] = useState<string | undefined>();
+  const [isLocationEditorOpen, setIsLocationEditorOpen] = useState(false);
   const { toast } = useToast();
   const params = useParams<{ id: string }>();
   const studioId = params.id;
+  const { user } = useAuth();
 
   const studioDocRef = useMemoFirebase(
     studioId ? doc(db, 'studio_profiles', studioId) : null,
     [studioId]
   );
 
-  const { data: studioData, isLoading } = useDoc<StudioProfile>(studioDocRef);
+  const { data: studioData, isLoading, mutate } = useDoc<StudioProfile>(studioDocRef);
+
+  const isOwner = user?.uid === studioData?.userProfileId;
 
   const handleBooking = () => {
     if (!date || !selectedTime) {
@@ -131,9 +141,19 @@ export default function StudioDetailPage() {
     }
     toast({
       title: "Booking Confirmed!",
-      description: `You\'ve booked ${studioData?.studioName} on ${date.toLocaleDateString()} at ${selectedTime}.`,
+      description: `You've booked ${studioData?.studioName} on ${date.toLocaleDateString()} at ${selectedTime}.`,
     });
   };
+
+  const onLocationUpdate = () => {
+    toast({
+        title: "Location Updated",
+        description: "The studio location has been successfully updated.",
+    });
+    // This will trigger the useDoc hook to refetch the data
+    mutate();
+  }
+
 
   if (isLoading) {
       return <StudioDetailSkeleton />;
@@ -169,8 +189,14 @@ export default function StudioDetailPage() {
             </div>
             <div className="flex items-center gap-1">
                 <MapPin className="w-5 h-5" />
-                <span>{studioData.location}</span>
+                <span>{studioData.location?.address || 'Location not set'}</span>
             </div>
+             {isOwner && (
+                <Button variant="outline" size="sm" onClick={() => setIsLocationEditorOpen(true)}>
+                    <Edit className="w-4 h-4 mr-2" />
+                    Edit Location
+                </Button>
+            )}
         </div>
       </div>
       
@@ -187,6 +213,27 @@ export default function StudioDetailPage() {
              <div key={`placeholder-${i}`} className="bg-secondary rounded-lg aspect-square" />
          ))}
       </div>
+
+       {studioData.location?.latitude && studioData.location?.longitude && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Location</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="aspect-video w-full rounded-lg overflow-hidden">
+                <iframe
+                    width="100%"
+                    height="100%"
+                    style={{ border: 0 }}
+                    loading="lazy"
+                    allowFullScreen
+                    referrerPolicy="no-referrer-when-downgrade"
+                    src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&q=${studioData.location.latitude},${studioData.location.longitude}`}>
+                </iframe>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
@@ -248,6 +295,17 @@ export default function StudioDetailPage() {
             </Card>
         </div>
       </div>
+       {isOwner && studioId && (
+        <LocationEditor
+          open={isLocationEditorOpen}
+          onOpenChange={setIsLocationEditorOpen}
+          studioId={studioId}
+          currentLocation={studioData.location}
+          onLocationUpdate={onLocationUpdate}
+        />
+      )}
     </div>
   )
 }
+
+    

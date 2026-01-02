@@ -1,13 +1,14 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   onSnapshot,
   DocumentData,
   FirestoreError,
   DocumentSnapshot,
   DocumentReference,
+  getDoc,
 } from "firebase/firestore";
 import { errorEmitter } from "../error-emitter";
 import { FirestorePermissionError } from "../errors";
@@ -20,6 +21,7 @@ export interface UseDocResult<T> {
   data: WithId<T> | null;
   isLoading: boolean;
   error: FirestoreError | Error | null;
+  mutate: () => void;
 }
 
 export function useDoc<T = any>(
@@ -28,6 +30,31 @@ export function useDoc<T = any>(
   const [data, setData] = useState<WithId<T> | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<FirestoreError | Error | null>(null);
+
+  const mutate = useCallback(() => {
+    if (!memoizedDocRef) return;
+    setIsLoading(true);
+    getDoc(memoizedDocRef)
+      .then((snapshot) => {
+        if (snapshot.exists()) {
+          setData({ ...(snapshot.data() as T), id: snapshot.id });
+        } else {
+          setData(null);
+        }
+        setError(null);
+      })
+      .catch((err) => {
+        const contextualError = new FirestorePermissionError({
+          operation: 'get',
+          path: memoizedDocRef.path
+        });
+        setError(contextualError);
+        errorEmitter.emit('permission-error', contextualError);
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  }, [memoizedDocRef]);
 
   useEffect(() => {
     if (!memoizedDocRef) {
@@ -67,5 +94,7 @@ export function useDoc<T = any>(
     return () => unsubscribe();
   }, [memoizedDocRef]);
 
-  return { data, isLoading, error };
+  return { data, isLoading, error, mutate };
 }
+
+    
