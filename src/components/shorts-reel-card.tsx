@@ -50,7 +50,7 @@ export function ShortsReelCard() {
                 <div className="group relative h-64 w-40 flex-shrink-0 overflow-hidden rounded-lg">
                   <Image
                     src={getThumbnailUrl(short.videoUrl)}
-                    alt={short.caption || short.username}
+                    alt={short.caption || short.username || 'Short video thumbnail'}
                     fill
                     className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                     data-ai-hint="short video"
