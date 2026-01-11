@@ -52,31 +52,33 @@ export function StoryReel() {
 
   // IDs of self + following
   const relevantUserIds = useMemo(() => {
-    return [...new Set([user?.uid, ...(userData?.following || [])])].filter(
+    if (!user?.uid) return [];
+    return [...new Set([user.uid, ...(userData?.following || [])])].filter(
       Boolean
     ) as string[];
-  }, [user, userData?.following]);
+  }, [user?.uid, userData?.following]);
 
   // Query for all statuses, will filter client-side to avoid index requirement
   const statusesQuery = useMemoFirebase(
-    query(
-      collectionGroup(db, "statuses")
-    ),
-    []
+    relevantUserIds.length > 0
+      ? query(
+          collectionGroup(db, "statuses"),
+          where('userId', 'in', relevantUserIds)
+        )
+      : null,
+    [relevantUserIds]
   );
 
   // Fetch statuses
   const { data: allStatuses, isLoading: statusesLoading } =
     useCollection<Status>(statusesQuery);
 
-  // Filter by expiration and userId on the client
+  // Filter by expiration on the client
   const statuses = useMemo(() => {
     if (!allStatuses) return [];
     const now = Timestamp.now();
-    return allStatuses.filter(s => 
-        s.expiresAt > now && relevantUserIds.includes(s.userId)
-    );
-  }, [allStatuses, relevantUserIds]);
+    return allStatuses.filter(s => s.expiresAt > now);
+  }, [allStatuses]);
 
   const uniqueStoryUserIds = useMemo(() => {
     const ids = new Set(statuses.map((s) => s.userId));
@@ -98,8 +100,20 @@ export function StoryReel() {
 
     const fetchProfiles = async () => {
       try {
+        // Fetch only the profiles for which we have stories or the current user.
+        const idsToFetch = Array.from(new Set(statuses.map(s => s.userId)));
+        if (user && !idsToFetch.includes(user.uid)) {
+          idsToFetch.push(user.uid);
+        }
+
+        if (idsToFetch.length === 0) {
+          setProfiles([]);
+          setProfilesLoading(false);
+          return;
+        }
+
         const docs = await Promise.all(
-          uniqueStoryUserIds.map((id) => getDoc(doc(db, "user_profiles", id)))
+          idsToFetch.map((id) => getDoc(doc(db, "user_profiles", id)))
         );
 
         const list = docs
@@ -112,10 +126,6 @@ export function StoryReel() {
               } as UserProfile)
           );
 
-        if (user && userData && !list.some((p) => p.id === user.uid)) {
-          list.push(userData as UserProfile);
-        }
-
         setProfiles(list);
       } catch(e) {
         console.error("Error fetching user profiles for stories", e);
@@ -126,7 +136,7 @@ export function StoryReel() {
     };
 
     fetchProfiles();
-  }, [uniqueStoryUserIds, user, userData, authLoading]);
+  }, [statuses, user, userData, authLoading]);
 
   // Combine users + stories
   const usersWithStories = useMemo<UserProfileWithStories[]>(() => {
@@ -266,5 +276,3 @@ export function StoryReel() {
     </>
   );
 }
-
-    

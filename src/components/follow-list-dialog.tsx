@@ -51,8 +51,8 @@ export function FollowListDialog({ userId, type, open, onOpenChange, initialCoun
     
     // Memoize the list of users the current user is following
     const myFollowingQuery = useMemoFirebase(
-        currentUser ? query(collection(db, "follows"), where("followerId", "==", currentUser.uid)) : null,
-        [currentUser]
+        currentUser?.uid ? query(collection(db, "follows"), where("followerId", "==", currentUser.uid)) : null,
+        [currentUser?.uid]
     );
     const { data: myFollowingDocs } = useCollection(myFollowingQuery);
     const myFollowingIds = useMemo(() => new Set(myFollowingDocs?.map(doc => doc.followingId) || []), [myFollowingDocs]);
@@ -172,5 +172,3 @@ export function FollowListDialog({ userId, type, open, onOpenChange, initialCoun
         </Dialog>
     );
 }
-
-    

@@ -134,7 +134,7 @@ export default function StudioDetailPage() {
   const isOwner = user?.uid === studioData?.userProfileId;
 
   const bookingsQuery = useMemoFirebase(
-    (studioId && date)
+    studioId && date
       ? query(
           collection(db, 'studio_profiles', studioId, 'bookings'),
           where('date', '==', format(date, 'yyyy-MM-dd'))
@@ -404,5 +404,3 @@ export default function StudioDetailPage() {
     </div>
   )
 }
-
-    

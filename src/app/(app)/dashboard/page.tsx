@@ -51,7 +51,7 @@ const SuggestionsCard = () => {
     // Memoize the query for currently followed users
     const followingQuery = useMemoFirebase(
       user?.uid ? query(collection(db, "follows"), where("followerId", "==", user.uid)) : null,
-      [user]
+      [user?.uid]
     );
     const { data: followingDocs } = useCollection(followingQuery);
     const followingIds = useMemo(() => followingDocs?.map(doc => doc.followingId) || [], [followingDocs]);
@@ -323,5 +323,3 @@ export default function DashboardPage() {
     </>
   );
 }
-
-    

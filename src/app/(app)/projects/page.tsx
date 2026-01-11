@@ -41,7 +41,7 @@ export default function ProjectsPage() {
     
     const projectsQuery = useMemoFirebase(
         user?.uid ? query(collection(db, "projects"), where("ownerId", "==", user.uid)) : null,
-        [user]
+        [user?.uid]
     );
     
     const { data: projects, isLoading: loading } = useCollection<Project>(projectsQuery);
@@ -104,5 +104,3 @@ export default function ProjectsPage() {
         </div>
     );
 }
-
-    
