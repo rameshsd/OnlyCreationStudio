@@ -107,7 +107,23 @@ export function ShortsReelCard() {
         </div>
       </CardContent>
     </Card>
-  );
+  </change>
+  <change>
+    <file>src/lib/types.ts</file>
+    <content><![CDATA[
+import type { Timestamp } from 'firebase/firestore';
+
+export interface Status {
+  id: string;
+  userId: string;
+  mediaUrl: string;
+  mediaType: "image" | "video" | "text" | "link";
+  text?: string;
+  backgroundColor?: string;
+  createdAt: Timestamp;
+  expiresAt: Timestamp;
+  viewers: string[];
+  duration?: number;
 }
 
 <<<<<<< HEAD
