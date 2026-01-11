@@ -211,12 +211,12 @@ export default function ProfilePage() {
 
     const [isFavorited, setIsFavorited] = useState(false);
 
-    const allPostsQuery = useMemoFirebase(
+    const userPostsQuery = useMemoFirebase(
       profileUserId ? query(collection(db, "posts"), where("userId", "==", profileUserId)) : null,
       [profileUserId]
     );
 
-    const { data: userPosts, isLoading: postsLoading } = useCollection<Post>(allPostsQuery);
+    const { data: userPosts, isLoading: postsLoading } = useCollection<Post>(userPostsQuery);
 
 
     const userPortfolioQuery = useMemoFirebase(
