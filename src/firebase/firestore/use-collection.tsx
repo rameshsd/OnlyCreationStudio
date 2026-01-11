@@ -32,9 +32,19 @@ export function useCollection<T = any>(
   const [error, setError] = useState<FirestoreError | Error | null>(null);
 
   useEffect(() => {
+    // Primary guard: If the query is null, do nothing.
     if (!memoizedQuery) {
       setData(null);
       setIsLoading(false);
+      return;
+    }
+
+    // **Defensive Guard**: Check if the path of the query contains "undefined".
+    // This catches cases where a dynamic part of the path (like a user ID) is not ready.
+    if ((memoizedQuery as CollectionReference).path.includes('undefined')) {
+      setData(null);
+      setIsLoading(false);
+      // We don't set an error here because this is an expected state during initial render.
       return;
     }
 
