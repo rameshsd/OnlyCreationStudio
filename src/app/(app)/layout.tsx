@@ -158,7 +158,7 @@ function BottomNavBar() {
   );
 }
 
-export function AppLayout({ children }: { children: ReactNode }) {
+export default function AppLayout({ children }: { children: ReactNode }) {
   const isMobile = useIsMobile();
   const pathname = usePathname();
   const { user, userData, loading, logout } = useAuth();
