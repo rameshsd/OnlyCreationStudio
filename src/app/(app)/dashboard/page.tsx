@@ -48,9 +48,6 @@ const SuggestionsCard = () => {
     const [isPending, startTransition] = useTransition();
     const { toast } = useToast();
 
-    // New state to track if the initial following list is ready
-    const [isFollowingDataReady, setIsFollowingDataReady] = useState(false);
-
     const followingQuery = useMemoFirebase(
       user?.uid ? query(collection(db, "follows"), where("followerId", "==", user.uid)) : null,
       [user?.uid]
@@ -58,24 +55,18 @@ const SuggestionsCard = () => {
     const { data: followingDocs, isLoading: isFollowingLoading } = useCollection(followingQuery);
     const followingIds = useMemo(() => followingDocs?.map(doc => doc.followingId) || [], [followingDocs]);
 
-    // This effect now explicitly sets the readiness flag
     useEffect(() => {
-        if (!isFollowingLoading) {
-            setIsFollowingDataReady(true);
+        if (isFollowingLoading || !user) {
+            return;
         }
-    }, [isFollowingLoading]);
 
-    useEffect(() => {
-        // **Strict Guard**: Do not proceed if the user is not loaded OR the following data is not ready.
-        if (!user || !isFollowingDataReady) return;
-        
         const fetchSuggestions = async () => {
             try {
                 setLoading(true);
                 const usersToExclude = [user.uid, ...followingIds];
                 
                 // Firestore 'not-in' queries are limited to 10 items.
-                // Fetching a batch and filtering client-side is a temporary workaround.
+                // Fetching a batch and filtering client-side is a common workaround.
                 const q = query(collection(db, "user_profiles"), limit(50));
                 
                 const querySnapshot = await getDocs(q);
@@ -102,7 +93,7 @@ const SuggestionsCard = () => {
 
         fetchSuggestions();
         
-    }, [user, followingIds, isFollowingDataReady]); // Depend on the readiness flag
+    }, [user, followingIds, isFollowingLoading]);
 
     const handleFollow = (targetUserId: string) => {
         if (!user) return;
@@ -134,7 +125,7 @@ const SuggestionsCard = () => {
         });
     };
 
-    if (loading || !isFollowingDataReady) {
+    if (loading || isFollowingLoading) {
         return (
             <Card>
                 <CardHeader><h3 className="font-bold">Suggested for you</h3></CardHeader>
@@ -227,13 +218,13 @@ export default function DashboardPage() {
     const [activeFilter, setActiveFilter] = useState("All");
 
     const postsQuery = useMemoFirebase(
-        query(collection(db, "posts"), orderBy("createdAt", "desc")),
+        () => query(collection(db, "posts"), orderBy("createdAt", "desc")),
         []
     );
     const { data: posts, isLoading: postsLoading } = useCollection<Post>(postsQuery);
 
     const studiosQuery = useMemoFirebase(
-        query(collection(db, "studio_profiles")),
+        () => query(collection(db, "studio_profiles")),
         []
     );
     const { data: studios, isLoading: studiosLoading } = useCollection<StudioProfile>(studiosQuery);
