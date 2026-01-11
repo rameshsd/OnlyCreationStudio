@@ -15,6 +15,7 @@ import { type Short } from "@/lib/shorts-data";
 import type { Short } from "@/lib/types";
 >>>>>>> 0781c7f (I should be able to upload Shorts and displayed shorts should be dynamic)
 import { Skeleton } from "./ui/skeleton";
+import Image from 'next/image';
 
 const ShortSkeleton = () => (
   <div className="group relative h-64 w-40 flex-shrink-0 overflow-hidden rounded-lg bg-secondary">
@@ -66,8 +67,10 @@ export function ShortsReelCard() {
 >>>>>>> 0781c7f (I should be able to upload Shorts and displayed shorts should be dynamic)
               <Link href="/shorts" key={short.id}>
                 <div className="group relative h-64 w-40 flex-shrink-0 overflow-hidden rounded-lg">
-                  <video
-                    src={short.videoUrl}
+                  <Image
+                    src={getThumbnailUrl(short.videoUrl)}
+                    alt={short.caption || short.username}
+                    fill
                     className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                     muted
                     playsInline
