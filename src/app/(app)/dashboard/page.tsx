@@ -48,33 +48,40 @@ const SuggestionsCard = () => {
     const [isPending, startTransition] = useTransition();
     const { toast } = useToast();
 
+    // New state to track if the initial following list is ready
+    const [isFollowingDataReady, setIsFollowingDataReady] = useState(false);
+
     const followingQuery = useMemoFirebase(
       user?.uid ? query(collection(db, "follows"), where("followerId", "==", user.uid)) : null,
       [user?.uid]
     );
-    const { data: followingDocs } = useCollection(followingQuery);
+    const { data: followingDocs, isLoading: isFollowingLoading } = useCollection(followingQuery);
     const followingIds = useMemo(() => followingDocs?.map(doc => doc.followingId) || [], [followingDocs]);
 
+    // This effect now explicitly sets the readiness flag
     useEffect(() => {
-        if (!user) return;
+        if (!isFollowingLoading) {
+            setIsFollowingDataReady(true);
+        }
+    }, [isFollowingLoading]);
+
+    useEffect(() => {
+        // **Strict Guard**: Do not proceed if the user is not loaded OR the following data is not ready.
+        if (!user || !isFollowingDataReady) return;
         
-        // This effect should only depend on user and the finalized followingIds list.
         const fetchSuggestions = async () => {
             try {
                 setLoading(true);
-                // Important: Include the current user's ID in the exclusion list.
                 const usersToExclude = [user.uid, ...followingIds];
                 
                 // Firestore 'not-in' queries are limited to 10 items.
-                // A scalable solution would involve server-side logic or more complex client-side filtering.
-                // For this demo, we fetch a batch of users and filter them.
+                // Fetching a batch and filtering client-side is a temporary workaround.
                 const q = query(collection(db, "user_profiles"), limit(50));
                 
                 const querySnapshot = await getDocs(q);
                 
                 const fetchedUsers: Suggestion[] = [];
                 querySnapshot.forEach(doc => {
-                    // Exclude users who are already being followed or are the current user.
                     if (!usersToExclude.includes(doc.id)) {
                         const data = doc.data();
                         fetchedUsers.push({
@@ -84,7 +91,7 @@ const SuggestionsCard = () => {
                         });
                     }
                 });
-                // Take the top 5 suggestions from the filtered list.
+                
                 setSuggestions(fetchedUsers.slice(0, 5));
             } catch (e) {
                 console.error("Failed to fetch suggestions:", e);
@@ -95,7 +102,7 @@ const SuggestionsCard = () => {
 
         fetchSuggestions();
         
-    }, [user, followingIds]);
+    }, [user, followingIds, isFollowingDataReady]); // Depend on the readiness flag
 
     const handleFollow = (targetUserId: string) => {
         if (!user) return;
@@ -127,7 +134,7 @@ const SuggestionsCard = () => {
         });
     };
 
-    if (loading) {
+    if (loading || !isFollowingDataReady) {
         return (
             <Card>
                 <CardHeader><h3 className="font-bold">Suggested for you</h3></CardHeader>
@@ -329,3 +336,5 @@ export default function DashboardPage() {
     </>
   );
 }
+
+    
