@@ -45,7 +45,7 @@ export default function ShortsPage() {
   };
 
   useEffect(() => {
-    if (!shorts) return;
+    if (!shorts || shorts.length === 0) return;
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -120,5 +120,3 @@ export default function ShortsPage() {
     </div>
   );
 }
-
-    
