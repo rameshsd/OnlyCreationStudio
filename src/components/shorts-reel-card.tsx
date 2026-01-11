@@ -28,10 +28,10 @@ export function ShortsReelCard() {
 
   const getThumbnailUrl = (videoUrl: string) => {
     // Basic thumbnail logic, may need adjustment based on video provider
-    if (videoUrl.includes('storage.googleapis.com')) {
-        return videoUrl; // Google Cloud Storage doesn't have a simple thumbnail convention
+    if (videoUrl.includes('res.cloudinary.com')) {
+        return videoUrl.replace(/\.(mp4|mov|avi|wmv|flv|mkv|webm)$/i, '.jpg');
     }
-    return videoUrl.replace(/\.(mp4|mov|avi|wmv|flv|mkv|webm)$/i, '.jpg');
+    return videoUrl; // fallback for other providers
   }
 
   return (
@@ -52,13 +52,12 @@ export function ShortsReelCard() {
             shorts.map((short) => (
               <Link href="/shorts" key={short.id}>
                 <div className="group relative h-64 w-40 flex-shrink-0 overflow-hidden rounded-lg">
-                  {/* We can't reliably get a thumbnail from the URL, so we'll just show the video and let the browser handle it.
-                      A better solution would be to generate and store thumbnails upon upload.
-                  */}
-                  <video
-                    src={short.videoUrl}
+                  <Image
+                    src={getThumbnailUrl(short.videoUrl)}
+                    alt={short.caption || `A short by ${short.username}`}
+                    fill
                     className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                    preload="metadata"
+                    data-ai-hint="short video thumbnail"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                   <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100">

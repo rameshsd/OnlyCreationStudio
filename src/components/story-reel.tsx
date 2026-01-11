@@ -266,5 +266,3 @@ export function StoryReel() {
     </>
   );
 }
-
-    
