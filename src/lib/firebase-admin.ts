@@ -22,4 +22,4 @@ const adminApp = createAdminApp();
 const adminDb = getFirestore(adminApp);
 const adminStorage = getStorage(adminApp);
 
-export { adminDb, adminStorage };
+export { adminApp, adminDb, adminStorage };

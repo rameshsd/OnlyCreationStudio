@@ -5,6 +5,11 @@ import { adminDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { revalidatePath } from 'next/cache';
 
+// This is a placeholder function. In a real app, you'd fetch this from a DB.
+const getFollowDocRef = (followerId: string, followingId: string) => {
+    return adminDb.collection('follows').doc(`${followerId}_${followingId}`);
+}
+
 export async function followUserAction(
   currentUserId: string,
   targetUserId: string
@@ -17,16 +22,13 @@ export async function followUserAction(
   }
 
   try {
-    const currentUserRef = adminDb.doc(`user_profiles/${currentUserId}`);
-    const targetUserRef = adminDb.doc(`user_profiles/${targetUserId}`);
-
-    const batch = adminDb.batch();
-
-    batch.update(currentUserRef, { following: FieldValue.arrayUnion(targetUserId) });
-    // Add current user to target's followers list
-    batch.update(targetUserRef, { followers: FieldValue.arrayUnion(currentUserId) });
-
-    await batch.commit();
+    const followDocRef = getFollowDocRef(currentUserId, targetUserId);
+    
+    await followDocRef.set({
+      followerId: currentUserId,
+      followingId: targetUserId,
+      createdAt: FieldValue.serverTimestamp()
+    });
 
     revalidatePath(`/profile/${targetUserId}`);
     revalidatePath(`/profile/${currentUserId}`);
@@ -50,16 +52,8 @@ export async function unfollowUserAction(
   }
 
   try {
-    const currentUserRef = adminDb.doc(`user_profiles/${currentUserId}`);
-    const targetUserRef = adminDb.doc(`user_profiles/${targetUserId}`);
-
-    const batch = adminDb.batch();
-
-    batch.update(currentUserRef, { following: FieldValue.arrayRemove(targetUserId) });
-    // Remove current user from target's followers list
-    batch.update(targetUserRef, { followers: FieldValue.arrayRemove(currentUserId) });
-
-    await batch.commit();
+    const followDocRef = getFollowDocRef(currentUserId, targetUserId);
+    await followDocRef.delete();
 
     revalidatePath(`/profile/${targetUserId}`);
     revalidatePath(`/profile/${currentUserId}`);

@@ -1,7 +1,7 @@
 
 import { NextResponse, NextRequest } from 'next/server';
 import { auth } from 'firebase-admin';
-import { adminDb, adminApp } from '@/lib/firebase-admin'; // Import adminApp for initialization check
+import { adminApp } from '@/lib/firebase-admin'; // Import adminApp for initialization check
 
 export async function POST(request: NextRequest) {
     const authorization = request.headers.get('Authorization');
