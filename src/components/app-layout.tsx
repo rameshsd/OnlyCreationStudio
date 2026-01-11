@@ -142,8 +142,8 @@ function BottomNavBar() {
             <Link href="/create">
                 <Camera className="h-7 w-7"/>
                 <span className="sr-only">Create</span>
-            </Link>
-        </Button>
+            </div>
+        </Link>
         <Link href="/messages" className={cn("flex flex-col items-center justify-center gap-1", pathname.startsWith("/messages") ? "text-primary" : "text-muted-foreground")}>
           <MessageSquare />
           <span className="text-xs font-medium">Chats</span>
