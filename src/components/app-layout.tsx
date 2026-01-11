@@ -136,12 +136,12 @@ function BottomNavBar() {
           <Search />
           <span className="text-xs font-medium">Explore</span>
         </Link>
-        <Button asChild size="lg" className="rounded-full w-14 h-14 shadow-lg bg-primary hover:bg-primary/90 scale-110 -translate-y-2 bg-gradient-to-br from-primary to-primary/70">
-            <Link href="/create">
+        <Link href="/create" className="flex justify-center">
+            <div className="flex items-center justify-center rounded-full w-14 h-14 shadow-lg bg-primary hover:bg-primary/90 scale-110 -translate-y-2 bg-gradient-to-br from-primary to-primary/70 text-primary-foreground">
                 <Camera className="h-6 w-6"/>
                 <span className="sr-only">Create</span>
-            </Link>
-        </Button>
+            </div>
+        </Link>
         <Link href="/messages" className={cn("flex flex-col items-center justify-center gap-1", pathname.startsWith("/messages") ? "text-primary" : "text-muted-foreground")}>
           <MessageSquare />
           <span className="text-xs font-medium">Chats</span>
