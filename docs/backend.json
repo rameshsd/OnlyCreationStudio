@@ -257,6 +257,24 @@
         "createdAt",
         "expiresAt"
       ]
+    },
+    "Short": {
+      "title": "Short",
+      "type": "object",
+      "description": "Represents a short video clip, similar to TikTok or Instagram Reels.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the short video." },
+        "userId": { "type": "string", "description": "ID of the user who uploaded the short." },
+        "username": { "type": "string", "description": "Username of the uploader." },
+        "userAvatar": { "type": "string", "format": "uri", "description": "URL of the uploader's avatar." },
+        "videoUrl": { "type": "string", "format": "uri", "description": "URL of the video file." },
+        "caption": { "type": "string", "description": "Caption for the short video." },
+        "likes": { "type": "number", "description": "Number of likes." },
+        "comments": { "type": "number", "description": "Number of comments." },
+        "shares": { "type": "number", "description": "Number of shares." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp when the short was created." }
+      },
+      "required": ["id", "userId", "videoUrl", "createdAt"]
     }
   },
   "auth": {
@@ -326,9 +344,19 @@
           },
           "description": "A top-level collection for all studio profiles."
         }
+      },
+       {
+        "path": "/shorts/{shortId}",
+        "definition": {
+          "entityName": "Short",
+          "schema": {
+            "$ref": "#/entities/Short"
+          },
+          "description": "A top-level collection for all short videos, enabling an aggregated feed."
+        }
       }
     ],
-    "reasoning": "This simplified structure directly matches the user's confirmed list of collections: users, user_profiles, posts, projects, and studio_profiles. It uses a flat architecture for scalable queries, especially for the main post feed. User data is split between private 'users' and public 'user_profiles' for security. Statuses are a subcollection under user_profiles to enable efficient querying and collection group scans."
+    "reasoning": "This simplified structure directly matches the user's confirmed list of collections: users, user_profiles, posts, projects, and studio_profiles. It uses a flat architecture for scalable queries, especially for the main post feed. User data is split between private 'users' and public 'user_profiles' for security. Statuses are a subcollection under user_profiles to enable efficient querying and collection group scans. Shorts are in their own top-level collection for a global feed."
   }
 }
 

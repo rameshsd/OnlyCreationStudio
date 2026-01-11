@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -11,11 +12,12 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { Loader2, Film, ImageIcon } from 'lucide-react';
+import { Loader2, Film, ImageIcon, Video } from 'lucide-react';
 import Image from 'next/image';
 import { uploadPhoto } from './actions';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { errorEmitter } from '@/firebase/error-emitter';
+import Link from 'next/link';
 
 export default function CreatePostPage() {
   const { user, userData } = useAuth();
@@ -150,6 +152,14 @@ export default function CreatePostPage() {
               </Label>
               <Input id="picture" type="file" className="sr-only" onChange={handleFileChange} accept="image/*,video/*" disabled={loading} />
             </div>
+            <div className="border-t pt-4">
+              <Button asChild variant="secondary" className="w-full">
+                <Link href="/create/short">
+                  <Video className="mr-2 h-5 w-5" />
+                  Create a Short Video
+                </Link>
+              </Button>
+            </div>
           </CardContent>
           <CardFooter className="flex justify-end">
             <Button type="submit" disabled={loading}>
@@ -162,3 +172,5 @@ export default function CreatePostPage() {
     </div>
   );
 }
+
+    

@@ -38,6 +38,13 @@ service cloud.firestore {
       allow write: if isSignedIn() && request.auth.uid == request.resource.data.userId;
     }
 
+    match /shorts/{shortId} {
+      // Any signed-in user can read shorts
+      allow read: if isSignedIn();
+      // Only the owner can write a short
+      allow write: if isSignedIn() && request.auth.uid == request.resource.data.userId;
+    }
+
     match /studio_profiles/{studioProfileId} {
       allow read: if isSignedIn();
       allow write: if isSignedIn() && request.auth.uid == request.resource.data.userProfileId;
@@ -49,3 +56,5 @@ service cloud.firestore {
     }
   }
 }
+
+    

@@ -1,11 +1,11 @@
+
 "use client";
 
 import { useState, useRef, useEffect } from 'react';
-import Image from 'next/image';
 import { Button } from './ui/button';
 import { Heart, MessageCircle, Share2, Play, Pause, Volume2, VolumeX } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
-import { type Short } from '@/lib/shorts-data';
+import type { Short } from '@/lib/types';
 
 export function VideoCard({ video, isActive }: { video: Short, isActive: boolean }) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -14,7 +14,7 @@ export function VideoCard({ video, isActive }: { video: Short, isActive: boolean
 
   useEffect(() => {
     if (isActive) {
-      videoRef.current?.play();
+      videoRef.current?.play().catch(error => console.error("Video play failed:", error));
       setIsPlaying(true);
     } else {
       videoRef.current?.pause();
@@ -24,7 +24,7 @@ export function VideoCard({ video, isActive }: { video: Short, isActive: boolean
 
   const togglePlay = () => {
     if (videoRef.current?.paused) {
-      videoRef.current?.play();
+      videoRef.current?.play().catch(error => console.error("Video play failed:", error));
       setIsPlaying(true);
     } else {
       videoRef.current?.pause();
@@ -51,15 +51,15 @@ export function VideoCard({ video, isActive }: { video: Short, isActive: boolean
         onClick={togglePlay}
       />
 
-      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20 pointer-events-none" />
 
-      <div className="absolute bottom-0 left-0 p-4 text-white w-full">
+      <div className="absolute bottom-0 left-0 p-4 text-white w-full pointer-events-none">
         <div className="flex items-center gap-2">
             <Avatar className="h-10 w-10 border-2 border-white">
-                <AvatarImage src={video.user.avatar} alt={video.user.name} data-ai-hint="creator avatar" />
-                <AvatarFallback>{video.user.name.slice(0,2)}</AvatarFallback>
+                <AvatarImage src={video.userAvatar} alt={video.username} data-ai-hint="creator avatar" />
+                <AvatarFallback>{video.username?.slice(0,2)}</AvatarFallback>
             </Avatar>
-            <p className="font-bold">{video.user.name}</p>
+            <p className="font-bold">{video.username}</p>
         </div>
         <p className="mt-2 text-sm">{video.caption}</p>
       </div>
@@ -93,3 +93,5 @@ export function VideoCard({ video, isActive }: { video: Short, isActive: boolean
     </div>
   );
 }
+
+    
