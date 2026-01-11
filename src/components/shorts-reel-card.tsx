@@ -11,6 +11,7 @@ import { collection, query, orderBy, limit } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { Short } from "@/lib/types";
 import { Skeleton } from "./ui/skeleton";
+import Image from 'next/image';
 
 const ShortSkeleton = () => (
   <div className="group relative h-64 w-40 flex-shrink-0 overflow-hidden rounded-lg bg-secondary">
@@ -24,6 +25,10 @@ const ShortSkeleton = () => (
 export function ShortsReelCard() {
   const shortsQuery = useMemoFirebase(query(collection(db, "shorts"), orderBy("createdAt", "desc"), limit(5)), []);
   const { data: shorts, isLoading } = useCollection<Short>(shortsQuery);
+
+  const getThumbnailUrl = (videoUrl: string) => {
+    return videoUrl.replace(/\.(mp4|mov|avi|wmv|flv|mkv|webm)$/i, '.jpg');
+  }
 
   return (
     <Card>
@@ -43,11 +48,12 @@ export function ShortsReelCard() {
             shorts.map((short) => (
               <Link href="/shorts" key={short.id}>
                 <div className="group relative h-64 w-40 flex-shrink-0 overflow-hidden rounded-lg">
-                  <video
-                    src={short.videoUrl}
+                  <Image
+                    src={getThumbnailUrl(short.videoUrl)}
+                    alt={short.caption || short.username}
+                    fill
                     className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                    muted
-                    playsInline
+                    data-ai-hint="short video"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                   <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100">
