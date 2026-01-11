@@ -9,12 +9,9 @@ import { useCollection } from "@/firebase/firestore/use-collection";
 import { useMemoFirebase } from "@/firebase/useMemoFirebase";
 import { collection, query, orderBy, limit } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-<<<<<<< HEAD
-import { type Short } from "@/lib/shorts-data";
-=======
 import type { Short } from "@/lib/types";
->>>>>>> 0781c7f (I should be able to upload Shorts and displayed shorts should be dynamic)
 import { Skeleton } from "./ui/skeleton";
+import Image from 'next/image';
 import Image from 'next/image';
 
 const ShortSkeleton = () => (
@@ -42,7 +39,10 @@ export function ShortsReelCard() {
 export function ShortsReelCard() {
   const shortsQuery = useMemoFirebase(query(collection(db, "shorts"), orderBy("createdAt", "desc"), limit(5)), []);
   const { data: shorts, isLoading } = useCollection<Short>(shortsQuery);
->>>>>>> 0781c7f (I should be able to upload Shorts and displayed shorts should be dynamic)
+
+  const getThumbnailUrl = (videoUrl: string) => {
+    return videoUrl.replace(/\.(mp4|mov|avi|wmv|flv|mkv|webm)$/i, '.jpg');
+  }
 
   return (
     <Card>
@@ -69,15 +69,10 @@ export function ShortsReelCard() {
                 <div className="group relative h-64 w-40 flex-shrink-0 overflow-hidden rounded-lg">
                   <Image
                     src={getThumbnailUrl(short.videoUrl)}
-                    alt={short.caption || short.username || 'Short video thumbnail'}
+                    alt={short.caption || short.username}
                     fill
                     className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                    muted
-                    playsInline
-<<<<<<< HEAD
-                    preload="metadata"
-=======
->>>>>>> 0781c7f (I should be able to upload Shorts and displayed shorts should be dynamic)
+                    data-ai-hint="short video"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                   <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100">
