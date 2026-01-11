@@ -10,7 +10,6 @@ import { Calendar } from '@/components/ui/calendar';
 import { Star, MapPin, Camera, Mic, Lightbulb, Users, Clock, Loader2, AlertTriangle, Edit, Building, Home } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useDoc } from '@/firebase/firestore/use-doc';
-import { useMemoFirebase } from '@/firebase/useMemoFirebase';
 import { doc, updateDoc, collection, query, where, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -124,24 +123,22 @@ export default function StudioDetailPage() {
   const studioId = params.id;
   const { user } = useAuth();
 
-  const studioDocRef = useMemoFirebase(
-    studioId ? doc(db, 'studio_profiles', studioId) : null,
-    [studioId]
-  );
+  const studioDocRef = useMemo(() => {
+    if (!studioId) return null;
+    return doc(db, 'studio_profiles', studioId);
+  }, [studioId]);
 
   const { data: studioData, isLoading, mutate } = useDoc<StudioProfile>(studioDocRef);
 
   const isOwner = user?.uid === studioData?.userProfileId;
 
-  const bookingsQuery = useMemoFirebase(
-    studioId && date
-      ? query(
-          collection(db, 'studio_profiles', studioId, 'bookings'),
-          where('date', '==', format(date, 'yyyy-MM-dd'))
-        )
-      : null,
-    [studioId, date]
-  );
+  const bookingsQuery = useMemo(() => {
+    if (!studioId || !date) return null;
+    return query(
+        collection(db, 'studio_profiles', studioId, 'bookings'),
+        where('date', '==', format(date, 'yyyy-MM-dd'))
+      );
+  }, [studioId, date]);
   
   const { data: bookings, isLoading: bookingsLoading } = useCollection<Booking>(bookingsQuery);
 

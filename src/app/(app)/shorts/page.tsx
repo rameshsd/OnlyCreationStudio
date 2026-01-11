@@ -8,17 +8,13 @@ import { ChevronUp, ChevronDown, Loader2 } from 'lucide-react';
 import { collection, query, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useCollection } from '@/firebase/firestore/use-collection';
-import { useMemoFirebase } from '@/firebase/useMemoFirebase';
 import { type Short } from '@/lib/shorts-data';
 
 export default function ShortsPage() {
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const shortsQuery = useMemoFirebase(
-    query(collection(db, "shorts"), orderBy("createdAt", "desc")),
-    []
-  );
+  const shortsQuery = useMemo(() => query(collection(db, "shorts"), orderBy("createdAt", "desc")), []);
   const { data: shortsData, isLoading } = useCollection<Short>(shortsQuery);
 
   const scrollToVideo = (index: number) => {

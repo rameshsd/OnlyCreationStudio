@@ -1,14 +1,13 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { StudioCard } from "@/components/studio-card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Search, Loader2 } from "lucide-react";
 import { useCollection } from '@/firebase/firestore/use-collection';
-import { useMemoFirebase } from '@/firebase/useMemoFirebase';
 import { collection, query } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -46,7 +45,7 @@ const StudioCardSkeleton = () => (
 );
 
 export default function StudiosPage() {
-    const studiosQuery = useMemoFirebase(query(collection(db, "studio_profiles")), []);
+    const studiosQuery = useMemo(() => query(collection(db, "studio_profiles")), []);
     const { data: studios, isLoading } = useCollection<StudioProfile>(studiosQuery);
 
     const adaptedStudios = studios?.map(studio => ({

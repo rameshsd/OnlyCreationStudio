@@ -32,22 +32,11 @@ export function useCollection<T = any>(
   const [error, setError] = useState<FirestoreError | Error | null>(null);
 
   useEffect(() => {
-    // Primary guard: If the query is null, do nothing. This is the main check
+    // If the query is null, do nothing. This is the main check
     // to prevent queries with undefined parts from running.
     if (!memoizedQuery) {
       setData(null);
       setIsLoading(false);
-      return;
-    }
-    
-    // **Defensive Guard**: Safely inspect the query's internal properties to check for 'undefined' path segments.
-    // This catches cases where a dynamic part of the path (like a user ID) is not ready,
-    // without crashing on queries that don't have a direct `.path` property.
-    const queryAsAny = memoizedQuery as any;
-    if (queryAsAny?._query?.path?.segments?.some((segment: string) => segment === 'undefined')) {
-      setData(null);
-      setIsLoading(false);
-      // We don't set an error here because this is an expected state during initial render.
       return;
     }
 

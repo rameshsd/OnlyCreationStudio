@@ -13,7 +13,6 @@ import {
 } from "firebase/firestore";
 
 import { useCollection } from "@/firebase/firestore/use-collection";
-import { useMemoFirebase } from "@/firebase/useMemoFirebase"; 
 import { useAuth } from "@/hooks/use-auth";
 import { db } from "@/lib/firebase";
 
@@ -62,15 +61,13 @@ export function StoryReel() {
   }, [user?.uid]);
 
   // Query for all statuses from relevant users.
-  const statusesQuery = useMemoFirebase(
-    relevantUserIds.length > 0
-      ? query(
-          collectionGroup(db, "statuses"),
-          where('userId', 'in', relevantUserIds)
-        )
-      : null,
-    [relevantUserIds]
-  );
+  const statusesQuery = useMemo(() => {
+    if (relevantUserIds.length === 0) return null;
+    return query(
+        collectionGroup(db, "statuses"),
+        where('userId', 'in', relevantUserIds)
+      );
+  }, [relevantUserIds]);
 
   // Fetch statuses
   const { data: allStatuses, isLoading: statusesLoading } =

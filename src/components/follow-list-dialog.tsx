@@ -12,7 +12,6 @@ import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { useCollection } from '@/firebase/firestore/use-collection';
-import { useMemoFirebase } from '@/firebase/useMemoFirebase';
 import { Skeleton } from './ui/skeleton';
 
 interface UserProfile {
@@ -50,10 +49,10 @@ export function FollowListDialog({ userId, type, open, onOpenChange, initialCoun
     const [loading, setLoading] = useState(true);
     
     // Memoize the list of users the current user is following
-    const myFollowingQuery = useMemoFirebase(
-        currentUser?.uid ? query(collection(db, "follows"), where("followerId", "==", currentUser.uid)) : null,
-        [currentUser?.uid]
-    );
+    const myFollowingQuery = useMemo(() => {
+        if (!currentUser?.uid) return null;
+        return query(collection(db, "follows"), where("followerId", "==", currentUser.uid));
+    }, [currentUser?.uid]);
     const { data: myFollowingDocs } = useCollection(myFollowingQuery);
     const myFollowingIds = useMemo(() => new Set(myFollowingDocs?.map(doc => doc.followingId) || []), [myFollowingDocs]);
     

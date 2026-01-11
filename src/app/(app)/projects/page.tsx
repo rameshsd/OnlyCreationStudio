@@ -1,8 +1,7 @@
 
-
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
@@ -13,7 +12,6 @@ import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { errorEmitter } from '@/firebase/error-emitter';
-import { useMemoFirebase } from '@/firebase/useMemoFirebase';
 import { useCollection } from '@/firebase/firestore/use-collection';
 
 interface Project {
@@ -39,10 +37,10 @@ const ProjectCardSkeleton = () => (
 export default function ProjectsPage() {
     const { user } = useAuth();
     
-    const projectsQuery = useMemoFirebase(
-        user?.uid ? query(collection(db, "projects"), where("ownerId", "==", user.uid)) : null,
-        [user?.uid]
-    );
+    const projectsQuery = useMemo(() => {
+        if (!user?.uid) return null;
+        return query(collection(db, "projects"), where("ownerId", "==", user.uid));
+    }, [user?.uid]);
     
     const { data: projects, isLoading: loading } = useCollection<Project>(projectsQuery);
 

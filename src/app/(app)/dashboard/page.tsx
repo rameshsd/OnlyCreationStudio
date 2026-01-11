@@ -14,7 +14,6 @@ import { collection, orderBy, query, limit, getDocs, doc, setDoc, deleteDoc, ser
 import { Skeleton } from "@/components/ui/skeleton";
 import { generateMockTrendingTopics } from "@/lib/mock-data";
 import { useCollection } from "@/firebase/firestore/use-collection";
-import { useMemoFirebase } from "@/firebase/useMemoFirebase";
 import { StudioPostCard } from "@/components/studio-post-card";
 import type { FeedItem, StudioProfile } from "@/lib/get-feed-data";
 import { StoryReel } from "@/components/story-reel";
@@ -49,10 +48,10 @@ const SuggestionsCard = () => {
     const { toast } = useToast();
     const [isFollowingDataReady, setIsFollowingDataReady] = useState(false);
 
-    const followingQuery = useMemoFirebase(
-      user?.uid ? query(collection(db, "follows"), where("followerId", "==", user.uid)) : null,
-      [user?.uid]
-    );
+    const followingQuery = useMemo(() => {
+        if (!user?.uid) return null;
+        return query(collection(db, "follows"), where("followerId", "==", user.uid))
+    },[user?.uid]);
     const { data: followingDocs } = useCollection(followingQuery);
     
     const followingIds = useMemo(() => {
@@ -226,16 +225,10 @@ const PostSkeleton = () => (
 export default function DashboardPage() {
     const [activeFilter, setActiveFilter] = useState("All");
 
-    const postsQuery = useMemoFirebase(
-        query(collection(db, "posts"), orderBy("createdAt", "desc")),
-        []
-    );
+    const postsQuery = useMemo(() => query(collection(db, "posts"), orderBy("createdAt", "desc")), []);
     const { data: posts, isLoading: postsLoading } = useCollection<Post>(postsQuery);
 
-    const studiosQuery = useMemoFirebase(
-        query(collection(db, "studio_profiles")),
-        []
-    );
+    const studiosQuery = useMemo(() => query(collection(db, "studio_profiles")), []);
     const { data: studios, isLoading: studiosLoading } = useCollection<StudioProfile>(studiosQuery);
     
     const feedItems = useMemo<FeedItem[]>(() => {

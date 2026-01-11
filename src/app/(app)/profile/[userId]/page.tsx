@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import Image from "next/image";
@@ -19,7 +18,6 @@ import { collection, query, doc, where, onSnapshot, getDocs, limit, setDoc, dele
 import { db } from "@/lib/firebase";
 import { useCollection } from "@/firebase/firestore/use-collection";
 import { useParams } from "next/navigation";
-import { useMemoFirebase } from "@/firebase/useMemoFirebase";
 import { followUserAction, unfollowUserAction } from "./actions";
 import { FirestorePermissionError } from '@/firebase/errors';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -212,18 +210,17 @@ export default function ProfilePage() {
 
     const [isFavorited, setIsFavorited] = useState(false);
 
-    const userPostsQuery = useMemoFirebase(
-      profileUserId ? query(collection(db, "posts"), where("userId", "==", profileUserId)) : null,
-      [profileUserId]
-    );
-
+    const userPostsQuery = useMemo(() => {
+        if (!profileUserId) return null;
+        return query(collection(db, "posts"), where("userId", "==", profileUserId));
+    }, [profileUserId]);
     const { data: userPosts, isLoading: postsLoading } = useCollection<Post>(userPostsQuery);
 
 
-    const userPortfolioQuery = useMemoFirebase(
-        profileUserId ? query(collection(db, "user_profiles", profileUserId, "portfolio_items")) : null,
-        [profileUserId]
-    );
+    const userPortfolioQuery = useMemo(() => {
+        if (!profileUserId) return null;
+        return query(collection(db, "user_profiles", profileUserId, "portfolio_items"));
+    }, [profileUserId]);
     const { data: portfolioItems, isLoading: portfolioLoading } = useCollection<PortfolioItem>(userPortfolioQuery);
     
 

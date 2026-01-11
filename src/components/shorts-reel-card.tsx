@@ -6,12 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, PlayCircle } from "lucide-react";
 import { useCollection } from "@/firebase/firestore/use-collection";
-import { useMemoFirebase } from "@/firebase/useMemoFirebase";
 import { collection, query, orderBy, limit } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { Short } from "@/lib/types";
 import { Skeleton } from "./ui/skeleton";
 import Image from 'next/image';
+import { useMemo } from "react";
 
 const ShortSkeleton = () => (
   <div className="group relative h-64 w-40 flex-shrink-0 overflow-hidden rounded-lg bg-secondary">
@@ -23,7 +23,7 @@ const ShortSkeleton = () => (
 );
 
 export function ShortsReelCard() {
-  const shortsQuery = useMemoFirebase(query(collection(db, "shorts"), orderBy("createdAt", "desc"), limit(5)), []);
+  const shortsQuery = useMemo(() => query(collection(db, "shorts"), orderBy("createdAt", "desc"), limit(5)), []);
   const { data: shorts, isLoading } = useCollection<Short>(shortsQuery);
 
   const getThumbnailUrl = (videoUrl: string) => {
