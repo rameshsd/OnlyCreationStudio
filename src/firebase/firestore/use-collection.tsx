@@ -40,9 +40,11 @@ export function useCollection<T = any>(
       return;
     }
     
-    // **Defensive Guard**: Check if the path of the query contains "undefined".
-    // This catches cases where a dynamic part of the path (like a user ID) is not ready.
-    if ((memoizedQuery as CollectionReference).path && (memoizedQuery as CollectionReference).path.includes('undefined')) {
+    // **Defensive Guard**: Safely inspect the query's internal properties to check for 'undefined' path segments.
+    // This catches cases where a dynamic part of the path (like a user ID) is not ready,
+    // without crashing on queries that don't have a direct `.path` property.
+    const queryAsAny = memoizedQuery as any;
+    if (queryAsAny?._query?.path?.segments?.some((segment: string) => segment === 'undefined')) {
       setData(null);
       setIsLoading(false);
       // We don't set an error here because this is an expected state during initial render.
@@ -66,8 +68,9 @@ export function useCollection<T = any>(
       },
       (err: FirestoreError) => {
         // Create and emit a contextual error for better debugging.
+        const path = (memoizedQuery as any)?._query?.path?.segments?.join('/') || 'unknown_path';
         const contextualError = new FirestorePermissionError({
-          path: (memoizedQuery as CollectionReference).path, // Assumes it's a collection ref for path
+          path: path,
           operation: 'list',
         });
         setError(contextualError);
