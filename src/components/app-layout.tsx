@@ -136,9 +136,9 @@ function BottomNavBar() {
           <Search />
           <span className="text-xs font-medium">Explore</span>
         </Link>
-        <Button asChild size="lg" className="rounded-full w-14 h-14 shadow-lg bg-primary hover:bg-primary/90 scale-110 -translate-y-2">
+        <Button asChild size="lg" className="rounded-full w-14 h-14 shadow-lg bg-primary hover:bg-primary/90 scale-110 -translate-y-2 bg-gradient-to-br from-primary to-primary/70">
             <Link href="/create">
-                <Plus className="h-6 w-6"/>
+                <Camera className="h-6 w-6"/>
                 <span className="sr-only">Create</span>
             </Link>
         </Button>
