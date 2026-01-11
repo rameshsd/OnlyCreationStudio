@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Query,
   onSnapshot,
@@ -32,8 +32,6 @@ export function useCollection<T = any>(
   const [error, setError] = useState<FirestoreError | Error | null>(null);
 
   useEffect(() => {
-    // If the query is null, do nothing. This is the main check
-    // to prevent queries with undefined parts from running.
     if (!memoizedQuery) {
       setData(null);
       setIsLoading(false);
@@ -57,10 +55,10 @@ export function useCollection<T = any>(
       },
       (err: FirestoreError) => {
         // Create and emit a contextual error for better debugging.
-        // NOTE: Accessing internal properties like `_query.path` is unstable.
+        // NOTE: Accessing internal properties of the query is unstable.
         // We will pass a generic path for now to ensure stability.
         const contextualError = new FirestorePermissionError({
-          path: (memoizedQuery as CollectionReference)?.path || 'unknown collection',
+          path: 'unknown collection',
           operation: 'list',
         });
         setError(contextualError);
