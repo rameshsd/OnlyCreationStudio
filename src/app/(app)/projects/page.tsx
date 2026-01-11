@@ -40,7 +40,7 @@ export default function ProjectsPage() {
     const { user } = useAuth();
     
     const projectsQuery = useMemoFirebase(
-        user ? query(collection(db, "projects"), where("ownerId", "==", user.uid)) : null,
+        user?.uid ? query(collection(db, "projects"), where("ownerId", "==", user.uid)) : null,
         [user]
     );
     

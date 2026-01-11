@@ -50,7 +50,7 @@ const SuggestionsCard = () => {
 
     // Memoize the query for currently followed users
     const followingQuery = useMemoFirebase(
-      user ? query(collection(db, "follows"), where("followerId", "==", user.uid)) : null,
+      user?.uid ? query(collection(db, "follows"), where("followerId", "==", user.uid)) : null,
       [user]
     );
     const { data: followingDocs } = useCollection(followingQuery);
@@ -214,13 +214,13 @@ export default function DashboardPage() {
     const [activeFilter, setActiveFilter] = useState("All");
 
     const postsQuery = useMemoFirebase(
-        query(collection(db, "posts"), orderBy("createdAt", "desc")),
+        () => query(collection(db, "posts"), orderBy("createdAt", "desc")),
         []
     );
     const { data: posts, isLoading: postsLoading } = useCollection<Post>(postsQuery);
 
     const studiosQuery = useMemoFirebase(
-        query(collection(db, "studio_profiles")),
+        () => query(collection(db, "studio_profiles")),
         []
     );
     const { data: studios, isLoading: studiosLoading } = useCollection<StudioProfile>(studiosQuery);
