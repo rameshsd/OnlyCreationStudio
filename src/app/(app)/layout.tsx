@@ -1,15 +1,287 @@
 
 
-import { AppLayout } from '@/components/app-layout';
-import { type ReactNode } from 'react';
+"use client";
 
-export default function Layout({ children }: { children: ReactNode }) {
-  // Adding a unique key to AppLayout forces a remount on navigation.
-  // This is a temporary workaround to ensure dnd works correctly with turbopack.
-  // In a production app, this might have performance implications.
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import {
+  Home,
+  Search,
+  Bot,
+  FileText,
+  Briefcase,
+  MessageSquare,
+  Settings,
+  Video,
+  User,
+  Users,
+  Star,
+  PlusCircle,
+  Camera,
+  LayoutGrid,
+  Plus,
+  LogOut,
+  Loader2,
+  FolderKanban,
+  Bell,
+  Heart,
+} from "lucide-react";
+import type { ReactNode } from "react";
+import { cn } from "@/lib/utils";
+import React from 'react';
+
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+  SheetTitle
+} from "@/components/ui/sheet";
+
+import { Logo } from "@/components/logo";
+import { Button } from "@/components/ui/button";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { ModeToggle } from "@/components/mode-toggle";
+import { useAuth } from "@/hooks/use-auth";
+
+const menuItems = [
+  { href: "/dashboard", label: "Feed", icon: Home },
+  { href: "/explore", label: "Explore", icon: Search },
+  { href: "/shorts", label: "Shorts", icon: Video },
+  { href: "/matchmaker", label: "AI Matchmaker", icon: Bot },
+  { href: "/ai-job-builder", label: "AI Job Builder", icon: FileText },
+  { href: "/projects", label: "Projects", icon: FolderKanban, exact: false },
+  { href: "/opportunities", label: "Opportunities", icon: Briefcase },
+  { href: "/studios", label: "Studios", icon: Camera },
+  { href: "/messages", label: "Messages", icon: MessageSquare },
+  { href: "/collab-requests", label: "Collab Requests", icon: Users },
+  { href: "/favourites", label: "Favourites", icon: Star },
+  { href: "/team-builder", label: "Team Builder", icon: PlusCircle },
+];
+
+function MobileSidebar() {
+  const pathname = usePathname();
   return (
-    <AppLayout>
-      {children}
-    </AppLayout>
+    <Sheet>
+      <SheetTrigger asChild>
+        <Button variant="ghost" size="icon">
+          <LayoutGrid />
+          <span className="sr-only">Open Menu</span>
+        </Button>
+      </SheetTrigger>
+      <SheetContent side="left" className="bg-background p-0 w-72 flex flex-col">
+        <header className="p-4 border-b flex justify-between items-center">
+           <Logo className="w-36" />
+        </header>
+        <div className="flex-1 overflow-y-auto">
+          <SheetTitle className="sr-only">Menu</SheetTitle>
+          <div className="p-4">
+            <Button asChild className="w-full">
+              <Link href="/create">
+                <Plus className="mr-2 h-4 w-4" />
+                Create Post
+              </Link>
+            </Button>
+          </div>
+          <nav className="space-y-2 p-4 pt-0">
+            {menuItems.map((item) => {
+               const isActive = item.exact 
+                ? pathname === item.href 
+                : pathname.startsWith(item.href);
+              return (
+              <Link
+                key={item.label}
+                href={item.href}
+                className={cn(
+                  "flex items-center gap-3 rounded-lg px-3 py-2 transition-all",
+                  isActive
+                    ? "bg-primary/10 text-primary font-semibold"
+                    : "text-muted-foreground hover:bg-muted"
+                )}
+              >
+                <item.icon className="h-5 w-5" />
+                <span>{item.label}</span>
+              </Link>
+            )})}
+          </nav>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function BottomNavBar() {
+    const { user, userData } = useAuth();
+    const pathname = usePathname();
+  return (
+    <div className="fixed bottom-0 left-0 right-0 z-10 border-t bg-background/95 backdrop-blur-sm p-2 lg:hidden">
+      <div className="grid h-16 grid-cols-5 items-center">
+        <Link href="/dashboard" className={cn("flex flex-col items-center justify-center gap-1", pathname === "/dashboard" ? "text-primary" : "text-muted-foreground")}>
+          <Home />
+          <span className="text-xs font-medium">Feed</span>
+        </Link>
+        <Link href="/explore" className={cn("flex flex-col items-center justify-center gap-1", pathname === "/explore" ? "text-primary" : "text-muted-foreground")}>
+          <Search />
+          <span className="text-xs font-medium">Explore</span>
+        </Link>
+        <Link href="/create" className="flex justify-center">
+            <div className="flex items-center justify-center rounded-full w-14 h-14 shadow-lg bg-primary hover:bg-primary/90 scale-110 -translate-y-2 bg-gradient-to-br from-primary to-primary/70 text-primary-foreground">
+                <Camera className="h-6 w-6"/>
+                <span className="sr-only">Create</span>
+            </div>
+        </Link>
+        <Link href="/messages" className={cn("flex flex-col items-center justify-center gap-1", pathname.startsWith("/messages") ? "text-primary" : "text-muted-foreground")}>
+          <MessageSquare />
+          <span className="text-xs font-medium">Chats</span>
+        </Link>
+        <Link href="/profile" className={cn("flex flex-col items-center justify-center gap-1", pathname.startsWith("/profile") ? "text-primary" : "text-muted-foreground")}>
+          <Avatar className="h-7 w-7 border-2 border-transparent group-hover:border-primary transition-colors">
+              <AvatarImage src={userData?.avatarUrl} alt="User avatar" data-ai-hint="avatar user" />
+              <AvatarFallback>{userData?.username?.substring(0,2) || 'U'}</AvatarFallback>
+          </Avatar>
+          <span className="text-xs font-medium">Profile</span>
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+export function AppLayout({ children }: { children: ReactNode }) {
+  const isMobile = useIsMobile();
+  const pathname = usePathname();
+  const { user, userData, loading, logout } = useAuth();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await logout();
+    router.push('/login');
+  };
+
+  const isShortsPage = pathname === '/shorts';
+  
+  if (loading || isMobile === undefined) {
+      return (
+        <div className="flex min-h-screen w-full items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      );
+  }
+
+
+  return (
+    <div className="min-h-screen w-full bg-secondary/50 dark:bg-card">
+      <div className="flex">
+        {/* Desktop Sidebar */}
+        <aside className="fixed left-0 top-0 h-screen w-64 border-r bg-background hidden lg:flex flex-col">
+            <div className="flex h-20 items-center border-b px-6">
+              <Logo className="w-36" />
+            </div>
+            <div className="p-4">
+              <Button asChild className="w-full">
+                <Link href="/create">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create Post
+                </Link>
+              </Button>
+            </div>
+            <nav className="flex-1 space-y-2 p-4 pt-0 overflow-y-auto">
+              {menuItems.map((item) => {
+                 const isActive = item.exact 
+                  ? pathname === item.href 
+                  : pathname.startsWith(item.href);
+                return (
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  className={cn(
+                    "flex items-center gap-3 rounded-lg px-3 py-2 transition-all",
+                    isActive
+                      ? "bg-primary/10 text-primary font-semibold"
+                      : "text-muted-foreground hover:bg-muted"
+                  )}
+                >
+                  <item.icon className="h-5 w-5" />
+                  <span>{item.label}</span>
+                </Link>
+              )})}
+            </nav>
+            <div className="p-4 mt-auto border-t">
+                 <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="flex items-center justify-start gap-3 w-full h-auto p-2">
+                     <Avatar className="h-10 w-10">
+                      <AvatarImage src={userData?.avatarUrl} alt={userData?.username} data-ai-hint="avatar user" />
+                      <AvatarFallback>{userData?.username?.substring(0, 2).toUpperCase() || 'U'}</AvatarFallback>
+                    </Avatar>
+                    <div className="text-left truncate">
+                      <p className="font-semibold truncate">{userData?.username || 'User'}</p>
+                      <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+                    </div>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-56 mb-2">
+                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/profile"><User className="mr-2 h-4 w-4" />Profile</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/settings"><Settings className="mr-2 h-4 w-4" />Settings</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Log out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+        </aside>
+
+        {/* Mobile Header */}
+        <header className="fixed top-0 left-0 right-0 z-20 flex items-center justify-between border-b bg-background/80 backdrop-blur-sm px-4 h-16 lg:hidden">
+            <Link href="/dashboard">
+                <Logo className="w-32" />
+            </Link>
+            <div className="flex items-center gap-2">
+                <Button variant="ghost" size="icon">
+                    <Search className="h-5 w-5" />
+                    <span className="sr-only">Search</span>
+                </Button>
+                <Button variant="ghost" size="icon">
+                    <Heart className="h-5 w-5" />
+                    <span className="sr-only">Notifications</span>
+                </Button>
+                <ModeToggle />
+            </div>
+        </header>
+
+         <main
+          className={cn(
+            'w-full lg:ml-64',
+            isShortsPage
+              ? 'h-screen pt-16 lg:pt-0'
+              : 'pt-20 lg:pt-6 p-4 lg:p-6 pb-24'
+          )}
+        >
+          <div className={cn("w-full mx-auto", isShortsPage ? 'h-full' : 'max-w-7xl')}>
+            {children}
+          </div>
+        </main>
+      </div>
+      {isMobile && <BottomNavBar />}
+    </div>
   );
 }

@@ -44,7 +44,7 @@ export default function ShortsPage() {
   };
 
   useEffect(() => {
-    if (!shorts) return;
+    if (!shorts || shorts.length === 0) return;
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -75,49 +75,49 @@ export default function ShortsPage() {
 
   if (isLoading) {
     return (
-      <div className="relative h-full w-full max-w-full lg:max-w-sm lg:mx-auto flex items-center justify-center">
+      <div className="h-full w-full flex items-center justify-center bg-black">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="relative h-full w-full max-w-full lg:max-w-sm lg:mx-auto">
-       <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 text-center">
-        <h1 className="text-2xl font-bold text-white drop-shadow-lg">Shorts</h1>
-      </div>
-      <div
-        ref={containerRef}
-        className="h-full w-full overflow-y-scroll snap-y snap-mandatory scroll-smooth rounded-lg"
-      >
-        {shorts && shorts.length > 0 ? shorts.map((video, index) => (
-          <div
-            key={video.id}
-            data-index={index}
-            className="h-full w-full snap-start flex-shrink-0"
-          >
-            <VideoCard video={video} isActive={index === currentVideoIndex} />
-          </div>
-        )) : (
-          <div className="h-full w-full snap-start flex items-center justify-center">
-             <Card className="text-center p-12 bg-black/50 text-white">
-                <p>No shorts yet. Be the first to upload one!</p>
-             </Card>
+    <div className="h-full w-full flex justify-center items-center bg-black">
+      <div className="relative h-full w-full max-w-full lg:max-w-sm aspect-[9/16] bg-black">
+        <div
+          ref={containerRef}
+          className="h-full w-full overflow-y-scroll snap-y snap-mandatory scroll-smooth rounded-lg"
+        >
+          {shorts && shorts.length > 0 ? shorts.map((video, index) => (
+            <div
+              key={video.id}
+              data-index={index}
+              className="h-full w-full snap-start flex-shrink-0"
+            >
+              <VideoCard video={video} isActive={index === currentVideoIndex} />
+            </div>
+          )) : (
+            <div className="h-full w-full snap-start flex items-center justify-center">
+               <Card className="text-center p-12 bg-black/50 text-white">
+                  <p>No shorts yet. Be the first to upload one!</p>
+               </Card>
+            </div>
+          )}
+        </div>
+        {shorts && shorts.length > 1 && (
+          <div className="absolute right-4 top-1/2 -translate-y-1/2 z-10 flex flex-col gap-2">
+              <Button size="icon" variant="ghost" onClick={handlePrevVideo} disabled={currentVideoIndex === 0} className="bg-black/30 hover:bg-black/50 text-white hover:text-white rounded-full">
+              <ChevronUp />
+              </Button>
+              <Button size="icon" variant="ghost" onClick={handleNextVideo} disabled={currentVideoIndex === shorts.length - 1} className="bg-black/30 hover:bg-black/50 text-white hover:text-white rounded-full">
+              <ChevronDown />
+              </Button>
           </div>
         )}
-      </div>
-      {shorts && shorts.length > 1 && (
-        <div className="absolute right-4 top-1/2 -translate-y-1/2 z-10 flex flex-col gap-2">
-            <Button size="icon" variant="ghost" onClick={handlePrevVideo} disabled={currentVideoIndex === 0} className="bg-black/30 hover:bg-black/50 text-white hover:text-white rounded-full">
-            <ChevronUp />
-            </Button>
-            <Button size="icon" variant="ghost" onClick={handleNextVideo} disabled={currentVideoIndex === shorts.length - 1} className="bg-black/30 hover:bg-black/50 text-white hover:text-white rounded-full">
-            <ChevronDown />
-            </Button>
+         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 text-center">
+            <h1 className="text-2xl font-bold text-white drop-shadow-lg">Shorts</h1>
         </div>
-      )}
+      </div>
     </div>
   );
 }
-
-    
