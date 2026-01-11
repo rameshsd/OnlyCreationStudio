@@ -133,6 +133,44 @@
         "createdAt"
       ]
     },
+    "Short": {
+      "title": "Short",
+      "type": "object",
+      "description": "Represents a short-form video.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the short entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the UserProfile entity of the author."
+        },
+        "videoUrl": {
+          "type": "string",
+          "description": "URL of the video file.",
+          "format": "uri"
+        },
+        "caption": {
+          "type": "string",
+          "description": "Caption for the short video."
+        },
+        "likes": { "type": "number" },
+        "comments": { "type": "number" },
+        "shares": { "type": "number" },
+        "createdAt": {
+          "type": "string",
+          "description": "Date and time the short was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "videoUrl",
+        "createdAt"
+      ]
+    },
     "Project": {
       "title": "Project",
       "type": "object",
@@ -363,6 +401,16 @@
         }
       },
       {
+        "path": "/shorts/{shortId}",
+        "definition": {
+          "entityName": "Short",
+          "schema": {
+            "$ref": "#/entities/Short"
+          },
+          "description": "A top-level collection for all short-form videos."
+        }
+      },
+      {
         "path": "/projects/{projectId}",
         "definition": {
           "entityName": "Project",
@@ -391,7 +439,7 @@
         }
       }
     ],
-    "reasoning": "This simplified structure directly matches the user's confirmed list of collections: users, user_profiles, posts, projects, and studio_profiles. It uses a flat architecture for scalable queries, especially for the main post feed. User data is split between private 'users' and public 'user_profiles' for security. Statuses are a subcollection under user_profiles to enable efficient querying and collection group scans."
+    "reasoning": "This simplified structure directly matches the user's confirmed list of collections: users, user_profiles, posts, projects, and studio_profiles. It uses a flat architecture for scalable queries, especially for the main post feed. User data is split between private 'users' and public 'user_profiles' for security. Statuses are a subcollection under user_profiles to enable efficient querying and collection group scans. Shorts are in a top-level collection for easy global fetching."
   }
 }
 

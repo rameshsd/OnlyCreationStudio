@@ -11,13 +11,13 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { Loader2, Film, ImageIcon, X } from 'lucide-react';
+import { Loader2, Film, ImageIcon, Video } from 'lucide-react';
 import Image from 'next/image';
 import { uploadPhoto } from '@/app/(app)/create/actions';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { errorEmitter } from '@/firebase/error-emitter';
+import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Separator } from '@/components/ui/separator';
 
 export default function CreatePostPage() {
   const { user, userData, loading: authLoading } = useAuth();
@@ -37,13 +37,11 @@ export default function CreatePostPage() {
       setIsImage(file.type.startsWith('image/'));
     }
   };
-  
-  const removeMedia = () => {
+
+  const handleRemoveMedia = () => {
     setMediaFile(null);
     setPreviewUrl(null);
-    const fileInput = document.getElementById('media-input') as HTMLInputElement;
-    if(fileInput) fileInput.value = '';
-  }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -127,67 +125,72 @@ export default function CreatePostPage() {
   const isFormDisabled = loading || authLoading;
 
   return (
-    <div className="mx-auto max-w-2xl px-2 sm:px-0">
+    <div className="mx-auto max-w-2xl">
       <form onSubmit={handleSubmit}>
-        <Card className="shadow-lg">
-          <CardHeader className="p-4">
-             <div className="flex items-center gap-4">
-                <Avatar>
-                    <AvatarImage src={userData?.avatarUrl} alt={userData?.username} />
-                    <AvatarFallback>{userData?.username?.substring(0, 2).toUpperCase()}</AvatarFallback>
-                </Avatar>
-                <div>
-                    <p className="font-semibold">{userData?.username || "User"}</p>
-                    <p className="text-xs text-muted-foreground">Share with your followers</p>
-                </div>
+        <Card>
+          <CardHeader>
+             <div className="flex items-center gap-3">
+              <Avatar>
+                <AvatarImage src={userData?.avatarUrl} alt={userData?.username} data-ai-hint="user avatar"/>
+                <AvatarFallback>{userData?.username?.substring(0, 2).toUpperCase()}</AvatarFallback>
+              </Avatar>
+              <div>
+                <p className="font-semibold">{userData?.username}</p>
+                <p className="text-sm text-muted-foreground">Share a post to your feed</p>
+              </div>
             </div>
           </CardHeader>
-          <CardContent className="p-0">
-             <Textarea
-              placeholder={`What's on your mind, ${userData?.username || 'User'}?`}
+          <CardContent className="space-y-4">
+            <Textarea
+              placeholder={`What's on your mind, ${userData?.username}?`}
               value={caption}
               onChange={(e) => setCaption(e.target.value)}
               rows={5}
-              disabled={isFormDisabled}
-              className="border-0 border-y text-base focus-visible:ring-0 focus-visible:ring-offset-0 resize-none rounded-none"
+              className="text-lg border-none focus-visible:ring-0 resize-none p-0"
+              disabled={loading}
             />
             {previewUrl && (
-                <div className="p-4">
-                    <div className="relative aspect-video rounded-lg overflow-hidden border bg-black">
-                        {isImage ? (
-                            <Image src={previewUrl} alt="Image preview" fill className="object-contain" />
-                        ) : (
-                            <video src={previewUrl} controls className="h-full w-full object-contain" />
-                        )}
-                        <Button 
-                            variant="destructive" size="icon" 
-                            className="absolute top-2 right-2 h-7 w-7"
-                            onClick={removeMedia}
-                        >
-                            <X className="h-4 w-4"/>
-                        </Button>
-                    </div>
+                <div className="relative aspect-video rounded-lg overflow-hidden border bg-black group">
+                    {isImage ? (
+                        <Image src={previewUrl} alt="Image preview" fill className="object-contain" />
+                    ) : (
+                        <video src={previewUrl} controls className="h-full w-full object-contain" />
+                    )}
+                     <Button variant="destructive" size="icon" className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity" onClick={handleRemoveMedia}>
+                        <Film className="h-4 w-4" />
+                    </Button>
                 </div>
             )}
-            
-            <div className="p-4 flex items-center justify-around border-t">
-                <Input id="media-input" type="file" className="sr-only" onChange={handleFileChange} accept="image/*,video/*" disabled={isFormDisabled} />
-                <label htmlFor="media-input" className="flex items-center gap-2 cursor-pointer text-muted-foreground hover:text-primary transition-colors p-2 rounded-md">
-                     <ImageIcon className="h-6 w-6 text-green-500" />
-                     <span className="font-medium text-sm">Photo</span>
-                </label>
-                <label htmlFor="media-input" className="flex items-center gap-2 cursor-pointer text-muted-foreground hover:text-primary transition-colors p-2 rounded-md">
-                    <Film className="h-6 w-6 text-blue-500" />
-                    <span className="font-medium text-sm">Video</span>
-                </label>
-            </div>
           </CardContent>
-          <CardFooter className="p-4">
-            <Button type="submit" disabled={isFormDisabled || (!caption.trim() && !mediaFile)} className="w-full">
-              {(loading || authLoading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {authLoading ? 'Verifying...' : (loading ? 'Posting...' : 'Post')}
-            </Button>
-          </CardFooter>
+          <div className="p-4 border-t">
+              <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-1">
+                      <Label htmlFor="picture-upload" className="flex items-center gap-2 cursor-pointer text-muted-foreground hover:text-primary p-2 rounded-md transition-colors">
+                        <ImageIcon className="h-6 w-6 text-green-500" />
+                        <span className="font-semibold">Photo</span>
+                      </Label>
+                      <Input id="picture-upload" type="file" className="sr-only" onChange={handleFileChange} accept="image/*" disabled={loading} />
+                      
+                       <Label htmlFor="video-upload" className="flex items-center gap-2 cursor-pointer text-muted-foreground hover:text-primary p-2 rounded-md transition-colors">
+                        <Video className="h-6 w-6 text-blue-500" />
+                         <span className="font-semibold">Video</span>
+                      </Label>
+                      <Input id="video-upload" type="file" className="sr-only" onChange={handleFileChange} accept="video/*" disabled={loading} />
+                      
+                      <Button variant="ghost" asChild className="text-muted-foreground hover:text-primary">
+                        <Link href="/create/short">
+                          <Film className="h-6 w-6 text-purple-500"/>
+                          <span className="font-semibold ml-2">Short</span>
+                        </Link>
+                      </Button>
+                  </div>
+
+                  <Button type="submit" disabled={loading || (!caption && !mediaFile)} className="w-full sm:w-auto">
+                    {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Post
+                  </Button>
+              </div>
+          </div>
         </Card>
       </form>
     </div>

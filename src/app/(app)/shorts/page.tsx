@@ -1,15 +1,25 @@
 
 "use client";
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { VideoCard } from '@/components/video-card';
-import { shortsData } from '@/lib/shorts-data';
 import { Button } from '@/components/ui/button';
-import { ChevronUp, ChevronDown } from 'lucide-react';
+import { ChevronUp, ChevronDown, Loader2 } from 'lucide-react';
+import { collection, query, orderBy } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { useCollection } from '@/firebase/firestore/use-collection';
+import { useMemoFirebase } from '@/firebase/useMemoFirebase';
+import { type Short } from '@/lib/shorts-data';
 
 export default function ShortsPage() {
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const shortsQuery = useMemoFirebase(
+    query(collection(db, "shorts"), orderBy("createdAt", "desc")),
+    []
+  );
+  const { data: shortsData, isLoading } = useCollection<Short>(shortsQuery);
 
   const scrollToVideo = (index: number) => {
     containerRef.current?.children[index]?.scrollIntoView({
@@ -19,7 +29,7 @@ export default function ShortsPage() {
   };
 
   const handleNextVideo = () => {
-    if (currentVideoIndex < shortsData.length - 1) {
+    if (shortsData && currentVideoIndex < shortsData.length - 1) {
       const newIndex = currentVideoIndex + 1;
       setCurrentVideoIndex(newIndex);
       scrollToVideo(newIndex);
@@ -50,18 +60,30 @@ export default function ShortsPage() {
     const videos = containerRef.current?.children;
     if (videos) {
       Array.from(videos).forEach((video) => {
-        observer.observe(video);
+        if(video.getAttribute('data-index')) { // only observe video elements
+          observer.observe(video);
+        }
       });
     }
 
     return () => {
       if (videos) {
         Array.from(videos).forEach((video) => {
-          observer.unobserve(video);
+          if(video.getAttribute('data-index')) {
+            observer.unobserve(video);
+          }
         });
       }
     };
-  }, []);
+  }, [shortsData]);
+
+  if (isLoading) {
+    return (
+      <div className="relative h-full w-full max-w-full lg:max-w-sm lg:mx-auto flex items-center justify-center bg-black rounded-lg">
+        <Loader2 className="h-10 w-10 text-white animate-spin" />
+      </div>
+    )
+  }
 
   return (
     <div className="relative h-full w-full max-w-full lg:max-w-sm lg:mx-auto">
@@ -70,9 +92,9 @@ export default function ShortsPage() {
       </div>
       <div
         ref={containerRef}
-        className="h-full w-full overflow-y-scroll snap-y snap-mandatory scroll-smooth rounded-lg"
+        className="h-full w-full overflow-y-scroll snap-y snap-mandatory scroll-smooth rounded-lg bg-black"
       >
-        {shortsData.map((video, index) => (
+        {shortsData && shortsData.length > 0 ? shortsData.map((video, index) => (
           <div
             key={video.id}
             data-index={index}
@@ -80,16 +102,22 @@ export default function ShortsPage() {
           >
             <VideoCard video={video} isActive={index === currentVideoIndex} />
           </div>
-        ))}
+        )) : (
+          <div className="h-full w-full snap-start flex-shrink-0 flex items-center justify-center text-white">
+            <p>No shorts yet. Be the first to post one!</p>
+          </div>
+        )}
       </div>
       <div className="absolute right-4 top-1/2 -translate-y-1/2 z-10 flex flex-col gap-2">
         <Button size="icon" variant="ghost" onClick={handlePrevVideo} disabled={currentVideoIndex === 0} className="bg-black/30 hover:bg-black/50 text-white hover:text-white rounded-full">
           <ChevronUp />
         </Button>
-        <Button size="icon" variant="ghost" onClick={handleNextVideo} disabled={currentVideoIndex === shortsData.length - 1} className="bg-black/30 hover:bg-black/50 text-white hover:text-white rounded-full">
+        <Button size="icon" variant="ghost" onClick={handleNextVideo} disabled={!shortsData || currentVideoIndex === shortsData.length - 1} className="bg-black/30 hover:bg-black/50 text-white hover:text-white rounded-full">
           <ChevronDown />
         </Button>
       </div>
     </div>
   );
 }
+
+    

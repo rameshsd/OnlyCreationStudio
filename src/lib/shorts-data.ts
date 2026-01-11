@@ -1,5 +1,5 @@
 export interface Short {
-    id: number;
+    id: string; // Changed from number to string for Firestore IDs
     videoUrl: string;
     caption: string;
     user: {
@@ -9,11 +9,13 @@ export interface Short {
     likes: number;
     comments: number;
     shares: number;
+    createdAt?: any;
   }
   
+  // This data is now just for fallback/placeholder purposes
   export const shortsData: Short[] = [
     {
-      id: 1,
+      id: "1",
       videoUrl: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
       caption: "Having a blast with this new gadget! #tech #gadget #unboxing",
       user: {
@@ -25,7 +27,7 @@ export interface Short {
       shares: 189,
     },
     {
-      id: 2,
+      id: "2",
       videoUrl: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
       caption: "Morning vibes and a perfect cup of coffee. ☕️ #coffee #morningroutine",
       user: {
@@ -37,7 +39,7 @@ export interface Short {
       shares: 95,
     },
     {
-      id: 3,
+      id: "3",
       videoUrl: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4",
       caption: "Pushing my limits at the gym today! #fitness #workout #motivation",
       user: {
@@ -49,7 +51,7 @@ export interface Short {
       shares: 450,
     },
     {
-        id: 4,
+        id: "4",
         videoUrl: "https://storage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
         caption: "A cinematic masterpiece. #animation #fantasy",
         user: {
@@ -61,7 +63,7 @@ export interface Short {
         shares: 980,
       },
       {
-        id: 5,
+        id: "5",
         videoUrl: "https://storage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackOnStreetAndDirt.mp4",
         caption: "Exploring the great outdoors. #adventure #travel #nature",
         user: {
@@ -74,3 +76,4 @@ export interface Short {
       },
   ];
   
+    
