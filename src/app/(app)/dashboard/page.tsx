@@ -10,7 +10,7 @@ import React, { useState, useMemo, useTransition, useEffect } from "react";
 import { PostCard, type Post } from "@/components/post-card";
 import { ShortsReelCard } from "@/components/shorts-reel-card";
 import { db } from "@/lib/firebase";
-import { collection, orderBy, query, limit, getDocs, doc, setDoc, deleteDoc, serverTimestamp, where } from "firebase/firestore";
+import { collection, orderBy, query, limit, getDocs, doc, setDoc, deleteDoc, serverTimestamp, where, Query, DocumentData } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
 import { generateMockTrendingTopics } from "@/lib/mock-data";
 import { useCollection } from "@/firebase/firestore/use-collection";
@@ -48,7 +48,6 @@ const SuggestionsCard = () => {
     const [isPending, startTransition] = useTransition();
     const { toast } = useToast();
 
-    // Memoize the query for currently followed users
     const followingQuery = useMemoFirebase(
       user?.uid ? query(collection(db, "follows"), where("followerId", "==", user.uid)) : null,
       [user?.uid]
@@ -64,7 +63,17 @@ const SuggestionsCard = () => {
                 setLoading(true);
                 const usersToExclude = [user.uid, ...followingIds];
                 
-                const q = query(collection(db, "user_profiles"), limit(20));
+                let q: Query<DocumentData>;
+                if (usersToExclude.length > 0) {
+                  // Firestore 'not-in' queries are limited to 10 items.
+                  // For a scalable app, this logic would need to be handled server-side
+                  // or by fetching all users and filtering client-side (not ideal for large user bases).
+                  // For this demo, we'll fetch users and filter.
+                  q = query(collection(db, "user_profiles"), limit(50));
+                } else {
+                  q = query(collection(db, "user_profiles"), limit(20));
+                }
+                
                 const querySnapshot = await getDocs(q);
                 
                 const fetchedUsers: Suggestion[] = [];
@@ -86,9 +95,9 @@ const SuggestionsCard = () => {
             }
         };
 
-        if (followingIds) {
-            fetchSuggestions();
-        }
+        // We run the effect when followingIds array is determined
+        fetchSuggestions();
+        
     }, [user, followingIds]);
 
     const handleFollow = (targetUserId: string) => {
