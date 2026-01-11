@@ -19,6 +19,13 @@ service cloud.firestore {
       allow write: if isSignedIn() && request.auth.uid == userProfileId;
     }
 
+    match /user_profiles/{userProfileId}/portfolio_items/{itemId} {
+      // Allow anyone to read portfolio items, as they are part of a public profile.
+      allow read: if isSignedIn();
+      // Only the profile owner can create, update, or delete their portfolio items.
+      allow write: if isSignedIn() && request.auth.uid == userProfileId;
+    }
+
     match /user_profiles/{userProfileId}/statuses/{statusId} {
         allow read: if isSignedIn();
         allow create: if isSignedIn() && request.auth.uid == userProfileId;
@@ -54,20 +61,6 @@ service cloud.firestore {
       allow write: if isSignedIn() && request.auth.uid == request.resource.data.userId;
     }
 
-    match /shorts/{shortId} {
-      // Any signed-in user can read shorts
-      allow read: if isSignedIn();
-      // Only the owner can write a short
-      allow write: if isSignedIn() && request.auth.uid == request.resource.data.userId;
-    }
-
-    match /shorts/{shortId} {
-      // Any signed-in user can read shorts
-      allow read: if isSignedIn();
-      // Only the owner can write a short
-      allow write: if isSignedIn() && request.auth.uid == request.resource.data.userId;
-    }
-
     match /studio_profiles/{studioProfileId} {
       allow read: if isSignedIn();
       allow write: if isSignedIn() && request.auth.uid == request.resource.data.userProfileId;
@@ -87,5 +80,3 @@ service cloud.firestore {
     }
   }
 }
-
-    
