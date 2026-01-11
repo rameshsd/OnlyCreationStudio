@@ -7,24 +7,20 @@ import { useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Calendar } from '@/components/ui/calendar';
-import { Star, MapPin, Camera, Mic, Lightbulb, Users, Clock, Loader2, AlertTriangle, Edit } from 'lucide-react';
+import { Star, MapPin, Camera, Mic, Lightbulb, Users, Clock, Loader2, AlertTriangle, Edit, Building, Home } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useDoc } from '@/firebase/firestore/use-doc';
 import { useMemoFirebase } from '@/firebase/useMemoFirebase';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, collection, query, where, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/hooks/use-auth';
 import { LocationEditor } from './location-editor';
-
-// This would typically be fetched from an API
-const staticStudioData = {
-  availability: [
-    { time: "09:00 AM" }, { time: "10:00 AM" }, { time: "11:00 AM" },
-    { time: "12:00 PM", booked: true }, { time: "01:00 PM" }, { time: "02:00 PM" },
-    { time: "03:00 PM", booked: true }, { time: "04:00 PM" }, { time: "05:00 PM" },
-  ]
-};
+import { OlaMap } from '@/components/maps/OlaMap';
+import { useCollection } from '@/firebase/firestore/use-collection';
+import { format } from 'date-fns';
+import { FirestorePermissionError } from '@/firebase/errors';
+import { errorEmitter } from '@/firebase/error-emitter';
 
 interface FirestoreTimestamp {
     seconds: number;
@@ -56,7 +52,6 @@ export interface StudioProfile {
     createdAt?: FirestoreTimestamp;
     rating?: number;
     reviewCount?: number;
-    userProfileId: string;
 }
 
 interface Booking {
@@ -64,12 +59,6 @@ interface Booking {
     date: string;
     time: string;
 }
-
-interface OwnerProfile {
-    username: string;
-    avatarUrl: string;
-}
-
 
 const StudioDetailSkeleton = () => (
     <div className="flex flex-col gap-8 animate-pulse">
@@ -129,6 +118,7 @@ export default function StudioDetailPage() {
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [selectedTime, setSelectedTime] = useState<string | undefined>();
   const [isLocationEditorOpen, setIsLocationEditorOpen] = useState(false);
+  const [isBooking, setIsBooking] = useState(false);
   const { toast } = useToast();
   const params = useParams<{ id: string }>();
   const studioId = params.id;
@@ -162,63 +152,52 @@ export default function StudioDetailPage() {
     });
   }, []);
 
-
-  const isOwner = user?.uid === studioData?.userProfileId;
   const offersHomeProduction = studioData?.services?.includes("Home Video Production");
 
-  const handleNavigation = (isHomeProduction: boolean) => {
-    if (!navigator.geolocation) {
-      toast({ title: "Geolocation not supported", description: "Your browser doesn't support geolocation.", variant: "destructive" });
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude: currentLat, longitude: currentLng } = position.coords;
-        let origin: string, destination: string;
-
-        if (isHomeProduction) {
-          // Studio owner travels to customer
-          if (!studioData?.location.latitude || !studioData?.location.longitude) {
-            toast({ title: "Studio Location Missing", description: "Cannot generate route.", variant: "destructive" });
-            return;
-          }
-          origin = `${studioData.location.latitude},${studioData.location.longitude}`;
-          destination = `${currentLat},${currentLng}`;
-        } else {
-          // Customer travels to studio
-          if (!studioData?.location.latitude || !studioData?.location.longitude) {
-            toast({ title: "Studio Location Missing", description: "Cannot generate route.", variant: "destructive" });
-            return;
-          }
-          origin = `${currentLat},${currentLng}`;
-          destination = `${studioData.location.latitude},${studioData.location.longitude}`;
-        }
-        
-        const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}`;
-        window.open(googleMapsUrl, '_blank');
-      },
-      () => {
-        toast({ title: "Geolocation failed", description: "Could not get your location. Please ensure location services are enabled.", variant: "destructive" });
-      },
-      { enableHighAccuracy: true }
-    );
-  };
-
-
   const handleBooking = async (isHomeProduction: boolean = false) => {
-    if (!user) {
-        toast({ title: "Not logged in", description: "You must be logged in to book a studio.", variant: "destructive" });
-        return;
-    }
-    if (!date || !selectedTime) {
+    if (!user || !studioId || !date || !selectedTime) {
       toast({ title: "Incomplete Selection", description: "Please select a date and time slot to book.", variant: "destructive" });
       return;
     }
-    toast({
-      title: "Booking Confirmed!",
-      description: `You've booked ${studioData?.studioName} on ${date.toLocaleDateString()} at ${selectedTime}.`,
-    });
+    
+    setIsBooking(true);
+    try {
+        const bookingData = {
+            studioId: studioId,
+            userId: user.uid,
+            date: format(date, 'yyyy-MM-dd'),
+            time: selectedTime,
+            createdAt: serverTimestamp()
+        };
+
+        const bookingsColRef = collection(db, 'studio_profiles', studioId, 'bookings');
+        await addDoc(bookingsColRef, bookingData).catch(serverError => {
+            const permissionError = new FirestorePermissionError({
+                path: bookingsColRef.path,
+                operation: 'create',
+                requestResourceData: bookingData,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+            throw serverError;
+        });
+        
+        toast({
+          title: "Booking Confirmed!",
+          description: `You've booked ${studioData?.studioName} on ${date.toLocaleDateString()} at ${selectedTime}.`,
+        });
+        setSelectedTime(undefined);
+
+    } catch (error: any) {
+        if (!(error instanceof FirestorePermissionError)) {
+             toast({
+              title: "Booking Failed",
+              description: error.message || "Could not complete your booking. Please try again.",
+              variant: "destructive",
+            });
+        }
+    } finally {
+        setIsBooking(false);
+    }
   };
 
   const onLocationUpdate = () => {
@@ -424,5 +403,3 @@ export default function StudioDetailPage() {
     </div>
   )
 }
-
-    
