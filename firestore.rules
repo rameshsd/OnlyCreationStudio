@@ -39,6 +39,7 @@ service cloud.firestore {
     }
 
     match /follows/{followId} {
+      // Explicitly allow both list and get for any signed-in user
       allow read: if isSignedIn();
       // Users can only create/delete their own follow actions.
       // The document ID must be followerId_followingId
