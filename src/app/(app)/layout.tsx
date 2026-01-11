@@ -250,30 +250,12 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             </div>
         </aside>
 
-        {/* Mobile Header */}
-        <header className="fixed top-0 left-0 right-0 z-20 flex items-center justify-between border-b bg-background/80 backdrop-blur-sm px-4 h-16 lg:hidden">
-            <Link href="/dashboard">
-                <Logo className="w-32" />
-            </Link>
-            <div className="flex items-center gap-2">
-                <Button variant="ghost" size="icon">
-                    <Search className="h-5 w-5" />
-                    <span className="sr-only">Search</span>
-                </Button>
-                <Button variant="ghost" size="icon">
-                    <Heart className="h-5 w-5" />
-                    <span className="sr-only">Notifications</span>
-                </Button>
-                <ModeToggle />
-            </div>
-        </header>
-
          <main
           className={cn(
             'w-full lg:ml-64',
             isShortsPage
-              ? 'h-[calc(100vh-4rem)] mt-16 lg:h-screen lg:mt-0'
-              : 'pt-20 lg:pt-6 p-4 lg:p-6 pb-24'
+              ? 'h-screen lg:h-screen lg:mt-0'
+              : 'p-4 lg:p-6 pb-24'
           )}
         >
           <div className={cn("w-full max-w-7xl mx-auto", isShortsPage && "h-full")}>
@@ -285,5 +267,3 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     </div>
   );
 }
-
-    
