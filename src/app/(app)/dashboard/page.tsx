@@ -57,27 +57,24 @@ const SuggestionsCard = () => {
 
     useEffect(() => {
         if (!user) return;
-
+        
+        // This effect should only depend on user and the finalized followingIds list.
         const fetchSuggestions = async () => {
             try {
                 setLoading(true);
+                // Important: Include the current user's ID in the exclusion list.
                 const usersToExclude = [user.uid, ...followingIds];
                 
-                let q: Query<DocumentData>;
-                if (usersToExclude.length > 0) {
-                  // Firestore 'not-in' queries are limited to 10 items.
-                  // For a scalable app, this logic would need to be handled server-side
-                  // or by fetching all users and filtering client-side (not ideal for large user bases).
-                  // For this demo, we'll fetch users and filter.
-                  q = query(collection(db, "user_profiles"), limit(50));
-                } else {
-                  q = query(collection(db, "user_profiles"), limit(20));
-                }
+                // Firestore 'not-in' queries are limited to 10 items.
+                // A scalable solution would involve server-side logic or more complex client-side filtering.
+                // For this demo, we fetch a batch of users and filter them.
+                const q = query(collection(db, "user_profiles"), limit(50));
                 
                 const querySnapshot = await getDocs(q);
                 
                 const fetchedUsers: Suggestion[] = [];
                 querySnapshot.forEach(doc => {
+                    // Exclude users who are already being followed or are the current user.
                     if (!usersToExclude.includes(doc.id)) {
                         const data = doc.data();
                         fetchedUsers.push({
@@ -87,6 +84,7 @@ const SuggestionsCard = () => {
                         });
                     }
                 });
+                // Take the top 5 suggestions from the filtered list.
                 setSuggestions(fetchedUsers.slice(0, 5));
             } catch (e) {
                 console.error("Failed to fetch suggestions:", e);
@@ -95,7 +93,6 @@ const SuggestionsCard = () => {
             }
         };
 
-        // We run the effect when followingIds array is determined
         fetchSuggestions();
         
     }, [user, followingIds]);
