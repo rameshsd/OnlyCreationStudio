@@ -1,11 +1,11 @@
+
 "use client";
 
 import { useState, useRef, useEffect } from 'react';
-import Image from 'next/image';
 import { Button } from './ui/button';
 import { Heart, MessageCircle, Share2, Play, Pause, Volume2, VolumeX } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
-import { type Short } from '@/lib/shorts-data';
+import type { Short } from '@/lib/types';
 
 export function VideoCard({ video, isActive }: { video: Short, isActive: boolean }) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -61,7 +61,7 @@ export function VideoCard({ video, isActive }: { video: Short, isActive: boolean
                 <AvatarImage src={video.user.avatar} alt={video.user.name} data-ai-hint="creator avatar" />
                 <AvatarFallback>{video.user.name?.slice(0,2)}</AvatarFallback>
             </Avatar>
-            <p className="font-bold">{video.user.name}</p>
+            <p className="font-bold">{video.username}</p>
         </div>
         <p className="mt-2 text-sm">{video.caption}</p>
       </div>

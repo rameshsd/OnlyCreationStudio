@@ -1,4 +1,3 @@
-
 import type { Timestamp } from 'firebase/firestore';
 
 export interface Status {
@@ -25,4 +24,17 @@ export interface UserProfile {
 export interface UserProfileWithStories extends UserProfile {
   stories: Status[];
   hasUnseen: boolean;
+}
+
+export interface Short {
+  id: string;
+  userId: string;
+  username: string;
+  userAvatar: string;
+  videoUrl: string;
+  caption: string;
+  likes: number;
+  comments: number;
+  shares: number;
+  createdAt: Timestamp;
 }
