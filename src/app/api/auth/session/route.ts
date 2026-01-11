@@ -1,7 +1,7 @@
 
 import { NextResponse, NextRequest } from 'next/server';
 import { auth } from 'firebase-admin';
-import { adminDb } from '@/lib/firebase-admin'; 
+import { adminDb, adminApp } from '@/lib/firebase-admin'; // Import adminApp for initialization check
 
 export async function POST(request: NextRequest) {
     const authorization = request.headers.get('Authorization');
@@ -11,7 +11,11 @@ export async function POST(request: NextRequest) {
         const expiresIn = 60 * 60 * 24 * 5 * 1000;
 
         try {
-            const sessionCookie = await auth().createSessionCookie(idToken, { expiresIn });
+            // Ensure admin app is initialized before using auth()
+            if (!adminApp) {
+                throw new Error('Firebase Admin SDK not initialized');
+            }
+            const sessionCookie = await auth(adminApp).createSessionCookie(idToken, { expiresIn });
             const options = {
                 name: 'session',
                 value: sessionCookie,
