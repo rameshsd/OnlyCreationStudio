@@ -37,4 +37,8 @@ export interface Short {
   comments: number;
   shares: number;
   createdAt: Timestamp;
+  user: {
+      name: string;
+      avatar: string;
+  }
 }

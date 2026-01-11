@@ -78,10 +78,8 @@ export default function CreateShortPage() {
       
       const shortData = {
         userId: user.uid,
-        user: {
-            name: userData.username,
-            avatar: userData.avatarUrl || '',
-        },
+        username: userData.username,
+        userAvatar: userData.avatarUrl || '',
         videoUrl: result.url,
         caption,
         likes: 0,
