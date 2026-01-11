@@ -135,7 +135,7 @@ export function StoryReel() {
     };
 
     fetchProfiles();
-  }, [uniqueStoryUserIds, authLoading]);
+  }, [uniqueStoryUserIds, authLoading, user, userData]);
 
   // Combine users + stories
   const usersWithStories = useMemo<UserProfileWithStories[]>(() => {

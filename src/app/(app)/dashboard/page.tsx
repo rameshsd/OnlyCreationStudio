@@ -47,16 +47,24 @@ const SuggestionsCard = () => {
     const [following, setFollowing] = useState<string[]>([]);
     const [isPending, startTransition] = useTransition();
     const { toast } = useToast();
+    const [isFollowingDataReady, setIsFollowingDataReady] = useState(false);
 
     const followingQuery = useMemoFirebase(
       user?.uid ? query(collection(db, "follows"), where("followerId", "==", user.uid)) : null,
       [user?.uid]
     );
-    const { data: followingDocs, isLoading: isFollowingLoading } = useCollection(followingQuery);
-    const followingIds = useMemo(() => followingDocs?.map(doc => doc.followingId) || [], [followingDocs]);
+    const { data: followingDocs } = useCollection(followingQuery);
+    
+    const followingIds = useMemo(() => {
+        if (followingDocs) {
+            setIsFollowingDataReady(true);
+            return followingDocs.map(doc => doc.followingId);
+        }
+        return [];
+    }, [followingDocs]);
 
     useEffect(() => {
-        if (isFollowingLoading || !user) {
+        if (!user || !isFollowingDataReady) {
             return;
         }
 
@@ -67,20 +75,21 @@ const SuggestionsCard = () => {
                 
                 // Firestore 'not-in' queries are limited to 10 items.
                 // Fetching a batch and filtering client-side is a common workaround.
-                const q = query(collection(db, "user_profiles"), limit(50));
+                // We also check if there's anything to exclude, otherwise we can't build the query.
+                const q = usersToExclude.length > 0 
+                    ? query(collection(db, "user_profiles"), where('__name__', 'not-in', usersToExclude.slice(0,10)), limit(10)) 
+                    : query(collection(db, "user_profiles"), limit(5));
                 
                 const querySnapshot = await getDocs(q);
                 
                 const fetchedUsers: Suggestion[] = [];
                 querySnapshot.forEach(doc => {
-                    if (!usersToExclude.includes(doc.id)) {
-                        const data = doc.data();
-                        fetchedUsers.push({
-                            id: doc.id,
-                            username: data.username,
-                            avatarUrl: data.avatarUrl,
-                        });
-                    }
+                    const data = doc.data();
+                    fetchedUsers.push({
+                        id: doc.id,
+                        username: data.username,
+                        avatarUrl: data.avatarUrl,
+                    });
                 });
                 
                 setSuggestions(fetchedUsers.slice(0, 5));
@@ -93,7 +102,7 @@ const SuggestionsCard = () => {
 
         fetchSuggestions();
         
-    }, [user, followingIds, isFollowingLoading]);
+    }, [user, followingIds, isFollowingDataReady]);
 
     const handleFollow = (targetUserId: string) => {
         if (!user) return;
@@ -125,7 +134,7 @@ const SuggestionsCard = () => {
         });
     };
 
-    if (loading || isFollowingLoading) {
+    if (loading || !isFollowingDataReady) {
         return (
             <Card>
                 <CardHeader><h3 className="font-bold">Suggested for you</h3></CardHeader>
@@ -218,13 +227,13 @@ export default function DashboardPage() {
     const [activeFilter, setActiveFilter] = useState("All");
 
     const postsQuery = useMemoFirebase(
-        () => query(collection(db, "posts"), orderBy("createdAt", "desc")),
+        query(collection(db, "posts"), orderBy("createdAt", "desc")),
         []
     );
     const { data: posts, isLoading: postsLoading } = useCollection<Post>(postsQuery);
 
     const studiosQuery = useMemoFirebase(
-        () => query(collection(db, "studio_profiles")),
+        query(collection(db, "studio_profiles")),
         []
     );
     const { data: studios, isLoading: studiosLoading } = useCollection<StudioProfile>(studiosQuery);
@@ -327,5 +336,3 @@ export default function DashboardPage() {
     </>
   );
 }
-
-    
