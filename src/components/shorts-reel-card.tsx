@@ -12,25 +12,11 @@ import { db } from "@/lib/firebase";
 import type { Short } from "@/lib/types";
 import { Skeleton } from "./ui/skeleton";
 import Image from 'next/image';
-import Image from 'next/image';
 
 const ShortSkeleton = () => (
   <div className="group relative h-64 w-40 flex-shrink-0 overflow-hidden rounded-lg bg-secondary">
     <Skeleton className="h-full w-full" />
     <div className="absolute bottom-0 left-0 p-3 w-full">
-<<<<<<< HEAD
-      <Skeleton className="h-4 w-3/4 rounded-md" />
-    </div>
-  </div>
-)
-
-export function ShortsReelCard() {
-  const shortsQuery = useMemoFirebase(
-    query(collection(db, "shorts"), orderBy("createdAt", "desc"), limit(10)),
-    []
-  );
-  const { data: shortsData, isLoading } = useCollection<Short>(shortsQuery);
-=======
         <Skeleton className="h-4 w-2/3 rounded-md" />
     </div>
   </div>
@@ -41,6 +27,10 @@ export function ShortsReelCard() {
   const { data: shorts, isLoading } = useCollection<Short>(shortsQuery);
 
   const getThumbnailUrl = (videoUrl: string) => {
+    // Basic thumbnail logic, may need adjustment based on video provider
+    if (videoUrl.includes('storage.googleapis.com')) {
+        return videoUrl; // Google Cloud Storage doesn't have a simple thumbnail convention
+    }
     return videoUrl.replace(/\.(mp4|mov|avi|wmv|flv|mkv|webm)$/i, '.jpg');
   }
 
@@ -58,80 +48,35 @@ export function ShortsReelCard() {
         <div className="flex space-x-4 overflow-x-auto pb-4 -mx-4 px-4">
           {isLoading ? (
             [...Array(5)].map((_, i) => <ShortSkeleton key={i} />)
-<<<<<<< HEAD
-          ) : shortsData && shortsData.length > 0 ? (
-            shortsData.map((short) => (
-=======
           ) : shorts && shorts.length > 0 ? (
             shorts.map((short) => (
->>>>>>> 0781c7f (I should be able to upload Shorts and displayed shorts should be dynamic)
               <Link href="/shorts" key={short.id}>
                 <div className="group relative h-64 w-40 flex-shrink-0 overflow-hidden rounded-lg">
-                  <Image
-                    src={getThumbnailUrl(short.videoUrl)}
-                    alt={short.caption || short.username || 'Short video thumbnail'}
-                    fill
+                  {/* We can't reliably get a thumbnail from the URL, so we'll just show the video and let the browser handle it.
+                      A better solution would be to generate and store thumbnails upon upload.
+                  */}
+                  <video
+                    src={short.videoUrl}
                     className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                    data-ai-hint="short video"
+                    preload="metadata"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                   <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100">
                       <PlayCircle className="h-12 w-12 text-white/80" />
                   </div>
                   <div className="absolute bottom-0 left-0 p-3 text-white">
-<<<<<<< HEAD
-                    <p className="font-bold text-sm truncate">{short.user.name}</p>
-=======
                     <p className="font-bold text-sm truncate">{short.username}</p>
->>>>>>> 0781c7f (I should be able to upload Shorts and displayed shorts should be dynamic)
                   </div>
                 </div>
               </Link>
             ))
           ) : (
-<<<<<<< HEAD
-             <div className="h-64 w-full flex items-center justify-center text-muted-foreground">
-                <p>No shorts to feature yet.</p>
-             </div>
-=======
             <div className="flex items-center justify-center h-64 w-full text-muted-foreground">
                 <p>No shorts available yet.</p>
             </div>
->>>>>>> 0781c7f (I should be able to upload Shorts and displayed shorts should be dynamic)
           )}
         </div>
       </CardContent>
     </Card>
   );
 }
-
-<<<<<<< HEAD
-=======
-export interface UserProfile {
-  id: string;
-  username: string;
-  avatarUrl: string;
-  following?: string[];
-  // Add other profile fields as needed
-}
-
-export interface UserProfileWithStories extends UserProfile {
-  stories: Status[];
-  hasUnseen: boolean;
-}
-
-export interface Short {
-  id: string;
-  userId: string;
-  username: string;
-  userAvatar: string;
-  videoUrl: string;
-  caption: string;
-  likes: number;
-  comments: number;
-  shares: number;
-  createdAt: Timestamp;
-}
-
->>>>>>> 0781c7f (I should be able to upload Shorts and displayed shorts should be dynamic)
-    
