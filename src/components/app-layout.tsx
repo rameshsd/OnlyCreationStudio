@@ -26,7 +26,6 @@ import {
   Bell,
   Heart,
   Menu,
-  Menu,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
@@ -142,8 +141,8 @@ function BottomNavBar() {
             <Link href="/create">
                 <Camera className="h-7 w-7"/>
                 <span className="sr-only">Create</span>
-            </div>
-        </Link>
+            </Link>
+        </Button>
         <Link href="/messages" className={cn("flex flex-col items-center justify-center gap-1", pathname.startsWith("/messages") ? "text-primary" : "text-muted-foreground")}>
           <MessageSquare />
           <span className="text-xs font-medium">Chats</span>
