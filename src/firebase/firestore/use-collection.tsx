@@ -35,6 +35,7 @@ export function useCollection<T = any>(
     if (!memoizedQuery) {
       setData(null);
       setIsLoading(false);
+      setError(null);
       return;
     }
 
