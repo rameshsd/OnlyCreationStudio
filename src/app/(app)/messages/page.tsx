@@ -22,6 +22,8 @@ import {
 import { type Conversation, type Message } from '@/lib/types';
 import { format } from 'date-fns';
 import { NewConversationDialog } from '@/components/new-conversation-dialog';
+import { FirestorePermissionError } from '@/firebase/errors';
+import { errorEmitter } from '@/firebase/error-emitter';
 
 const ConversationList = ({ conversations, onSelectConvo, selectedConvoId, isLoading, onNewConvoClick }: { conversations: Conversation[], onSelectConvo: (id: string) => void, selectedConvoId: string | null, isLoading: boolean, onNewConvoClick: () => void }) => {
     const { user } = useAuth();
@@ -197,14 +199,30 @@ export default function MessagesPage() {
       text,
       createdAt: serverTimestamp(),
     };
-    
-    // These are non-blocking writes for better UI responsiveness
-    addDoc(messagesColRef, messageData);
-    updateDoc(convoDocRef, {
+
+    const conversationUpdateData = {
         lastMessageText: text,
         lastMessageSentAt: serverTimestamp(),
+    };
+    
+    addDoc(messagesColRef, messageData).catch(serverError => {
+        const permissionError = new FirestorePermissionError({
+            path: messagesColRef.path,
+            operation: 'create',
+            requestResourceData: messageData,
+        });
+        errorEmitter.emit('permission-error', permissionError);
     });
-  }
+
+    updateDoc(convoDocRef, conversationUpdateData).catch(serverError => {
+        const permissionError = new FirestorePermissionError({
+            path: convoDocRef.path,
+            operation: 'update',
+            requestResourceData: conversationUpdateData,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+    });
+  };
 
   const handleConvoSelected = (convoId: string) => {
     setSelectedConvoId(convoId);
