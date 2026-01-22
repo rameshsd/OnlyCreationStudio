@@ -15,6 +15,7 @@ const db = getFirestore(app);
 interface UserData {
     id: string;
     username: string;
+    username_lowercase?: string;
     bio?: string;
     avatarUrl?: string;
     coverUrl?: string;
@@ -68,6 +69,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 setUserData({
                     id: userDoc.id,
                     username: data.username,
+                    username_lowercase: data.username_lowercase,
                     bio: data.bio,
                     avatarUrl: data.avatarUrl,
                     coverUrl: data.coverUrl,
@@ -117,6 +119,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const userProfileRef = doc(db, "user_profiles", user.uid);
         const userProfileData: Omit<UserData, 'id'> = {
             username: username,
+            username_lowercase: username.toLowerCase(),
             bio: "New to OnlyCreation!",
             avatarUrl: `https://api.dicebear.com/7.x/initials/svg?seed=${username}`,
             coverUrl: "https://images.unsplash.com/photo-1507525428034-b723a9ce6890?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
@@ -147,6 +150,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const userProfileRef = doc(db, "user_profiles", user.uid);
         const userProfileData: Omit<UserData, 'id'> = {
             username: username,
+            username_lowercase: username.toLowerCase(),
             bio: "Studio Owner",
             avatarUrl: `https://api.dicebear.com/7.x/initials/svg?seed=${username}`,
             coverUrl: "https://images.unsplash.com/photo-1507525428034-b723a9ce6890?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",

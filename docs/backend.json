@@ -44,6 +44,10 @@
           "type": "string",
           "description": "The user's public username."
         },
+        "username_lowercase": {
+            "type": "string",
+            "description": "Lowercase version of username for case-insensitive search."
+        },
         "role": {
           "type": "string",
           "description": "User's role (e.g., Brand, Creator, Studio)."
@@ -60,7 +64,8 @@
       },
       "required": [
         "id",
-        "username"
+        "username",
+        "username_lowercase"
       ]
     },
     "Follow": {
@@ -222,6 +227,10 @@
           "type": "string",
           "description": "Name of the studio."
         },
+        "studioName_lowercase": {
+          "type": "string",
+          "description": "Lowercase version of studio name for case-insensitive search."
+        },
         "location": {
           "type": "object",
           "description": "Location of the studio, including address and coordinates.",
@@ -264,7 +273,8 @@
       "required": [
         "id",
         "userProfileId",
-        "studioName"
+        "studioName",
+        "studioName_lowercase"
       ]
     },
     "Status": {
@@ -518,5 +528,3 @@
     "reasoning": "This simplified structure directly matches the user's confirmed list of collections: users, user_profiles, posts, projects, and studio_profiles. It uses a flat architecture for scalable queries, especially for the main post feed. User data is split between private 'users' and public 'user_profiles' for security. Statuses are a subcollection under user_profiles to enable efficient querying and collection group scans. Shorts are in a top-level collection for easy global fetching. Conversations and Messages are added for the chat feature."
   }
 }
-
-    
