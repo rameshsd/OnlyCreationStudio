@@ -21,6 +21,7 @@ import { useParams, useRouter } from "next/navigation";
 import { FirestorePermissionError } from '@/firebase/errors';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FollowListDialog } from '@/components/follow-list-dialog';
+import { cn } from "@/lib/utils";
 
 
 const statsData = [
