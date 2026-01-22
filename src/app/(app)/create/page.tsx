@@ -168,20 +168,20 @@ export default function CreatePostPage() {
                   <div className="flex items-center gap-1">
                       <Label htmlFor="picture-upload" className="flex items-center gap-2 cursor-pointer text-muted-foreground hover:text-primary p-2 rounded-md transition-colors">
                         <ImageIcon className="h-6 w-6 text-green-500" />
-                        <span className="font-semibold">Photo</span>
+                        <span className="font-semibold hidden sm:inline">Photo</span>
                       </Label>
                       <Input id="picture-upload" type="file" className="sr-only" onChange={handleFileChange} accept="image/*" disabled={loading} />
                       
                        <Label htmlFor="video-upload" className="flex items-center gap-2 cursor-pointer text-muted-foreground hover:text-primary p-2 rounded-md transition-colors">
                         <Video className="h-6 w-6 text-blue-500" />
-                         <span className="font-semibold">Video</span>
+                         <span className="font-semibold hidden sm:inline">Video</span>
                       </Label>
                       <Input id="video-upload" type="file" className="sr-only" onChange={handleFileChange} accept="video/*" disabled={loading} />
                       
                       <Button variant="ghost" asChild className="text-muted-foreground hover:text-primary">
-                        <Link href="/create/short">
+                        <Link href="/create/short" className="flex items-center gap-2 p-2">
                           <Film className="h-6 w-6 text-purple-500"/>
-                          <span className="font-semibold ml-2">Short</span>
+                          <span className="font-semibold ml-2 hidden sm:inline">Short</span>
                         </Link>
                       </Button>
                   </div>
@@ -197,5 +197,3 @@ export default function CreatePostPage() {
     </div>
   );
 }
-
-    
