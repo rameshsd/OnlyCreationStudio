@@ -55,10 +55,11 @@ export function useCollection<T = any>(
       },
       (err: FirestoreError) => {
         // Create and emit a contextual error for better debugging.
-        // NOTE: Accessing internal properties of the query is unstable.
-        // We will pass a generic path for now to ensure stability.
+        // The .path property only exists on CollectionReference, not on a general Query object.
+        // We add a fallback to prevent a crash when the path is undefined.
+        const path = (memoizedQuery as CollectionReference)?.path;
         const contextualError = new FirestorePermissionError({
-          path: (memoizedQuery as CollectionReference).path, // Assumes it's a collection ref for path
+          path: path || '[unknown collection]',
           operation: 'list',
         });
         setError(contextualError);
