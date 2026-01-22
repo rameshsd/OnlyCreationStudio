@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -60,22 +61,21 @@ export function NewConversationDialog({
       try {
         const lowerCaseQuery = searchQuery.toLowerCase();
         const endQuery = lowerCaseQuery + '\uf8ff';
-        const endQueryCaseSensitive = searchQuery + '\uf8ff';
 
         // Query user_profiles
         const usersRef = collection(db, 'user_profiles');
         const userQuery = query(
           usersRef,
-          where('username', '>=', lowerCaseQuery),
-          where('username', '<=', endQuery)
+          where('username_lowercase', '>=', lowerCaseQuery),
+          where('username_lowercase', '<=', endQuery)
         );
 
         // Query studio_profiles
         const studiosRef = collection(db, 'studio_profiles');
         const studioQuery = query(
             studiosRef,
-            where('studioName', '>=', searchQuery),
-            where('studioName', '<=', endQueryCaseSensitive)
+            where('studioName_lowercase', '>=', lowerCaseQuery),
+            where('studioName_lowercase', '<=', endQuery)
         );
 
         const [userSnap, studioSnap] = await Promise.all([

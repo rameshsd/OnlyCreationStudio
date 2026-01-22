@@ -113,6 +113,7 @@ export default function StudioOnboardingPage() {
             const studioData = {
                 userProfileId: user.uid,
                 studioName,
+                studioName_lowercase: studioName.toLowerCase(),
                 location: {
                   address: address,
                   latitude: parseFloat(latitude) || null,
@@ -577,5 +578,3 @@ export default function StudioOnboardingPage() {
         </div>
     );
 }
-
-    
