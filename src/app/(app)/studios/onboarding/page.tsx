@@ -133,6 +133,11 @@ export default function StudioOnboardingPage() {
                 qualityGrade: 'A',
                 services: services,
                 createdAt: serverTimestamp(),
+                likes: 0,
+                comments: 0,
+                shares: 0,
+                rating: 0,
+                reviewCount: 0,
             };
 
             await addDoc(collection(db, 'studio_profiles'), studioData)

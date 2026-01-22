@@ -134,25 +134,35 @@ export function PostCard({ post }: { post: Post }) {
             text: post.caption,
             url: `${window.location.origin}/posts/${post.id}`,
         };
-        if (navigator.share) {
-            try {
+        try {
+            if (navigator.share) {
                 await navigator.share(shareData);
+                // Share was successful, now update the count
                 const postRef = doc(db, 'posts', post.id);
                 await runTransaction(db, async (transaction) => {
                     const postDoc = await transaction.get(postRef);
-                    if (!postDoc.exists()) throw "Post does not exist!";
+                    if (!postDoc.exists()) return;
                     const newShares = (postDoc.data().shares || 0) + 1;
                     transaction.update(postRef, { shares: newShares });
                 });
-            } catch (error) {
-                console.log('Error sharing:', error);
+            } else {
+                // Fallback for browsers that don't support Web Share API
+                await navigator.clipboard.writeText(shareData.url);
+                toast({
+                    title: 'Link Copied!',
+                    description: 'The post link has been copied to your clipboard.',
+                });
             }
-        } else {
-            navigator.clipboard.writeText(shareData.url);
-            toast({
-                title: 'Link Copied!',
-                description: 'The post link has been copied to your clipboard.',
-            });
+        } catch (error) {
+            // Ignores AbortError from user cancelling the share dialog
+            if ((error as DOMException)?.name !== 'AbortError') {
+                console.error('Sharing failed:', error);
+                toast({
+                    title: 'Sharing Failed',
+                    description: 'Could not share this post. Please try again.',
+                    variant: 'destructive',
+                });
+            }
         }
     };
 
@@ -205,6 +215,7 @@ export function PostCard({ post }: { post: Post }) {
                         </Link>
                         <button onClick={handleShare} className="flex items-center gap-1.5 hover:text-primary transition-colors">
                             <Send className="h-5 w-5" />
+                            <span className="text-sm font-medium">{post.shares || 0}</span>
                         </button>
                     </div>
                     <Button onClick={handleSaveToggle} disabled={isSavePending} variant="ghost" size="icon" className={cn("text-muted-foreground hover:text-primary", isSaved && "text-primary")}>
