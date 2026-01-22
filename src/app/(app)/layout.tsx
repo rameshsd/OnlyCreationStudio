@@ -34,7 +34,8 @@ import {
   Sheet,
   SheetContent,
   SheetTrigger,
-  SheetTitle
+  SheetTitle,
+  SheetClose
 } from "@/components/ui/sheet";
 
 import { Logo } from "@/components/logo";
@@ -73,6 +74,14 @@ const menuItems = [
 
 function MobileSidebar() {
   const pathname = usePathname();
+  const { user, userData, logout } = useAuth();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await logout();
+    router.push('/login');
+  };
+
   return (
     <Sheet>
       <SheetTrigger asChild>
@@ -89,33 +98,71 @@ function MobileSidebar() {
           <SheetTitle className="sr-only">Menu</SheetTitle>
           <div className="p-4">
             <Button asChild className="w-full">
-              <Link href="/create">
-                <Plus className="mr-2 h-4 w-4" />
-                Create Post
-              </Link>
+              <SheetClose asChild>
+                <Link href="/create">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create Post
+                </Link>
+              </SheetClose>
             </Button>
           </div>
-          <nav className="space-y-2 p-4 pt-0">
+          <nav className="space-y-1 p-4 pt-0">
             {menuItems.map((item) => {
                const isActive = item.exact 
                 ? pathname === item.href 
                 : pathname.startsWith(item.href);
               return (
-              <Link
-                key={item.label}
-                href={item.href}
-                className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2 transition-all",
-                  isActive
-                    ? "bg-primary/10 text-primary font-semibold"
-                    : "text-muted-foreground hover:bg-muted"
-                )}
-              >
-                <item.icon className="h-5 w-5" />
-                <span>{item.label}</span>
-              </Link>
+              <SheetClose asChild key={item.label}>
+                <Link
+                  href={item.href}
+                  className={cn(
+                    "flex items-center gap-3 rounded-lg px-3 py-2 transition-all",
+                    isActive
+                      ? "bg-primary/10 text-primary font-semibold"
+                      : "text-muted-foreground hover:bg-muted"
+                  )}
+                >
+                  <item.icon className="h-5 w-5" />
+                  <span>{item.label}</span>
+                </Link>
+              </SheetClose>
             )})}
           </nav>
+        </div>
+        <div className="p-4 mt-auto border-t">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="flex items-center justify-start gap-3 w-full h-auto p-2">
+                 <Avatar className="h-10 w-10">
+                  <AvatarImage src={userData?.avatarUrl} alt={userData?.username} data-ai-hint="avatar user" />
+                  <AvatarFallback>{userData?.username?.substring(0, 2).toUpperCase() || 'U'}</AvatarFallback>
+                </Avatar>
+                <div className="text-left truncate">
+                  <p className="font-semibold truncate">{userData?.username || 'User'}</p>
+                  <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+                </div>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-56 mb-2">
+              <DropdownMenuLabel>My Account</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                 <SheetClose asChild>
+                    <Link href="/profile"><User className="mr-2 h-4 w-4" />Profile</Link>
+                 </SheetClose>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                 <SheetClose asChild>
+                  <Link href="/settings"><Settings className="mr-2 h-4 w-4" />Settings</Link>
+                 </SheetClose>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleLogout}>
+                <LogOut className="mr-2 h-4 w-4" />
+                Log out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </SheetContent>
     </Sheet>
