@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
 import { collection, query, where, orderBy, addDoc, serverTimestamp, updateDoc, doc } from 'firebase/firestore';
 import { useCollection } from '@/firebase/firestore/use-collection';
+import { useDoc } from '@/firebase/firestore/use-doc';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -72,7 +73,7 @@ const ConversationList = ({ conversations, onSelectConvo, selectedConvoId, isLoa
     </Card>
 )};
 
-const ChatWindow = ({ conversation, messages, onSendMessage, onBack, isLoadingMessages }: { conversation: Conversation | undefined, messages: Message[], onSendMessage: (text: string) => void, onBack?: () => void, isLoadingMessages: boolean }) => {
+const ChatWindow = ({ conversation, messages, onSendMessage, onBack, isLoadingMessages }: { conversation: Conversation | null, messages: Message[], onSendMessage: (text: string) => void, onBack?: () => void, isLoadingMessages: boolean }) => {
     const { user } = useAuth();
     const [newMessage, setNewMessage] = useState("");
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -90,7 +91,6 @@ const ChatWindow = ({ conversation, messages, onSendMessage, onBack, isLoadingMe
     
     if (!conversation) {
         // If a conversation is selected but not yet loaded, show a loading skeleton.
-        // This is indicated by `isLoadingMessages` being true when `conversation` is not yet available.
         if (isLoadingMessages) {
              return (
                 <Card className="w-full lg:w-2/3 flex flex-col h-full">
@@ -209,9 +209,12 @@ export default function MessagesPage() {
 
   const { data: messages, isLoading: messagesLoading } = useCollection<Message>(messagesQuery);
   
-  const selectedConversation = useMemo(() => {
-    return conversations?.find(c => c.id === selectedConvoId)
-  }, [conversations, selectedConvoId]);
+  const selectedConvoRef = useMemo(() => {
+    if (!selectedConvoId) return null;
+    return doc(db, 'conversations', selectedConvoId);
+  }, [selectedConvoId]);
+
+  const { data: selectedConversation, isLoading: selectedConvoLoading } = useDoc<Conversation>(selectedConvoRef);
 
   useEffect(() => {
       if (!selectedConvoId && conversations && conversations.length > 0 && !isMobile) {
@@ -259,6 +262,8 @@ export default function MessagesPage() {
     setSelectedConvoId(convoId);
   }
 
+  const isLoading = messagesLoading || selectedConvoLoading;
+
   const mainContent = (
     <>
       <NewConversationDialog
@@ -283,7 +288,7 @@ export default function MessagesPage() {
                     messages={messages || []}
                     onSendMessage={handleSendMessage}
                     onBack={() => setSelectedConvoId(null)}
-                    isLoadingMessages={messagesLoading || (!selectedConversation && !!selectedConvoId)}
+                    isLoadingMessages={isLoading}
                 />
             )}
         </div>
@@ -300,7 +305,7 @@ export default function MessagesPage() {
             conversation={selectedConversation}
             messages={messages || []}
             onSendMessage={handleSendMessage}
-            isLoadingMessages={messagesLoading || (!selectedConversation && !!selectedConvoId)}
+            isLoadingMessages={isLoading}
           />
         </div>
       )}
