@@ -50,7 +50,7 @@ export function NewConversationDialog({
   useEffect(() => {
     if (!user || !open) return;
 
-    const searchUsers = async () => {
+    const searchProfiles = async () => {
       if (!searchQuery.trim()) {
         setSearchResults([]);
         setLoading(false);
@@ -58,24 +58,58 @@ export function NewConversationDialog({
       }
       setLoading(true);
       try {
+        const lowerCaseQuery = searchQuery.toLowerCase();
+        const endQuery = lowerCaseQuery + '\uf8ff';
+        const endQueryCaseSensitive = searchQuery + '\uf8ff';
+
+        // Query user_profiles
         const usersRef = collection(db, 'user_profiles');
-        const q = query(
+        const userQuery = query(
           usersRef,
-          where('username', '>=', searchQuery.toLowerCase()),
-          where('username', '<=', searchQuery.toLowerCase() + '\uf8ff')
+          where('username', '>=', lowerCaseQuery),
+          where('username', '<=', endQuery)
         );
 
-        const querySnapshot = await getDocs(q);
-        const users = querySnapshot.docs
-          .map((doc) => ({ id: doc.id, ...doc.data() } as UserProfile))
-          .filter((profile) => profile.id !== user.uid); // Filter out self
+        // Query studio_profiles
+        const studiosRef = collection(db, 'studio_profiles');
+        const studioQuery = query(
+            studiosRef,
+            where('studioName', '>=', searchQuery),
+            where('studioName', '<=', endQueryCaseSensitive)
+        );
 
-        setSearchResults(users);
+        const [userSnap, studioSnap] = await Promise.all([
+            getDocs(userQuery),
+            getDocs(studioQuery)
+        ]);
+
+        const users = userSnap.docs.map((doc) => ({ id: doc.id, ...(doc.data() as UserProfile) }));
+
+        const studios = studioSnap.docs.map((doc) => {
+            const data = doc.data();
+            // Ensure we have a userProfileId to start a conversation
+            if (!data.userProfileId) return null;
+            return {
+                id: data.userProfileId, // This is the user ID to chat with
+                username: data.studioName,
+                avatarUrl: data.photos?.[0] || `https://api.dicebear.com/7.x/initials/svg?seed=${data.studioName}`,
+                bio: data.description,
+            } as UserProfile;
+        }).filter((p): p is UserProfile => p !== null);
+
+        const combinedResults = [...users, ...studios];
+
+        // Remove duplicates (e.g., a user who is also a studio owner) and self
+        const uniqueResults = Array.from(new Map(combinedResults.map(item => [item.id, item])).values())
+            .filter(profile => profile.id !== user.uid);
+            
+        setSearchResults(uniqueResults);
+
       } catch (error) {
-        console.error('Error searching users:', error);
+        console.error('Error searching profiles:', error);
         toast({
           title: 'Search failed',
-          description: 'Could not fetch users. Please try again.',
+          description: 'Could not fetch profiles. Please try again.',
           variant: 'destructive',
         });
       } finally {
@@ -84,8 +118,8 @@ export function NewConversationDialog({
     };
 
     const debounceTimer = setTimeout(() => {
-        searchUsers();
-    }, 300); // Debounce search by 300ms
+        searchProfiles();
+    }, 300);
 
     return () => clearTimeout(debounceTimer);
   }, [searchQuery, open, user, toast]);
@@ -95,9 +129,9 @@ export function NewConversationDialog({
     setIsCreating(true);
 
     try {
-        const existingConvo = existingConversations.find(c => 
-            c.participantIds.length === 2 && 
-            c.participantIds.includes(user.uid) && 
+        const existingConvo = existingConversations.find(c =>
+            c.participantIds.length === 2 &&
+            c.participantIds.includes(user.uid) &&
             c.participantIds.includes(targetUser.id)
         );
 
@@ -118,7 +152,7 @@ export function NewConversationDialog({
             lastMessageSentAt: serverTimestamp(),
             lastMessageReadBy: [user.uid]
         };
-        
+
         const conversationsColRef = collection(db, 'conversations');
         const docRef = await addDoc(conversationsColRef, conversationData).catch(serverError => {
             const permissionError = new FirestorePermissionError({
@@ -153,13 +187,13 @@ export function NewConversationDialog({
         <DialogHeader>
           <DialogTitle>New Conversation</DialogTitle>
           <DialogDescription>
-            Search for a user to start a new chat.
+            Search for any user or studio to start a new chat.
           </DialogDescription>
         </DialogHeader>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search by username..."
+            placeholder="Search by username or studio name..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
@@ -196,7 +230,7 @@ export function NewConversationDialog({
               <p className="text-muted-foreground text-center text-sm p-4">No users found.</p>
           )}
            {!loading && !isCreating && searchResults.length === 0 && !searchQuery && (
-              <p className="text-muted-foreground text-center text-sm p-4 pt-10">Start typing to search for users.</p>
+              <p className="text-muted-foreground text-center text-sm p-4 pt-10">Start typing to search for users or studios.</p>
           )}
         </div>
       </DialogContent>
