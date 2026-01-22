@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -14,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Loader2, Search } from 'lucide-react';
 import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, serverTimestamp, documentId } from 'firebase/firestore';
 import { useAuth } from '@/hooks/use-auth';
 import type { UserProfile, Conversation } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -59,46 +58,76 @@ export function NewConversationDialog({
       }
       setLoading(true);
       try {
+        // This is a case-sensitive prefix search
         const endQuery = searchQuery + '\uf8ff';
 
-        // Query user_profiles
-        const usersRef = collection(db, 'user_profiles');
+        // Query user_profiles by username
+        const profilesRef = collection(db, 'user_profiles');
         const userQuery = query(
-          usersRef,
+          profilesRef,
           where('username', '>=', searchQuery),
           where('username', '<=', endQuery)
         );
 
-        // Query studio_profiles
+        // Query studio_profiles by studioName
         const studiosRef = collection(db, 'studio_profiles');
         const studioQuery = query(
             studiosRef,
             where('studioName', '>=', searchQuery),
             where('studioName', '<=', endQuery)
         );
+        
+        // Query users table by email
+        const authUsersRef = collection(db, 'users');
+        const authUserQuery = query(
+            authUsersRef,
+            where('email', '>=', searchQuery),
+            where('email', '<=', endQuery)
+        );
 
-        const [userSnap, studioSnap] = await Promise.all([
+        const [userSnap, studioSnap, authUserSnap] = await Promise.all([
             getDocs(userQuery),
-            getDocs(studioQuery)
+            getDocs(studioQuery),
+            getDocs(authUserQuery),
         ]);
 
-        const users = userSnap.docs.map((doc) => ({ id: doc.id, ...(doc.data() as UserProfile) }));
+        const usersFromProfileSearch = userSnap.docs.map((doc) => ({ id: doc.id, ...(doc.data() as UserProfile) }));
 
         const studios = studioSnap.docs.map((doc) => {
             const data = doc.data();
-            // Ensure we have a userProfileId to start a conversation
             if (!data.userProfileId) return null;
             return {
-                id: data.userProfileId, // This is the user ID to chat with
+                id: data.userProfileId,
                 username: data.studioName,
                 avatarUrl: data.photos?.[0] || `https://api.dicebear.com/7.x/initials/svg?seed=${data.studioName}`,
                 bio: data.description,
             } as UserProfile;
         }).filter((p): p is UserProfile => p !== null);
+        
+        const authUserIds = authUserSnap.docs.map(doc => doc.id);
+        let usersFromEmailSearch: UserProfile[] = [];
+        if (authUserIds.length > 0) {
+            // Firestore 'in' query is limited to 30 items per query
+            const idChunks = [];
+            for (let i = 0; i < authUserIds.length; i += 30) {
+                idChunks.push(authUserIds.slice(i, i + 30));
+            }
 
-        const combinedResults = [...users, ...studios];
+            const profilePromises = idChunks.map(chunk => 
+                getDocs(query(profilesRef, where(documentId(), 'in', chunk)))
+            );
+            
+            const profileSnapshots = await Promise.all(profilePromises);
 
-        // Remove duplicates (e.g., a user who is also a studio owner) and self
+            profileSnapshots.forEach(snapshot => {
+                 snapshot.docs.forEach(doc => {
+                    usersFromEmailSearch.push({ id: doc.id, ...doc.data() } as UserProfile);
+                });
+            });
+        }
+
+        const combinedResults = [...usersFromProfileSearch, ...studios, ...usersFromEmailSearch];
+        
         const uniqueResults = Array.from(new Map(combinedResults.map(item => [item.id, item])).values())
             .filter(profile => profile.id !== user.uid);
             
@@ -191,7 +220,7 @@ export function NewConversationDialog({
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search by username or studio name..."
+            placeholder="Search by username, studio name, or email..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"

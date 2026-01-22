@@ -9,7 +9,12 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      allow read, write: if isSignedIn() && request.auth.uid == userId;
+      // Allow user to write to their own document
+      allow write: if isSignedIn() && request.auth.uid == userId;
+      // Allow user to read their own document
+      allow get: if isSignedIn() && request.auth.uid == userId;
+      // Allow any signed-in user to list (search) the collection for email search
+      allow list: if isSignedIn();
     }
 
     match /user_profiles/{userProfileId} {
