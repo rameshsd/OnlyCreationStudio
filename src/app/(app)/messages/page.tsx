@@ -91,16 +91,22 @@ const ConversationList = ({ conversations, onSelectConvo, selectedConvoId, isLoa
             <div className="flex flex-col gap-1">
             {conversations.map((convo: Conversation) => {
                 const otherParticipant = convo.participantInfo?.find(p => p.userId !== user?.uid);
+                
+                // Defensively check for otherParticipant and its username to prevent crashes
+                if (!otherParticipant?.username) {
+                  return null;
+                }
+
                 return (
                 <button key={convo.id} onClick={() => onSelectConvo(convo.id)} className={cn("flex items-center gap-3 p-3 rounded-lg text-left transition-colors w-full", selectedConvoId === convo.id ? 'bg-primary/10' : 'hover:bg-accent')}>
                     <div className="relative">
                     <Avatar className="h-12 w-12">
-                        <AvatarImage src={otherParticipant?.avatarUrl} alt={otherParticipant?.username} data-ai-hint="user avatar" />
-                        <AvatarFallback>{otherParticipant?.username.substring(0, 2)}</AvatarFallback>
+                        <AvatarImage src={otherParticipant.avatarUrl} alt={otherParticipant.username} data-ai-hint="user avatar" />
+                        <AvatarFallback>{otherParticipant.username.substring(0, 2)}</AvatarFallback>
                     </Avatar>
                     </div>
                     <div className="flex-1 truncate">
-                    <p className="font-semibold">{otherParticipant?.username}</p>
+                    <p className="font-semibold">{otherParticipant.username}</p>
                     <p className="text-sm text-muted-foreground truncate">{convo.lastMessageText}</p>
                     </div>
                 </button>
@@ -215,10 +221,22 @@ export default function MessagesPage() {
 
   const conversationsQuery = useMemo(() => {
     if (!user) return null;
-    return query(collection(db, 'conversations'), where('participantIds', 'array-contains', user.uid), orderBy('lastMessageSentAt', 'desc'));
+    // Remove orderBy to simplify the query and avoid potential index/permission issues.
+    return query(collection(db, 'conversations'), where('participantIds', 'array-contains', user.uid));
   }, [user]);
 
-  const { data: conversations, isLoading: conversationsLoading } = useCollection<Conversation>(conversationsQuery);
+  const { data: rawConversations, isLoading: conversationsLoading } = useCollection<Conversation>(conversationsQuery);
+
+  // Sort conversations on the client-side
+  const conversations = useMemo(() => {
+    if (!rawConversations) return null;
+    // Create a new sorted array
+    return [...rawConversations].sort((a, b) => {
+        const timeA = a.lastMessageSentAt?.seconds || 0;
+        const timeB = b.lastMessageSentAt?.seconds || 0;
+        return timeB - timeA;
+    });
+  }, [rawConversations]);
 
   const messagesQuery = useMemo(() => {
     if (!selectedConvoId) return null;
@@ -347,3 +365,5 @@ export default function MessagesPage() {
     </>
   );
 }
+
+    
