@@ -21,15 +21,16 @@ import {
 } from "@/components/ui/tooltip";
 import { type Conversation, type Message } from '@/lib/types';
 import { format } from 'date-fns';
+import { NewConversationDialog } from '@/components/new-conversation-dialog';
 
-const ConversationList = ({ conversations, onSelectConvo, selectedConvoId, isLoading }: { conversations: Conversation[], onSelectConvo: (id: string) => void, selectedConvoId: string | null, isLoading: boolean }) => {
+const ConversationList = ({ conversations, onSelectConvo, selectedConvoId, isLoading, onNewConvoClick }: { conversations: Conversation[], onSelectConvo: (id: string) => void, selectedConvoId: string | null, isLoading: boolean, onNewConvoClick: () => void }) => {
     const { user } = useAuth();
     return (
     <Card className="w-full lg:w-1/3 flex flex-col h-full">
       <CardHeader>
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-bold tracking-tight">Messages</h1>
-          <Button variant="ghost" size="icon">
+          <Button variant="ghost" size="icon" onClick={onNewConvoClick}>
             <UserPlus className="h-5 w-5" />
           </Button>
         </div>
@@ -159,6 +160,7 @@ export default function MessagesPage() {
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const [selectedConvoId, setSelectedConvoId] = useState<string | null>(null);
+  const [isNewConvoDialogOpen, setIsNewConvoDialogOpen] = useState(false);
 
   const conversationsQuery = useMemo(() => {
     if (!user) return null;
@@ -204,8 +206,19 @@ export default function MessagesPage() {
     });
   }
 
-  if (isMobile) {
-    return (
+  const handleConvoSelected = (convoId: string) => {
+    setSelectedConvoId(convoId);
+  }
+
+  const mainContent = (
+    <>
+      <NewConversationDialog
+        open={isNewConvoDialogOpen}
+        onOpenChange={setIsNewConvoDialogOpen}
+        onConvoSelected={handleConvoSelected}
+        existingConversations={conversations || []}
+      />
+      {isMobile ? (
         <div className="h-[calc(100vh-11rem)]">
             {!selectedConvoId ? (
                 <ConversationList
@@ -213,6 +226,7 @@ export default function MessagesPage() {
                     onSelectConvo={setSelectedConvoId}
                     selectedConvoId={selectedConvoId}
                     isLoading={conversationsLoading}
+                    onNewConvoClick={() => setIsNewConvoDialogOpen(true)}
                 />
             ) : (
                 <ChatWindow
@@ -224,25 +238,25 @@ export default function MessagesPage() {
                 />
             )}
         </div>
-    )
-  }
-
-  return (
-    <div className="h-[calc(100vh-8rem)] flex gap-4">
-      <ConversationList
-        conversations={conversations || []}
-        onSelectConvo={setSelectedConvoId}
-        selectedConvoId={selectedConvoId}
-        isLoading={conversationsLoading}
-      />
-      <ChatWindow
-        conversation={selectedConversation}
-        messages={messages || []}
-        onSendMessage={handleSendMessage}
-        isLoadingMessages={messagesLoading}
-      />
-    </div>
+      ) : (
+        <div className="h-[calc(100vh-8rem)] flex gap-4">
+          <ConversationList
+            conversations={conversations || []}
+            onSelectConvo={setSelectedConvoId}
+            selectedConvoId={selectedConvoId}
+            isLoading={conversationsLoading}
+            onNewConvoClick={() => setIsNewConvoDialogOpen(true)}
+          />
+          <ChatWindow
+            conversation={selectedConversation}
+            messages={messages || []}
+            onSendMessage={handleSendMessage}
+            isLoadingMessages={messagesLoading}
+          />
+        </div>
+      )}
+    </>
   );
+  
+  return mainContent;
 }
-
-    
