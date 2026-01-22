@@ -4,7 +4,6 @@
 import { useState, useMemo, useEffect } from "react";
 import {
   collection,
-  collectionGroup,
   query,
   where,
   Timestamp,
@@ -84,18 +83,30 @@ export function StoryReel() {
     }
 
     setStatusesLoading(true);
-    const statusesQuery = query(
-      collectionGroup(db, 'statuses'),
-      where('userId', 'in', relevantUserIds)
-    );
-    getDocs(statusesQuery).then(snapshot => {
-      const statusesData = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Status));
-      setAllStatuses(statusesData);
-    }).catch(err => {
-      console.error("Error fetching statuses:", err);
-    }).finally(() => {
-      setStatusesLoading(false);
-    });
+    
+    const fetchAllStatuses = async () => {
+      try {
+        const promises = relevantUserIds.map(userId => {
+          const statusesRef = collection(db, `user_profiles/${userId}/statuses`);
+          return getDocs(statusesRef);
+        });
+
+        const snapshots = await Promise.all(promises);
+        const statusesData: Status[] = [];
+        snapshots.forEach(snapshot => {
+          snapshot.docs.forEach(doc => {
+            statusesData.push({ id: doc.id, ...doc.data() } as Status);
+          });
+        });
+        setAllStatuses(statusesData);
+      } catch (err) {
+        console.error("Error fetching statuses:", err);
+      } finally {
+        setStatusesLoading(false);
+      }
+    };
+    
+    fetchAllStatuses();
 
   }, [relevantUserIds]);
 
