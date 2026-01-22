@@ -24,6 +24,7 @@ import { format } from 'date-fns';
 import { NewConversationDialog } from '@/components/new-conversation-dialog';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { errorEmitter } from '@/firebase/error-emitter';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const ConversationList = ({ conversations, onSelectConvo, selectedConvoId, isLoading, onNewConvoClick }: { conversations: Conversation[], onSelectConvo: (id: string) => void, selectedConvoId: string | null, isLoading: boolean, onNewConvoClick: () => void }) => {
     const { user } = useAuth();
@@ -76,7 +77,9 @@ const ChatWindow = ({ conversation, messages, onSendMessage, onBack, isLoadingMe
     const [newMessage, setNewMessage] = useState("");
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
-    const otherParticipant = conversation?.participantInfo?.find(p => p.userId !== user?.uid);
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, [messages]);
 
     const handleSendMessage = (e: React.FormEvent) => {
         e.preventDefault();
@@ -85,13 +88,47 @@ const ChatWindow = ({ conversation, messages, onSendMessage, onBack, isLoadingMe
         setNewMessage("");
     }
     
-    useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages]);
+    if (!conversation) {
+        // If 'onBack' is present, it means we're on mobile and a convo IS selected, it's just loading.
+        // So we show a loading state with a back button instead of the generic placeholder.
+        if (onBack) {
+            return (
+                <Card className="w-full lg:w-2/3 flex flex-col h-full">
+                    <CardHeader className="border-b">
+                        <div className="flex items-center gap-3">
+                            <Button variant="ghost" size="icon" className="lg:hidden" onClick={onBack}>
+                                <ArrowLeft className="h-5 w-5"/>
+                            </Button>
+                            <div className="flex items-center gap-3">
+                                <Skeleton className="h-10 w-10 rounded-full" />
+                                <div className="space-y-2">
+                                    <Skeleton className="h-4 w-24" />
+                                </div>
+                            </div>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="flex-1 flex items-center justify-center">
+                        <Loader2 className="h-6 w-6 animate-spin"/>
+                    </CardContent>
+                </Card>
+            );
+        }
+
+        // The original placeholder for desktop view or when no convo is selected.
+        return (
+            <Card className="w-full lg:w-2/3 flex flex-col h-full">
+                <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground h-full">
+                    <MessageSquare className="h-20 w-20" />
+                    <p className="mt-4 text-lg">Select a conversation to start chatting</p>
+                </div>
+            </Card>
+        );
+    }
+
+    const otherParticipant = conversation.participantInfo?.find(p => p.userId !== user?.uid);
 
     return (
         <Card className="w-full lg:w-2/3 flex flex-col h-full">
-            {conversation ? (
             <>
                 <CardHeader className="border-b">
                 <div className="flex justify-between items-center">
@@ -147,12 +184,6 @@ const ChatWindow = ({ conversation, messages, onSendMessage, onBack, isLoadingMe
                 </form>
                 </div>
             </>
-            ) : (
-            <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground h-full">
-                <MessageSquare className="h-20 w-20" />
-                <p className="mt-4 text-lg">Select a conversation to start chatting</p>
-            </div>
-            )}
         </Card>
     )
 }
@@ -252,7 +283,7 @@ export default function MessagesPage() {
                     messages={messages || []}
                     onSendMessage={handleSendMessage}
                     onBack={() => setSelectedConvoId(null)}
-                    isLoadingMessages={messagesLoading}
+                    isLoadingMessages={messagesLoading || (!selectedConversation && !!selectedConvoId)}
                 />
             )}
         </div>
@@ -269,7 +300,7 @@ export default function MessagesPage() {
             conversation={selectedConversation}
             messages={messages || []}
             onSendMessage={handleSendMessage}
-            isLoadingMessages={messagesLoading}
+            isLoadingMessages={messagesLoading || (!selectedConversation && !!selectedConvoId)}
           />
         </div>
       )}
