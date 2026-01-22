@@ -13,7 +13,6 @@ import { db } from "@/lib/firebase";
 import { collection, orderBy, query, limit, getDocs, doc, setDoc, deleteDoc, serverTimestamp, where, Query, DocumentData } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
 import { generateMockTrendingTopics } from "@/lib/mock-data";
-import { useCollection } from "@/firebase/firestore/use-collection";
 import { StudioPostCard } from "@/components/studio-post-card";
 import type { FeedItem, StudioProfile } from "@/lib/get-feed-data";
 import { StoryReel } from "@/components/story-reel";
@@ -43,52 +42,46 @@ const SuggestionsCard = () => {
     const { user } = useAuth();
     const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
     const [loading, setLoading] = useState(true);
-    const [following, setFollowing] = useState<string[]>([]);
+    const [followingIds, setFollowingIds] = useState<string[]>([]);
     const [isPending, startTransition] = useTransition();
     const { toast } = useToast();
-    const [isFollowingDataReady, setIsFollowingDataReady] = useState(false);
-
-    const followingQuery = useMemo(() => {
-        if (!user?.uid) return null;
-        return query(collection(db, "follows"), where("followerId", "==", user.uid))
-    },[user?.uid]);
-    const { data: followingDocs } = useCollection(followingQuery);
-    
-    const followingIds = useMemo(() => {
-        if (followingDocs) {
-            setIsFollowingDataReady(true);
-            return followingDocs.map(doc => doc.followingId);
-        }
-        return [];
-    }, [followingDocs]);
 
     useEffect(() => {
-        if (!user || !isFollowingDataReady) {
+        if (!user) {
+            setLoading(false);
             return;
         }
 
-        const fetchSuggestions = async () => {
+        const fetchInitialData = async () => {
+            setLoading(true);
             try {
-                setLoading(true);
-                const usersToExclude = [user.uid, ...followingIds];
+                // Fetch who the user is following
+                const followsQuery = query(collection(db, "follows"), where("followerId", "==", user.uid));
+                const followsSnapshot = await getDocs(followsQuery);
+                const currentFollowingIds = followsSnapshot.docs.map(doc => doc.data().followingId);
+                setFollowingIds(currentFollowingIds);
+
+                // Fetch suggestions
+                const usersToExclude = [user.uid, ...currentFollowingIds];
                 
-                // Firestore 'not-in' queries are limited to 10 items.
-                // Fetching a batch and filtering client-side is a common workaround.
-                // We also check if there's anything to exclude, otherwise we can't build the query.
-                const q = usersToExclude.length > 0 
-                    ? query(collection(db, "user_profiles"), where('__name__', 'not-in', usersToExclude.slice(0,10)), limit(10)) 
-                    : query(collection(db, "user_profiles"), limit(5));
+                const q = query(
+                    collection(db, "user_profiles"), 
+                    orderBy("username"),
+                    limit(20)
+                );
                 
                 const querySnapshot = await getDocs(q);
                 
                 const fetchedUsers: Suggestion[] = [];
                 querySnapshot.forEach(doc => {
-                    const data = doc.data();
-                    fetchedUsers.push({
-                        id: doc.id,
-                        username: data.username,
-                        avatarUrl: data.avatarUrl,
-                    });
+                    if (!usersToExclude.includes(doc.id)) {
+                        const data = doc.data();
+                        fetchedUsers.push({
+                            id: doc.id,
+                            username: data.username,
+                            avatarUrl: data.avatarUrl,
+                        });
+                    }
                 });
                 
                 setSuggestions(fetchedUsers.slice(0, 5));
@@ -99,9 +92,9 @@ const SuggestionsCard = () => {
             }
         };
 
-        fetchSuggestions();
+        fetchInitialData();
         
-    }, [user, followingIds, isFollowingDataReady]);
+    }, [user]);
 
     const handleFollow = (targetUserId: string) => {
         if (!user) return;
@@ -110,7 +103,7 @@ const SuggestionsCard = () => {
             const followDocRef = doc(db, "follows", `${user.uid}_${targetUserId}`);
             
             try {
-                setFollowing(prev => [...prev, targetUserId]); // Optimistic update
+                setFollowingIds(prev => [...prev, targetUserId]); // Optimistic update
 
                 await setDoc(followDocRef, {
                   followerId: user.uid,
@@ -126,14 +119,15 @@ const SuggestionsCard = () => {
                 });
                 
                 toast({ title: "Followed user" });
+                setSuggestions(prev => prev.filter(s => s.id !== targetUserId));
             } catch (error) {
                 console.error("Failed to follow user:", error);
-                 setFollowing(prev => prev.filter(id => id !== targetUserId)); // Revert on error
+                 setFollowingIds(prev => prev.filter(id => id !== targetUserId)); // Revert on error
             }
         });
     };
 
-    if (loading || !isFollowingDataReady) {
+    if (loading) {
         return (
             <Card>
                 <CardHeader><h3 className="font-bold">Suggested for you</h3></CardHeader>
@@ -181,9 +175,9 @@ const SuggestionsCard = () => {
                         <Button 
                             size="sm"
                             onClick={() => handleFollow(suggestedUser.id)}
-                            disabled={isPending || following.includes(suggestedUser.id) || followingIds.includes(suggestedUser.id)}
+                            disabled={isPending || followingIds.includes(suggestedUser.id)}
                         >
-                            {isPending && following.includes(suggestedUser.id) ? <Loader2 className="h-4 w-4 animate-spin"/> : 'Follow'}
+                            {(isPending && followingIds.includes(suggestedUser.id)) ? <Loader2 className="h-4 w-4 animate-spin"/> : 'Follow'}
                         </Button>
                     </div>
                 ))}
@@ -225,11 +219,37 @@ const PostSkeleton = () => (
 export default function DashboardPage() {
     const [activeFilter, setActiveFilter] = useState("All");
 
-    const postsQuery = useMemo(() => query(collection(db, "posts"), orderBy("createdAt", "desc")), []);
-    const { data: posts, isLoading: postsLoading } = useCollection<Post>(postsQuery);
+    const [posts, setPosts] = useState<Post[] | null>(null);
+    const [studios, setStudios] = useState<StudioProfile[] | null>(null);
+    const [loading, setLoading] = useState(true);
 
-    const studiosQuery = useMemo(() => query(collection(db, "studio_profiles")), []);
-    const { data: studios, isLoading: studiosLoading } = useCollection<StudioProfile>(studiosQuery);
+    useEffect(() => {
+        const fetchFeedData = async () => {
+            setLoading(true);
+            try {
+                const postsQuery = query(collection(db, "posts"), orderBy("createdAt", "desc"));
+                const studiosQuery = query(collection(db, "studio_profiles"));
+
+                const [postsSnapshot, studiosSnapshot] = await Promise.all([
+                    getDocs(postsQuery),
+                    getDocs(studiosQuery)
+                ]);
+
+                const postsData = postsSnapshot.docs.map(d => ({ id: d.id, ...(d.data() as Post) }));
+                const studiosData = studiosSnapshot.docs.map(d => ({ id: d.id, ...(d.data() as StudioProfile) }));
+                
+                setPosts(postsData);
+                setStudios(studiosData);
+
+            } catch (error) {
+                console.error("Error fetching feed data:", error);
+                // Optionally set an error state to show in the UI
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchFeedData();
+    }, []);
     
     const feedItems = useMemo<FeedItem[]>(() => {
         const combined: FeedItem[] = [];
@@ -246,8 +266,6 @@ export default function DashboardPage() {
             return dateB - dateA;
         });
     }, [posts, studios]);
-
-    const loading = postsLoading || studiosLoading;
 
   return (
     <>
