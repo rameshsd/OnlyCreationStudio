@@ -27,8 +27,43 @@ import { FirestorePermissionError } from '@/firebase/errors';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { Skeleton } from '@/components/ui/skeleton';
 
+const ConversationListSkeleton = () => (
+    <div className="p-2 space-y-2">
+        {[...Array(5)].map((_, i) => (
+            <div className="flex items-center gap-3 p-3" key={i}>
+                <Skeleton className="h-12 w-12 rounded-full" />
+                <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-3 w-40" />
+                </div>
+            </div>
+        ))}
+    </div>
+);
+
+const ChatWindowSkeleton = () => (
+    <Card className="w-full lg:w-2/3 flex flex-col h-full">
+        <CardHeader className="border-b">
+            <div className="flex items-center gap-3">
+                <Skeleton className="h-10 w-10 rounded-full" />
+                <div className="space-y-2">
+                    <Skeleton className="h-4 w-32" />
+                </div>
+            </div>
+        </CardHeader>
+        <CardContent className="flex-1 flex items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary"/>
+        </CardContent>
+        <div className="p-4 border-t">
+            <Skeleton className="h-10 w-full" />
+        </div>
+    </Card>
+);
+
+
 const ConversationList = ({ conversations, onSelectConvo, selectedConvoId, isLoading, onNewConvoClick }: { conversations: Conversation[], onSelectConvo: (id: string) => void, selectedConvoId: string | null, isLoading: boolean, onNewConvoClick: () => void }) => {
     const { user } = useAuth();
+    
     return (
     <Card className="w-full lg:w-1/3 flex flex-col h-full">
       <CardHeader>
@@ -45,8 +80,12 @@ const ConversationList = ({ conversations, onSelectConvo, selectedConvoId, isLoa
       </CardHeader>
       <CardContent className="flex-1 overflow-y-auto px-2">
         {isLoading ? (
-            <div className="flex items-center justify-center h-full">
-                <Loader2 className="h-6 w-6 animate-spin"/>
+            <ConversationListSkeleton />
+        ) : conversations.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-muted-foreground text-center p-4">
+                <MessageSquare className="h-12 w-12" />
+                <p className="mt-4">No conversations yet.</p>
+                <p className="text-sm">Start a new chat using the '+' button above.</p>
             </div>
         ) : (
             <div className="flex flex-col gap-1">
@@ -90,39 +129,18 @@ const ChatWindow = ({ conversation, messages, onSendMessage, onBack, isLoadingMe
     }
     
     if (!conversation) {
-        // If a conversation is selected but not yet loaded, show a loading skeleton.
-        if (isLoadingMessages) {
-             return (
-                <Card className="w-full lg:w-2/3 flex flex-col h-full">
-                    <CardHeader className="border-b">
-                        <div className="flex items-center gap-3">
-                            {onBack && <Button variant="ghost" size="icon" className="lg:hidden" onClick={onBack}>
-                                <ArrowLeft className="h-5 w-5"/>
-                            </Button>}
-                            <div className="flex items-center gap-3">
-                                <Skeleton className="h-10 w-10 rounded-full" />
-                                <div className="space-y-2">
-                                    <Skeleton className="h-4 w-24" />
-                                </div>
-                            </div>
-                        </div>
-                    </CardHeader>
-                    <CardContent className="flex-1 flex items-center justify-center">
-                        <Loader2 className="h-6 w-6 animate-spin"/>
-                    </CardContent>
-                </Card>
-            );
-        }
-
-        // If no conversation is selected at all, show the placeholder.
         return (
-            <Card className="w-full lg:w-2/3 flex flex-col h-full">
+            <Card className="w-full lg:w-2/3 flex-col h-full hidden lg:flex">
                 <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground h-full">
                     <MessageSquare className="h-20 w-20" />
                     <p className="mt-4 text-lg">Select a conversation to start chatting</p>
                 </div>
             </Card>
         );
+    }
+    
+    if (isLoadingMessages) {
+        return <ChatWindowSkeleton />;
     }
 
     const otherParticipant = conversation.participantInfo?.find(p => p.userId !== user?.uid);
@@ -158,11 +176,7 @@ const ChatWindow = ({ conversation, messages, onSendMessage, onBack, isLoadingMe
                 </div>
                 </CardHeader>
                 <CardContent className="flex-1 overflow-y-auto p-6 space-y-4">
-                    {isLoadingMessages ? (
-                        <div className="flex items-center justify-center h-full">
-                            <Loader2 className="h-6 w-6 animate-spin"/>
-                        </div>
-                    ) : (
+                    {messages.length > 0 ? (
                         <>
                         {messages.map((msg, index) => (
                             <div key={index} className={cn("flex items-end gap-2", msg.senderId === user?.uid ? 'justify-end' : '')}>
@@ -173,9 +187,13 @@ const ChatWindow = ({ conversation, messages, onSendMessage, onBack, isLoadingMe
                             </div>
                             </div>
                         ))}
-                        <div ref={messagesEndRef} />
                         </>
+                    ) : (
+                        <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                            <p>No messages yet. Say hello!</p>
+                        </div>
                     )}
+                    <div ref={messagesEndRef} />
                 </CardContent>
                 <div className="p-4 border-t">
                 <form onSubmit={handleSendMessage} className="flex items-center gap-2">
@@ -190,7 +208,7 @@ const ChatWindow = ({ conversation, messages, onSendMessage, onBack, isLoadingMe
 
 
 export default function MessagesPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const isMobile = useIsMobile();
   const [selectedConvoId, setSelectedConvoId] = useState<string | null>(null);
   const [isNewConvoDialogOpen, setIsNewConvoDialogOpen] = useState(false);
@@ -217,7 +235,8 @@ export default function MessagesPage() {
   const { data: selectedConversation, isLoading: selectedConvoLoading } = useDoc<Conversation>(selectedConvoRef);
 
   useEffect(() => {
-      if (!selectedConvoId && conversations && conversations.length > 0 && !isMobile) {
+      // Auto-select first conversation on desktop if none is selected
+      if (!isMobile && !selectedConvoId && conversations && conversations.length > 0) {
           setSelectedConvoId(conversations[0].id);
       }
   }, [conversations, isMobile, selectedConvoId]);
@@ -260,11 +279,24 @@ export default function MessagesPage() {
 
   const handleConvoSelected = (convoId: string) => {
     setSelectedConvoId(convoId);
+    // On mobile, this implicitly switches the view
+  }
+  
+  if (authLoading) {
+      return (
+          <div className="h-[calc(100vh-8rem)] flex gap-4">
+              <Card className="w-full lg:w-1/3 flex flex-col h-full">
+                  <CardHeader><Skeleton className="h-8 w-32"/></CardHeader>
+                  <ConversationListSkeleton />
+              </Card>
+              <div className="w-full lg:w-2/3 flex-col h-full hidden lg:flex">
+                  <ChatWindowSkeleton />
+              </div>
+          </div>
+      )
   }
 
-  const isLoading = messagesLoading || selectedConvoLoading;
-
-  const mainContent = (
+  return (
     <>
       <NewConversationDialog
         open={isNewConvoDialogOpen}
@@ -272,9 +304,30 @@ export default function MessagesPage() {
         onConvoSelected={handleConvoSelected}
         existingConversations={conversations || []}
       />
-      {isMobile ? (
-        <div className="h-[calc(100vh-11rem)]">
-            {!selectedConvoId ? (
+      
+      <div className="h-[calc(100vh-8rem)] flex gap-4">
+          {isMobile ? (
+             <>
+                {!selectedConvoId ? (
+                    <ConversationList
+                        conversations={conversations || []}
+                        onSelectConvo={setSelectedConvoId}
+                        selectedConvoId={selectedConvoId}
+                        isLoading={conversationsLoading}
+                        onNewConvoClick={() => setIsNewConvoDialogOpen(true)}
+                    />
+                ) : (
+                    <ChatWindow
+                        conversation={selectedConversation}
+                        messages={messages || []}
+                        onSendMessage={handleSendMessage}
+                        onBack={() => setSelectedConvoId(null)}
+                        isLoadingMessages={messagesLoading || selectedConvoLoading}
+                    />
+                )}
+             </>
+          ) : (
+            <>
                 <ConversationList
                     conversations={conversations || []}
                     onSelectConvo={setSelectedConvoId}
@@ -282,35 +335,15 @@ export default function MessagesPage() {
                     isLoading={conversationsLoading}
                     onNewConvoClick={() => setIsNewConvoDialogOpen(true)}
                 />
-            ) : (
                 <ChatWindow
                     conversation={selectedConversation}
                     messages={messages || []}
                     onSendMessage={handleSendMessage}
-                    onBack={() => setSelectedConvoId(null)}
-                    isLoadingMessages={isLoading}
+                    isLoadingMessages={messagesLoading || selectedConvoLoading}
                 />
-            )}
-        </div>
-      ) : (
-        <div className="h-[calc(100vh-8rem)] flex gap-4">
-          <ConversationList
-            conversations={conversations || []}
-            onSelectConvo={setSelectedConvoId}
-            selectedConvoId={selectedConvoId}
-            isLoading={conversationsLoading}
-            onNewConvoClick={() => setIsNewConvoDialogOpen(true)}
-          />
-          <ChatWindow
-            conversation={selectedConversation}
-            messages={messages || []}
-            onSendMessage={handleSendMessage}
-            isLoadingMessages={isLoading}
-          />
-        </div>
-      )}
+            </>
+          )}
+      </div>
     </>
   );
-  
-  return mainContent;
 }
