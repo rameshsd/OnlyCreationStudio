@@ -47,47 +47,54 @@ export function NewConversationDialog({
     }
   }, [open]);
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
-    if (!searchQuery.trim()) {
+  useEffect(() => {
+    if (!user || !open) return;
+
+    const searchUsers = async () => {
+      if (!searchQuery.trim()) {
         setSearchResults([]);
+        setLoading(false);
         return;
-    }
-    setLoading(true);
-    
-    try {
-      const usersRef = collection(db, 'user_profiles');
-      const q = query(
-        usersRef,
-        where('username', '>=', searchQuery),
-        where('username', '<=', searchQuery + '\uf8ff')
-      );
+      }
+      setLoading(true);
+      try {
+        const usersRef = collection(db, 'user_profiles');
+        const q = query(
+          usersRef,
+          where('username', '>=', searchQuery.toLowerCase()),
+          where('username', '<=', searchQuery.toLowerCase() + '\uf8ff')
+        );
 
-      const querySnapshot = await getDocs(q);
-      const users = querySnapshot.docs
-        .map((doc) => ({ id: doc.id, ...doc.data() } as UserProfile))
-        .filter((profile) => profile.id !== user.uid); // Filter out self
+        const querySnapshot = await getDocs(q);
+        const users = querySnapshot.docs
+          .map((doc) => ({ id: doc.id, ...doc.data() } as UserProfile))
+          .filter((profile) => profile.id !== user.uid); // Filter out self
 
-      setSearchResults(users);
-    } catch (error) {
-      console.error('Error searching users:', error);
-      toast({
-        title: 'Search failed',
-        description: 'Could not fetch users. Please try again.',
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+        setSearchResults(users);
+      } catch (error) {
+        console.error('Error searching users:', error);
+        toast({
+          title: 'Search failed',
+          description: 'Could not fetch users. Please try again.',
+          variant: 'destructive',
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const debounceTimer = setTimeout(() => {
+        searchUsers();
+    }, 300); // Debounce search by 300ms
+
+    return () => clearTimeout(debounceTimer);
+  }, [searchQuery, open, user, toast]);
 
   const handleSelectUser = async (targetUser: UserProfile) => {
     if (!user || !userData) return;
     setIsCreating(true);
 
     try {
-        // Check if conversation already exists
         const existingConvo = existingConversations.find(c => 
             c.participantIds.length === 2 && 
             c.participantIds.includes(user.uid) && 
@@ -100,7 +107,6 @@ export function NewConversationDialog({
             return;
         }
 
-        // Create new conversation
         const sortedParticipantIds = [user.uid, targetUser.id].sort();
         const conversationData = {
             participantIds: sortedParticipantIds,
@@ -150,19 +156,16 @@ export function NewConversationDialog({
             Search for a user to start a new chat.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSearch}>
-          <div className="flex gap-2">
-            <Input
-              placeholder="Search by username..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            <Button type="submit" disabled={loading}>
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-            </Button>
-          </div>
-        </form>
-        <div className="mt-4 max-h-60 overflow-y-auto">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search by username..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        <div className="mt-4 max-h-60 min-h-[10rem] overflow-y-auto">
           {loading && (
               <div className="flex items-center justify-center p-4">
                   <Loader2 className="h-6 w-6 animate-spin" />
@@ -191,6 +194,9 @@ export function NewConversationDialog({
           ))}
           {!loading && !isCreating && searchResults.length === 0 && searchQuery && (
               <p className="text-muted-foreground text-center text-sm p-4">No users found.</p>
+          )}
+           {!loading && !isCreating && searchResults.length === 0 && !searchQuery && (
+              <p className="text-muted-foreground text-center text-sm p-4 pt-10">Start typing to search for users.</p>
           )}
         </div>
       </DialogContent>
