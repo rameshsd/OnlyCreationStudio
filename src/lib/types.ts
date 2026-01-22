@@ -1,3 +1,4 @@
+
 import type { Timestamp } from 'firebase/firestore';
 
 export interface Status {
@@ -42,3 +43,25 @@ export interface Short {
       avatar: string;
   }
 }
+
+export interface Conversation {
+  id: string;
+  participantIds: string[];
+  participantInfo: {
+    userId: string;
+    username: string;
+    avatarUrl: string;
+  }[];
+  lastMessageText?: string;
+  lastMessageSentAt?: Timestamp;
+  lastMessageReadBy?: string[];
+}
+
+export interface Message {
+  id: string;
+  senderId: string;
+  text: string;
+  createdAt: Timestamp;
+}
+
+    

@@ -342,6 +342,66 @@
         "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp of when the booking was made." }
       },
       "required": ["id", "studioId", "userId", "date", "time", "createdAt"]
+    },
+    "Conversation": {
+      "title": "Conversation",
+      "type": "object",
+      "description": "Represents a private chat session between two or more users.",
+      "properties": {
+        "participantIds": {
+          "type": "array",
+          "description": "An array of user UIDs participating in the conversation.",
+          "items": { "type": "string" }
+        },
+        "participantInfo": {
+            "type": "array",
+            "description": "An array of objects containing basic info for each participant, for easy display.",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "userId": { "type": "string" },
+                    "username": { "type": "string" },
+                    "avatarUrl": { "type": "string", "format": "uri" }
+                }
+            }
+        },
+        "lastMessageText": {
+          "type": "string",
+          "description": "The text of the most recent message for preview purposes."
+        },
+        "lastMessageSentAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of the last message sent."
+        },
+        "lastMessageReadBy": {
+            "type": "array",
+            "description": "List of user IDs who have read the last message.",
+            "items": { "type": "string" }
+        }
+      },
+      "required": ["participantIds", "lastMessageSentAt"]
+    },
+    "Message": {
+      "title": "Message",
+      "type": "object",
+      "description": "Represents a single message within a conversation.",
+      "properties": {
+        "senderId": {
+          "type": "string",
+          "description": "The UID of the user who sent the message."
+        },
+        "text": {
+          "type": "string",
+          "description": "The content of the message."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the message was sent."
+        }
+      },
+      "required": ["senderId", "text", "createdAt"]
     }
   },
   "auth": {
@@ -437,9 +497,25 @@
           "schema": { "$ref": "#/entities/Booking" },
           "description": "Stores booking information for a specific studio."
         }
+      },
+      {
+        "path": "/conversations/{conversationId}",
+        "definition": {
+          "entityName": "Conversation",
+          "schema": { "$ref": "#/entities/Conversation" },
+          "description": "Stores metadata for each chat conversation."
+        }
+      },
+      {
+          "path": "/conversations/{conversationId}/messages/{messageId}",
+          "definition": {
+              "entityName": "Message",
+              "schema": { "$ref": "#/entities/Message" },
+              "description": "Stores all messages for a specific conversation."
+          }
       }
     ],
-    "reasoning": "This simplified structure directly matches the user's confirmed list of collections: users, user_profiles, posts, projects, and studio_profiles. It uses a flat architecture for scalable queries, especially for the main post feed. User data is split between private 'users' and public 'user_profiles' for security. Statuses are a subcollection under user_profiles to enable efficient querying and collection group scans. Shorts are in a top-level collection for easy global fetching."
+    "reasoning": "This simplified structure directly matches the user's confirmed list of collections: users, user_profiles, posts, projects, and studio_profiles. It uses a flat architecture for scalable queries, especially for the main post feed. User data is split between private 'users' and public 'user_profiles' for security. Statuses are a subcollection under user_profiles to enable efficient querying and collection group scans. Shorts are in a top-level collection for easy global fetching. Conversations and Messages are added for the chat feature."
   }
 }
 

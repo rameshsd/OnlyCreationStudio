@@ -62,13 +62,6 @@ service cloud.firestore {
       allow write: if isSignedIn() && request.auth.uid == request.resource.data.userId;
     }
 
-    match /shorts/{shortId} {
-      // Any signed-in user can read shorts
-      allow read: if isSignedIn();
-      // Only the owner can write a short
-      allow write: if isSignedIn() && request.auth.uid == request.resource.data.userId;
-    }
-
     match /studio_profiles/{studioProfileId} {
       allow read: if isSignedIn();
       allow write: if isSignedIn() && request.auth.uid == request.resource.data.userProfileId;
@@ -90,5 +83,23 @@ service cloud.firestore {
       allow create: if isSignedIn() && request.auth.uid == request.resource.data.userId;
       // Future rules: allow owner to delete/update. For now, this is secure.
     }
+
+    match /conversations/{conversationId} {
+      // Allow read/update if the user is a participant
+      allow read, update: if isSignedIn() && request.auth.uid in resource.data.participantIds;
+      // Allow create if the user is creating a conversation for themselves
+      allow create: if isSignedIn() && request.auth.uid in request.resource.data.participantIds;
+    }
+
+    match /conversations/{conversationId}/messages/{messageId} {
+      function isParticipant() {
+        return request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds;
+      }
+      // Allow reading and creating messages if the user is part of the parent conversation
+      allow read, create: if isSignedIn() && isParticipant();
+      allow delete: if isSignedIn() && resource.data.senderId == request.auth.uid && isParticipant();
+    }
   }
 }
+
+    
