@@ -3,6 +3,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import {
+  collection,
   collectionGroup,
   query,
   where,
@@ -10,9 +11,9 @@ import {
   orderBy,
   getDoc,
   doc,
+  getDocs,
 } from "firebase/firestore";
 
-import { useCollection } from "@/firebase/firestore/use-collection";
 import { useAuth } from "@/hooks/use-auth";
 import { db } from "@/lib/firebase";
 
@@ -49,33 +50,58 @@ export function StoryReel() {
   const [profiles, setProfiles] = useState<UserProfile[]>([]);
   const [profilesLoading, setProfilesLoading] = useState(true);
 
-  // IDs of self + following
-  const relevantUserIds = useMemo(() => {
-    if (!user?.uid) return [];
-    // This logic seems incorrect, userData.following is deprecated.
-    // Let's assume we want to see our own stories and people we follow.
-    // We will rely on a 'follows' collection query elsewhere if needed.
-    // For now, let's just use the current user ID for simplicity and stability.
-    // A more complex implementation would fetch the following list first.
-    return [user.uid];
-  }, [user?.uid]);
+  const [allStatuses, setAllStatuses] = useState<Status[]>([]);
+  const [statusesLoading, setStatusesLoading] = useState(true);
 
-  // Query for all statuses from relevant users.
-  const statusesQuery = useMemo(() => {
-    if (relevantUserIds.length === 0) return null;
-    return query(
-        collectionGroup(db, "statuses"),
-        where('userId', 'in', relevantUserIds)
-      );
+  const [relevantUserIds, setRelevantUserIds] = useState<string[]>([]);
+
+  // Step 1: Determine relevant user IDs (self + following)
+  useEffect(() => {
+    if (!user) {
+      setRelevantUserIds([]);
+      return;
+    }
+    const fetchFollowing = async () => {
+      try {
+        const followsQuery = query(collection(db, 'follows'), where('followerId', '==', user.uid));
+        const followsSnapshot = await getDocs(followsQuery);
+        const followingIds = followsSnapshot.docs.map(d => d.data().followingId);
+        setRelevantUserIds([user.uid, ...followingIds]);
+      } catch (error) {
+        console.error("Error fetching following list:", error);
+        setRelevantUserIds([user.uid]); // Fallback to just the user
+      }
+    };
+    fetchFollowing();
+  }, [user]);
+
+  // Step 2: Fetch statuses for relevant users
+  useEffect(() => {
+    if (relevantUserIds.length === 0) {
+      setAllStatuses([]);
+      setStatusesLoading(false);
+      return;
+    }
+
+    setStatusesLoading(true);
+    const statusesQuery = query(
+      collectionGroup(db, 'statuses'),
+      where('userId', 'in', relevantUserIds)
+    );
+    getDocs(statusesQuery).then(snapshot => {
+      const statusesData = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Status));
+      setAllStatuses(statusesData);
+    }).catch(err => {
+      console.error("Error fetching statuses:", err);
+    }).finally(() => {
+      setStatusesLoading(false);
+    });
+
   }, [relevantUserIds]);
 
-  // Fetch statuses
-  const { data: allStatuses, isLoading: statusesLoading } =
-    useCollection<Status>(statusesQuery);
 
   // Filter by expiration on the client
   const statuses = useMemo(() => {
-    if (!allStatuses) return [];
     const now = Timestamp.now();
     return allStatuses.filter(s => s.expiresAt > now);
   }, [allStatuses]);
@@ -107,20 +133,25 @@ export function StoryReel() {
           setProfilesLoading(false);
           return;
         }
-
-        const docs = await Promise.all(
-          idsToFetch.map((id) => getDoc(doc(db, "user_profiles", id)))
-        );
-
-        const list = docs
-          .filter((snap) => snap.exists())
-          .map(
-            (snap) =>
-              ({
-                id: snap.id,
-                ...snap.data(),
-              } as UserProfile)
-          );
+        
+        // Firestore 'in' queries are limited to 30 items.
+        // We need to chunk the requests if there are more.
+        const promises = [];
+        for (let i = 0; i < idsToFetch.length; i += 30) {
+            const chunk = idsToFetch.slice(i, i + 30);
+            const q = query(collection(db, "user_profiles"), where('__name__', 'in', chunk));
+            promises.push(getDocs(q));
+        }
+        
+        const snapshots = await Promise.all(promises);
+        const list: UserProfile[] = [];
+        snapshots.forEach(snapshot => {
+            snapshot.docs.forEach(doc => {
+                if(doc.exists()) {
+                    list.push({ id: doc.id, ...doc.data()} as UserProfile);
+                }
+            })
+        });
 
         setProfiles(list);
       } catch(e) {
