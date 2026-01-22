@@ -26,6 +26,7 @@ import { NewConversationDialog } from '@/components/new-conversation-dialog';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useSearchParams } from 'next/navigation';
 
 const ConversationListSkeleton = () => (
     <div className="p-2 space-y-2">
@@ -216,21 +217,27 @@ const ChatWindow = ({ conversation, messages, onSendMessage, onBack, isLoadingMe
 export default function MessagesPage() {
   const { user, loading: authLoading } = useAuth();
   const isMobile = useIsMobile();
-  const [selectedConvoId, setSelectedConvoId] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+  const convoIdFromQuery = searchParams.get('convoId');
+  const [selectedConvoId, setSelectedConvoId] = useState<string | null>(convoIdFromQuery);
   const [isNewConvoDialogOpen, setIsNewConvoDialogOpen] = useState(false);
+
+  useEffect(() => {
+    const convoId = searchParams.get('convoId');
+    if (convoId) {
+        setSelectedConvoId(convoId);
+    }
+  }, [searchParams]);
 
   const conversationsQuery = useMemo(() => {
     if (!user) return null;
-    // Remove orderBy to simplify the query and avoid potential index/permission issues.
     return query(collection(db, 'conversations'), where('participantIds', 'array-contains', user.uid));
   }, [user]);
 
   const { data: rawConversations, isLoading: conversationsLoading } = useCollection<Conversation>(conversationsQuery);
 
-  // Sort conversations on the client-side
   const conversations = useMemo(() => {
     if (!rawConversations) return null;
-    // Create a new sorted array
     return [...rawConversations].sort((a, b) => {
         const timeA = a.lastMessageSentAt?.seconds || 0;
         const timeB = b.lastMessageSentAt?.seconds || 0;
@@ -253,7 +260,6 @@ export default function MessagesPage() {
   const { data: selectedConversation, isLoading: selectedConvoLoading } = useDoc<Conversation>(selectedConvoRef);
 
   useEffect(() => {
-      // Auto-select first conversation on desktop if none is selected
       if (!isMobile && !selectedConvoId && conversations && conversations.length > 0) {
           setSelectedConvoId(conversations[0].id);
       }
@@ -297,7 +303,6 @@ export default function MessagesPage() {
 
   const handleConvoSelected = (convoId: string) => {
     setSelectedConvoId(convoId);
-    // On mobile, this implicitly switches the view
   }
   
   if (authLoading) {
@@ -365,5 +370,3 @@ export default function MessagesPage() {
     </>
   );
 }
-
-    

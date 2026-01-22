@@ -89,6 +89,31 @@
         },
         "required": ["followerId", "followingId", "createdAt"]
     },
+    "FavoriteProfile": {
+      "title": "FavoriteProfile",
+      "type": "object",
+      "description": "Represents a user's favorited profile.",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "The UID of the user who favorited the profile."
+        },
+        "profileId": {
+          "type": "string",
+          "description": "The UID of the favorited profile."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of when the favorite action occurred."
+        }
+      },
+      "required": [
+        "userId",
+        "profileId",
+        "createdAt"
+      ]
+    },
     "Post": {
       "title": "Post",
       "type": "object",
@@ -461,6 +486,16 @@
           }
       },
       {
+        "path": "/user_favorites/{userId}/profiles/{profileId}",
+        "definition": {
+          "entityName": "FavoriteProfile",
+          "schema": {
+            "$ref": "#/entities/FavoriteProfile"
+          },
+          "description": "Stores a user's favorite profiles. The path allows easy lookup of all favorites for a given user."
+        }
+      },
+      {
         "path": "/posts/{postId}",
         "definition": {
           "entityName": "Post",
@@ -525,6 +560,6 @@
           }
       }
     ],
-    "reasoning": "This simplified structure directly matches the user's confirmed list of collections: users, user_profiles, posts, projects, and studio_profiles. It uses a flat architecture for scalable queries, especially for the main post feed. User data is split between private 'users' and public 'user_profiles' for security. Statuses are a subcollection under user_profiles to enable efficient querying and collection group scans. Shorts are in a top-level collection for easy global fetching. Conversations and Messages are added for the chat feature."
+    "reasoning": "This simplified structure directly matches the user's confirmed list of collections: users, user_profiles, posts, projects, and studio_profiles. It uses a flat architecture for scalable queries, especially for the main post feed. User data is split between private 'users' and public 'user_profiles' for security. Statuses are a subcollection under user_profiles to enable efficient querying and collection group scans. Shorts are in a top-level collection for easy global fetching. Conversations and Messages are added for the chat feature. The user_favorites collection is added to support the new 'favorite' feature."
   }
 }

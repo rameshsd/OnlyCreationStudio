@@ -14,11 +14,10 @@ import { useToast } from "@/hooks/use-toast";
 import { ResponsiveContainer, BarChart, XAxis, YAxis, Bar } from "recharts";
 import { useAuth } from "@/hooks/use-auth";
 import { PostCard, Post } from "@/components/post-card";
-import { collection, query, doc, where, onSnapshot, getDocs, limit, setDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
+import { collection, query, doc, where, onSnapshot, getDocs, limit, setDoc, deleteDoc, serverTimestamp, addDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useCollection } from "@/firebase/firestore/use-collection";
-import { useParams } from "next/navigation";
-import { followUserAction, unfollowUserAction } from "./actions";
+import { useParams, useRouter } from "next/navigation";
 import { FirestorePermissionError } from '@/firebase/errors';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FollowListDialog } from '@/components/follow-list-dialog';
@@ -62,6 +61,7 @@ export default function ProfilePage() {
     const { user, userData, loading: authLoading } = useAuth();
     const { toast } = useToast();
     const params = useParams();
+    const router = useRouter();
     const profileUserId = params.userId as string;
     const [isPending, startTransition] = useTransition();
 
@@ -70,12 +70,12 @@ export default function ProfilePage() {
     const [studioId, setStudioId] = useState<string | null>(null);
 
     const [isFollowing, setIsFollowing] = useState(false);
+    const [isFavorited, setIsFavorited] = useState(false);
+    const [favoriteLoading, setFavoriteLoading] = useState(true);
 
-    // State for counts
     const [followersCount, setFollowersCount] = useState(0);
     const [followingCount, setFollowingCount] = useState(0);
     
-    // State for dialogs
     const [dialogOpen, setDialogOpen] = useState(false);
     const [dialogType, setDialogType] = useState<'followers' | 'following'>('followers');
 
@@ -107,43 +107,30 @@ export default function ProfilePage() {
             setProfileLoading(false);
         });
 
-        // Listen for follower count
         const followersQuery = query(collection(db, "follows"), where("followingId", "==", profileUserId));
-        const unsubFollowers = onSnapshot(followersQuery, (snapshot) => {
-            setFollowersCount(snapshot.size);
-        }, (serverError) => {
-             errorEmitter.emit('permission-error', new FirestorePermissionError({
-                path: 'follows',
-                operation: 'list'
-            }));
-        });
+        const unsubFollowers = onSnapshot(followersQuery, (snapshot) => setFollowersCount(snapshot.size));
 
-        // Listen for following count
         const followingQuery = query(collection(db, "follows"), where("followerId", "==", profileUserId));
-        const unsubFollowing = onSnapshot(followingQuery, (snapshot) => {
-            setFollowingCount(snapshot.size);
-        }, (serverError) => {
-             errorEmitter.emit('permission-error', new FirestorePermissionError({
-                path: 'follows',
-                operation: 'list'
-            }));
-        });
+        const unsubFollowing = onSnapshot(followingQuery, (snapshot) => setFollowingCount(snapshot.size));
         
-        // Check if current user is following this profile
         let unsubIsFollowing = () => {};
         if (user) {
             const followDocRef = doc(db, "follows", `${user.uid}_${profileUserId}`);
-            unsubIsFollowing = onSnapshot(followDocRef, (doc) => {
-                setIsFollowing(doc.exists());
-            }, (serverError) => {
-                 errorEmitter.emit('permission-error', new FirestorePermissionError({
-                    path: followDocRef.path,
-                    operation: 'get'
-                }));
-            });
+            unsubIsFollowing = onSnapshot(followDocRef, (doc) => setIsFollowing(doc.exists()));
         }
         
-        // Check if this user owns a studio
+        let unsubIsFavorited = () => {};
+        if (user) {
+            setFavoriteLoading(true);
+            const favDocRef = doc(db, `user_favorites/${user.uid}/profiles/${profileUserId}`);
+            unsubIsFavorited = onSnapshot(favDocRef, (docSnap) => {
+                setIsFavorited(docSnap.exists());
+                setFavoriteLoading(false);
+            });
+        } else {
+            setFavoriteLoading(false);
+        }
+
         const studioQuery = query(collection(db, "studio_profiles"), where("userProfileId", "==", profileUserId), limit(1));
         getDocs(studioQuery).then(snapshot => {
             if (!snapshot.empty) {
@@ -151,11 +138,6 @@ export default function ProfilePage() {
             } else {
                 setStudioId(null);
             }
-        }).catch(serverError => {
-             errorEmitter.emit('permission-error', new FirestorePermissionError({
-                path: `studio_profiles`,
-                operation: 'list',
-            }));
         });
 
         return () => {
@@ -163,6 +145,7 @@ export default function ProfilePage() {
             unsubFollowers();
             unsubFollowing();
             unsubIsFollowing();
+            unsubIsFavorited();
         }
     }, [profileUserId, user]);
 
@@ -178,25 +161,14 @@ export default function ProfilePage() {
             try {
                 if (isFollowing) {
                     await deleteDoc(followDocRef).catch(err => {
-                        errorEmitter.emit('permission-error', new FirestorePermissionError({
-                            path: followDocRef.path,
-                            operation: 'delete'
-                        }));
+                        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: followDocRef.path, operation: 'delete' }));
                         throw err;
                     });
                     toast({ title: "Unfollowed" });
                 } else {
-                    const followData = {
-                        followerId: user.uid,
-                        followingId: profileUserId,
-                        createdAt: serverTimestamp()
-                    };
+                    const followData = { followerId: user.uid, followingId: profileUserId, createdAt: serverTimestamp() };
                     await setDoc(followDocRef, followData).catch(err => {
-                        errorEmitter.emit('permission-error', new FirestorePermissionError({
-                            path: followDocRef.path,
-                            operation: 'create',
-                            requestResourceData: followData
-                        }));
+                        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: followDocRef.path, operation: 'create', requestResourceData: followData }));
                         throw err;
                     });
                     toast({ title: "Followed" });
@@ -207,8 +179,76 @@ export default function ProfilePage() {
         });
     };
 
+    const handleFavorite = async () => {
+        if (!user) return;
+        setFavoriteLoading(true);
+        const favDocRef = doc(db, `user_favorites/${user.uid}/profiles/${profileUserId}`);
+        try {
+            if (isFavorited) {
+                await deleteDoc(favDocRef).catch(err => {
+                    errorEmitter.emit('permission-error', new FirestorePermissionError({ path: favDocRef.path, operation: 'delete' }));
+                    throw err;
+                });
+                toast({ title: "Removed from favorites" });
+            } else {
+                const favData = { userId: user.uid, profileId: profileUserId, createdAt: serverTimestamp() };
+                await setDoc(favDocRef, favData).catch(err => {
+                    errorEmitter.emit('permission-error', new FirestorePermissionError({ path: favDocRef.path, operation: 'create', requestResourceData: favData }));
+                    throw err;
+                });
+                toast({ title: "Added to favorites" });
+            }
+        } catch (error) {
+            toast({ title: 'Error', description: 'Could not update favorites.', variant: 'destructive' });
+            console.error("Error favoriting profile:", error);
+        }
+    };
 
-    const [isFavorited, setIsFavorited] = useState(false);
+    const handleMessage = async () => {
+        if (!user || !userData || !profileData || isOwnProfile) return;
+
+        startTransition(async () => {
+            try {
+                const conversationsRef = collection(db, 'conversations');
+                const q = query(conversationsRef, 
+                    where('participantIds', 'array-contains', user.uid)
+                );
+        
+                const querySnapshot = await getDocs(q);
+                let existingConvo: { id: string, participantIds: string[] } | null = null;
+                querySnapshot.forEach(doc => {
+                    const convo = { id: doc.id, ...doc.data() };
+                    if (convo.participantIds.includes(profileData.id)) {
+                        existingConvo = convo as { id: string, participantIds: string[] };
+                    }
+                });
+                
+                if (existingConvo) {
+                    router.push(`/messages?convoId=${existingConvo.id}`);
+                    return;
+                }
+        
+                const conversationData = {
+                    participantIds: [user.uid, profileData.id],
+                    participantInfo: [
+                        { userId: user.uid, username: userData.username, avatarUrl: userData.avatarUrl || '' },
+                        { userId: profileData.id, username: profileData.username, avatarUrl: profileData.avatarUrl || '' }
+                    ],
+                    lastMessageText: 'Started a new conversation.',
+                    lastMessageSentAt: serverTimestamp(),
+                    lastMessageReadBy: [user.uid]
+                };
+        
+                const docRef = await addDoc(collection(db, 'conversations'), conversationData);
+                router.push(`/messages?convoId=${docRef.id}`);
+
+            } catch (error) {
+                 console.error("Error creating conversation", error);
+                 toast({ title: 'Error', description: 'Could not start conversation.', variant: 'destructive'});
+            }
+        });
+    };
+
 
     const userPostsQuery = useMemo(() => {
         if (!profileUserId) return null;
@@ -223,22 +263,6 @@ export default function ProfilePage() {
     }, [profileUserId]);
     const { data: portfolioItems, isLoading: portfolioLoading } = useCollection<PortfolioItem>(userPortfolioQuery);
     
-
-    const handleFavorite = () => {
-        setIsFavorited(!isFavorited);
-        toast({
-            title: isFavorited ? "Removed from Favorites" : "Added to Favorites",
-            description: isFavorited ? `${profileData?.username} has been removed from your favorites.` : `${profileData?.username} has been added to your favorites.`,
-        });
-    };
-
-    const handleComingSoon = (feature: string) => {
-        toast({
-            title: "Coming Soon!",
-            description: `${feature} functionality is not yet implemented.`,
-        });
-    };
-
     if (authLoading || profileLoading) {
       return (
         <div className="flex h-screen items-center justify-center">
@@ -296,17 +320,18 @@ export default function ProfilePage() {
                             </div>
                             <div className="flex flex-wrap gap-2 justify-center">
                                 {isOwnProfile ? (
-                                     <Button variant="outline" onClick={() => handleComingSoon('Edit Profile')}><PenSquare /> Edit Profile</Button>
+                                     <Button variant="outline" onClick={() => toast({ title: 'Coming Soon!' })}><PenSquare /> Edit Profile</Button>
                                 ) : (
                                     <>
                                         <Button variant="outline" onClick={handleFollowToggle} disabled={isPending}>
                                             {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : isFollowing ? <UserCheck className="mr-2 h-4 w-4" /> : <UserPlus className="mr-2 h-4 w-4" />} 
                                             {isFollowing ? "Following" : "Follow"}
                                         </Button>
-                                        <Button variant={isFavorited ? 'default' : 'outline'} onClick={handleFavorite}>
-                                            <Heart className={isFavorited ? 'fill-current' : ''} /> {isFavorited ? "Favorited" : "Favorite"}
+                                        <Button variant={isFavorited ? 'default' : 'outline'} onClick={handleFavorite} disabled={favoriteLoading}>
+                                            {favoriteLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Heart className={cn("mr-2 h-4 w-4", isFavorited && "fill-current")}/>}
+                                            {isFavorited ? "Favorited" : "Favorite"}
                                         </Button>
-                                        <Button onClick={() => handleComingSoon('Messaging')}><Mail /> Message</Button>
+                                        <Button onClick={handleMessage} disabled={isPending}><Mail className="mr-2 h-4 w-4" /> Message</Button>
                                         {studioId && (
                                              <Button asChild variant="secondary"><Link href={`/studios/${studioId}`}><Camera /> View Studio</Link></Button>
                                         )}

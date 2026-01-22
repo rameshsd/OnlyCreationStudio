@@ -51,6 +51,10 @@ service cloud.firestore {
       allow create: if isSignedIn() && request.auth.uid == request.resource.data.followerId && followId == request.resource.data.followerId + '_' + request.resource.data.followingId;
       allow delete: if isSignedIn() && request.auth.uid == followId.split('_')[0];
     }
+    
+    match /user_favorites/{userId}/profiles/{profileId} {
+        allow read, write, delete: if isSignedIn() && request.auth.uid == userId;
+    }
 
     match /posts/{postId} {
       allow read: if isSignedIn();
