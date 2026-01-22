@@ -151,6 +151,8 @@
             }
           }
         },
+        "likes": { "type": "number", "description": "The number of likes on the post." },
+        "comments": { "type": "number", "description": "The number of comments on the post." },
         "createdAt": {
           "type": "string",
           "description": "Date and time the post was created.",
@@ -162,6 +164,27 @@
         "userId",
         "createdAt"
       ]
+    },
+    "PostLike": {
+      "title": "PostLike",
+      "type": "object",
+      "description": "Represents a user's like on a post.",
+      "properties": {
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "createdAt"]
+    },
+    "SavedPost": {
+      "title": "SavedPost",
+      "type": "object",
+      "description": "Represents a user's saved/bookmarked post.",
+      "properties": {
+        "userId": { "type": "string" },
+        "postId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "postId", "createdAt"]
     },
     "Short": {
       "title": "Short",
@@ -293,6 +316,14 @@
               "Home Video Production"
             ]
           }
+        },
+        "likes": {
+          "type": "number",
+          "description": "Number of likes on the studio profile."
+        },
+        "comments": {
+          "type": "number",
+          "description": "Number of comments on the studio profile."
         }
       },
       "required": [
@@ -301,6 +332,27 @@
         "studioName",
         "studioName_lowercase"
       ]
+    },
+    "StudioLike": {
+      "title": "StudioLike",
+      "type": "object",
+      "description": "Represents a user's like on a studio profile.",
+      "properties": {
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "createdAt"]
+    },
+    "SavedStudio": {
+      "title": "SavedStudio",
+      "type": "object",
+      "description": "Represents a user's saved/bookmarked studio.",
+      "properties": {
+        "userId": { "type": "string" },
+        "studioId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "studioId", "createdAt"]
     },
     "Status": {
       "title": "Status",
@@ -458,6 +510,22 @@
         }
       },
       {
+        "path": "/users/{userId}/bookmarks/{postId}",
+        "definition": {
+            "entityName": "SavedPost",
+            "schema": { "$ref": "#/entities/SavedPost" },
+            "description": "Stores posts bookmarked by a user."
+        }
+      },
+       {
+        "path": "/users/{userId}/saved_studios/{studioId}",
+        "definition": {
+            "entityName": "SavedStudio",
+            "schema": { "$ref": "#/entities/SavedStudio" },
+            "description": "Stores studios bookmarked by a user."
+        }
+      },
+      {
         "path": "/user_profiles/{userProfileId}",
         "definition": {
           "entityName": "UserProfile",
@@ -506,6 +574,14 @@
         }
       },
       {
+        "path": "/posts/{postId}/likes/{userId}",
+        "definition": {
+          "entityName": "PostLike",
+          "schema": { "$ref": "#/entities/PostLike" },
+          "description": "Stores likes for a specific post. The document ID is the user's UID."
+        }
+      },
+      {
         "path": "/shorts/{shortId}",
         "definition": {
           "entityName": "Short",
@@ -535,6 +611,14 @@
           "description": "A top-level collection for all studio profiles."
         }
       },
+       {
+        "path": "/studio_profiles/{studioProfileId}/likes/{userId}",
+        "definition": {
+          "entityName": "StudioLike",
+          "schema": { "$ref": "#/entities/StudioLike" },
+          "description": "Stores likes for a specific studio profile. The document ID is the user's UID."
+        }
+      },
       {
         "path": "/studio_profiles/{studioProfileId}/bookings/{bookingId}",
         "definition": {
@@ -560,6 +644,6 @@
           }
       }
     ],
-    "reasoning": "This simplified structure directly matches the user's confirmed list of collections: users, user_profiles, posts, projects, and studio_profiles. It uses a flat architecture for scalable queries, especially for the main post feed. User data is split between private 'users' and public 'user_profiles' for security. Statuses are a subcollection under user_profiles to enable efficient querying and collection group scans. Shorts are in a top-level collection for easy global fetching. Conversations and Messages are added for the chat feature. The user_favorites collection is added to support the new 'favorite' feature."
+    "reasoning": "This simplified structure directly matches the user's confirmed list of collections: users, user_profiles, posts, projects, and studio_profiles. It uses a flat architecture for scalable queries, especially for the main post feed. User data is split between private 'users' and public 'user_profiles' for security. Statuses are a subcollection under user_profiles to enable efficient querying and collection group scans. Shorts are in a top-level collection for easy global fetching. Conversations and Messages are added for the chat feature. The user_favorites collection is added to support the new 'favorite' feature. Subcollections for likes and bookmarks/saves have been added to posts and studios to support engagement features."
   }
 }

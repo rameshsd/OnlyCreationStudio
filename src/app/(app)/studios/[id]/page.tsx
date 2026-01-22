@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
@@ -50,6 +51,8 @@ export interface StudioProfile {
     createdAt?: FirestoreTimestamp;
     rating?: number;
     reviewCount?: number;
+    likes?: number;
+    comments?: number;
 }
 
 interface Booking {

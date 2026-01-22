@@ -5,9 +5,17 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardFooter } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { PlayCircle, Star, Heart, MessageCircle, Send, Bookmark, MapPin } from 'lucide-react';
+import { PlayCircle, Star, Heart, MessageCircle, Send, Bookmark } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Button } from './ui/button';
+import { useAuth } from '@/hooks/use-auth';
+import { db } from '@/lib/firebase';
+import { doc, onSnapshot, setDoc, deleteDoc, runTransaction, increment, serverTimestamp } from 'firebase/firestore';
+import { useEffect, useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
+import { FirestorePermissionError } from '@/firebase/errors';
+import { errorEmitter } from '@/firebase/error-emitter';
 
 interface Media {
     type: 'image' | 'video';
@@ -49,6 +57,97 @@ const MediaContent = ({ mediaItem }: { mediaItem: Media }) => {
 }
 
 export function PostCard({ post }: { post: Post }) {
+    const { user } = useAuth();
+    const { toast } = useToast();
+    const [isLiked, setIsLiked] = useState(false);
+    const [isSaved, setIsSaved] = useState(false);
+    const [likeCount, setLikeCount] = useState(post.likes);
+    const [isLikePending, setIsLikePending] = useState(false);
+    const [isSavePending, setIsSavePending] = useState(false);
+
+    useEffect(() => {
+        if (!user?.uid || !post.id) return;
+
+        const likeRef = doc(db, 'posts', post.id, 'likes', user.uid);
+        const unsubscribeLike = onSnapshot(likeRef, (doc) => setIsLiked(doc.exists()));
+
+        const saveRef = doc(db, 'users', user.uid, 'bookmarks', post.id);
+        const unsubscribeSave = onSnapshot(saveRef, (doc) => setIsSaved(doc.exists()));
+
+        return () => {
+            unsubscribeLike();
+            unsubscribeSave();
+        };
+    }, [user?.uid, post.id]);
+
+    const handleLikeToggle = async () => {
+        if (!user || isLikePending) return;
+        setIsLikePending(true);
+
+        const postRef = doc(db, 'posts', post.id);
+        const likeRef = doc(db, 'posts', post.id, 'likes', user.uid);
+
+        try {
+            await runTransaction(db, async (transaction) => {
+                const postDoc = await transaction.get(postRef);
+                const likeDoc = await transaction.get(likeRef);
+                if (!postDoc.exists()) throw "Post does not exist!";
+                
+                const currentLikes = postDoc.data().likes || 0;
+
+                if (likeDoc.exists()) {
+                    transaction.update(postRef, { likes: currentLikes - 1 });
+                    transaction.delete(likeRef);
+                } else {
+                    transaction.update(postRef, { likes: currentLikes + 1 });
+                    transaction.set(likeRef, { userId: user.uid, createdAt: serverTimestamp() });
+                }
+            });
+            // Optimistic update handled by local state, confirmed by onSnapshot
+        } catch (e: any) {
+            console.error("Like transaction failed: ", e);
+            toast({
+                title: "Error",
+                description: "Could not update like. Please try again.",
+                variant: "destructive",
+            });
+        } finally {
+            setIsLikePending(false);
+        }
+    };
+
+    const handleSaveToggle = async () => {
+        if (!user || isSavePending) return;
+        setIsSavePending(true);
+
+        const saveRef = doc(db, 'users', user.uid, 'bookmarks', post.id);
+
+        try {
+            if (isSaved) {
+                await deleteDoc(saveRef);
+                toast({ title: "Removed from Bookmarks" });
+            } else {
+                await setDoc(saveRef, { postId: post.id, userId: user.uid, createdAt: serverTimestamp() });
+                toast({ title: "Added to Bookmarks" });
+            }
+        } catch (e: any) {
+            console.error("Save failed: ", e);
+            toast({
+                title: "Error",
+                description: "Could not update bookmarks. Please try again.",
+                variant: "destructive",
+            });
+            errorEmitter.emit('permission-error', new FirestorePermissionError({
+                path: saveRef.path,
+                operation: isSaved ? 'delete' : 'create',
+            }));
+        } finally {
+            setIsSavePending(false);
+        }
+    };
+    
+    const handleComment = () => toast({ title: "Coming Soon!", description: "Commenting functionality is under development." });
+    const handleShare = () => toast({ title: "Coming Soon!", description: "Sharing functionality is under development." });
 
     const formatTimestamp = (timestamp: FirestoreTimestamp) => {
       if (!timestamp) return 'Just now';
@@ -87,20 +186,20 @@ export function PostCard({ post }: { post: Post }) {
              <CardFooter className="p-4 flex flex-col items-start gap-3">
                 <div className="w-full flex justify-between items-center text-muted-foreground">
                     <div className="flex items-center gap-4">
-                        <button className="flex items-center gap-1.5 hover:text-primary transition-colors">
-                            <Heart className="h-5 w-5" />
+                        <button onClick={handleLikeToggle} disabled={isLikePending} className="flex items-center gap-1.5 hover:text-red-500 transition-colors">
+                            <Heart className={cn("h-5 w-5", isLiked && "fill-red-500 text-red-500")} />
                             <span className="text-sm font-medium">{post.likes}</span>
                         </button>
-                        <button className="flex items-center gap-1.5 hover:text-primary transition-colors">
+                        <button onClick={handleComment} className="flex items-center gap-1.5 hover:text-primary transition-colors">
                             <MessageCircle className="h-5 w-5" />
                             <span className="text-sm font-medium">{post.comments}</span>
                         </button>
-                        <button className="flex items-center gap-1.5 hover:text-primary transition-colors">
+                        <button onClick={handleShare} className="flex items-center gap-1.5 hover:text-primary transition-colors">
                             <Send className="h-5 w-5" />
                         </button>
                     </div>
-                    <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary">
-                        <Bookmark className="h-5 w-5" />
+                    <Button onClick={handleSaveToggle} disabled={isSavePending} variant="ghost" size="icon" className={cn("text-muted-foreground hover:text-primary", isSaved && "text-primary")}>
+                        <Bookmark className={cn("h-5 w-5", isSaved && "fill-primary")} />
                     </Button>
                 </div>
                  <div className="w-full h-px bg-border my-1"></div>
