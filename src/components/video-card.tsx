@@ -58,8 +58,8 @@ export function VideoCard({ video, isActive }: { video: Short, isActive: boolean
       <div className="absolute bottom-0 left-0 p-4 text-white w-full pointer-events-none">
         <div className="flex items-center gap-2">
             <Avatar className="h-10 w-10 border-2 border-white">
-                <AvatarImage src={video.user.avatar} alt={video.user.name} data-ai-hint="creator avatar" />
-                <AvatarFallback>{video.user.name?.slice(0,2)}</AvatarFallback>
+                <AvatarImage src={video.userAvatar} alt={video.username} data-ai-hint="creator avatar" />
+                <AvatarFallback>{video.username?.slice(0,2)}</AvatarFallback>
             </Avatar>
             <p className="font-bold">{video.username}</p>
         </div>
@@ -95,5 +95,3 @@ export function VideoCard({ video, isActive }: { video: Short, isActive: boolean
     </div>
   );
 }
-
-    

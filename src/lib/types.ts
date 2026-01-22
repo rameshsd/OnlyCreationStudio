@@ -38,10 +38,6 @@ export interface Short {
   comments: number;
   shares: number;
   createdAt: Timestamp;
-  user: {
-      name: string;
-      avatar: string;
-  }
 }
 
 export interface Conversation {
@@ -63,5 +59,3 @@ export interface Message {
   text: string;
   createdAt: Timestamp;
 }
-
-    

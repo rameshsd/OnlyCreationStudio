@@ -8,7 +8,7 @@ import { ChevronUp, ChevronDown, Loader2 } from 'lucide-react';
 import { collection, query, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useCollection } from '@/firebase/firestore/use-collection';
-import { type Short } from '@/lib/shorts-data';
+import { type Short } from '@/lib/types';
 
 export default function ShortsPage() {
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
