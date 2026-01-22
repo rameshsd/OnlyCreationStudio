@@ -126,58 +126,57 @@ export function NewConversationDialog({
 
   const handleSelectUser = async (targetUser: UserProfile) => {
     if (!user || !userData) return;
+    
+    // Check if a conversation with this user already exists.
+    const existingConvo = existingConversations.find(c => 
+      c.participantIds.includes(targetUser.id)
+    );
+
+    if (existingConvo) {
+      onConvoSelected(existingConvo.id);
+      onOpenChange(false);
+      return;
+    }
+    
     setIsCreating(true);
 
     try {
-        const existingConvo = existingConversations.find(c =>
-            c.participantIds.length === 2 &&
-            c.participantIds.includes(user.uid) &&
-            c.participantIds.includes(targetUser.id)
-        );
+      const conversationData = {
+        participantIds: [user.uid, targetUser.id],
+        participantInfo: [
+            { userId: user.uid, username: userData.username, avatarUrl: userData.avatarUrl || '' },
+            { userId: targetUser.id, username: targetUser.username, avatarUrl: targetUser.avatarUrl || '' }
+        ],
+        lastMessageText: 'Started a new conversation.',
+        lastMessageSentAt: serverTimestamp(),
+        lastMessageReadBy: [user.uid]
+      };
 
-        if (existingConvo) {
-            onConvoSelected(existingConvo.id);
-            onOpenChange(false);
-            return;
-        }
-
-        const sortedParticipantIds = [user.uid, targetUser.id].sort();
-        const conversationData = {
-            participantIds: sortedParticipantIds,
-            participantInfo: [
-                { userId: user.uid, username: userData.username, avatarUrl: userData.avatarUrl || '' },
-                { userId: targetUser.id, username: targetUser.username, avatarUrl: targetUser.avatarUrl || '' }
-            ],
-            lastMessageText: 'Started a new conversation.',
-            lastMessageSentAt: serverTimestamp(),
-            lastMessageReadBy: [user.uid]
-        };
-
-        const conversationsColRef = collection(db, 'conversations');
-        const docRef = await addDoc(conversationsColRef, conversationData).catch(serverError => {
-            const permissionError = new FirestorePermissionError({
-                path: conversationsColRef.path,
-                operation: 'create',
-                requestResourceData: conversationData
-            });
-            errorEmitter.emit('permission-error', permissionError);
-            throw serverError;
+      const conversationsColRef = collection(db, 'conversations');
+      const docRef = await addDoc(conversationsColRef, conversationData).catch(serverError => {
+        const permissionError = new FirestorePermissionError({
+            path: conversationsColRef.path,
+            operation: 'create',
+            requestResourceData: conversationData
         });
+        errorEmitter.emit('permission-error', permissionError);
+        throw serverError;
+      });
 
-        onConvoSelected(docRef.id);
-        onOpenChange(false);
+      onConvoSelected(docRef.id);
+      onOpenChange(false);
 
     } catch (error) {
-        console.error('Error creating conversation:', error);
-        if (!(error instanceof FirestorePermissionError)) {
-            toast({
-                title: 'Failed to start conversation',
-                description: 'Please try again later.',
-                variant: 'destructive',
-            });
-        }
+      console.error('Error creating conversation:', error);
+      if (!(error instanceof FirestorePermissionError)) {
+        toast({
+            title: 'Failed to start conversation',
+            description: 'Please try again later.',
+            variant: 'destructive',
+        });
+      }
     } finally {
-        setIsCreating(false);
+      setIsCreating(false);
     }
   };
 
