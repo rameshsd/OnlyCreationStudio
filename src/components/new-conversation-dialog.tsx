@@ -59,23 +59,22 @@ export function NewConversationDialog({
       }
       setLoading(true);
       try {
-        const lowerCaseQuery = searchQuery.toLowerCase();
-        const endQuery = lowerCaseQuery + '\uf8ff';
+        const endQuery = searchQuery + '\uf8ff';
 
         // Query user_profiles
         const usersRef = collection(db, 'user_profiles');
         const userQuery = query(
           usersRef,
-          where('username_lowercase', '>=', lowerCaseQuery),
-          where('username_lowercase', '<=', endQuery)
+          where('username', '>=', searchQuery),
+          where('username', '<=', endQuery)
         );
 
         // Query studio_profiles
         const studiosRef = collection(db, 'studio_profiles');
         const studioQuery = query(
             studiosRef,
-            where('studioName_lowercase', '>=', lowerCaseQuery),
-            where('studioName_lowercase', '<=', endQuery)
+            where('studioName', '>=', searchQuery),
+            where('studioName', '<=', endQuery)
         );
 
         const [userSnap, studioSnap] = await Promise.all([

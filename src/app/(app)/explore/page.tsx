@@ -4,7 +4,7 @@
 import { useState, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, User, Loader2 } from "lucide-react";
+import { Search, User, Film, Building, Loader2 } from "lucide-react";
 import { collection, query, where, limit, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
@@ -17,11 +17,13 @@ import Image from 'next/image';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Heart, MessageCircle } from 'lucide-react';
 
-interface UserSearchResult {
+interface SearchResult {
     id: string;
-    username: string;
+    name: string;
     avatarUrl: string;
-    bio: string;
+    description: string;
+    type: 'user' | 'studio';
+    link: string;
 }
 
 const ExploreGridSkeleton = () => (
@@ -36,7 +38,7 @@ const ExploreGridSkeleton = () => (
 
 export default function ExplorePage() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<UserSearchResult[]>([]);
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const { toast } = useToast();
@@ -54,28 +56,57 @@ export default function ExplorePage() {
     setSearchResults([]);
 
     try {
+      const endQuery = searchQuery + '\uf8ff';
+
       const usersRef = collection(db, "user_profiles");
-      const q = query(
+      const usersQuery = query(
         usersRef,
-        where("username_lowercase", ">=", searchQuery.toLowerCase()),
-        where("username_lowercase", "<=", searchQuery.toLowerCase() + '\uf8ff'),
-        limit(20)
+        where("username", ">=", searchQuery),
+        where("username", "<=", endQuery),
+        limit(10)
+      );
+      
+      const studiosRef = collection(db, "studio_profiles");
+      const studiosQuery = query(
+        studiosRef,
+        where("studioName", ">=", searchQuery),
+        where("studioName", "<=", endQuery),
+        limit(10)
       );
 
-      const querySnapshot = await getDocs(q);
-      const users: UserSearchResult[] = [];
-      querySnapshot.forEach((doc) => {
+      const [usersSnapshot, studiosSnapshot] = await Promise.all([
+          getDocs(usersQuery),
+          getDocs(studiosQuery)
+      ]);
+
+      const users: SearchResult[] = usersSnapshot.docs.map((doc) => {
         const data = doc.data();
-        users.push({
+        return {
           id: doc.id,
-          username: data.username,
+          name: data.username,
           avatarUrl: data.avatarUrl,
-          bio: data.bio || 'No bio available.',
-        });
+          description: data.bio || 'No bio available.',
+          type: 'user',
+          link: `/profile/${doc.id}`
+        };
       });
-      setSearchResults(users);
+      
+      const studios: SearchResult[] = studiosSnapshot.docs.map((doc) => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          name: data.studioName,
+          avatarUrl: data.photos?.[0] || `https://api.dicebear.com/7.x/initials/svg?seed=${data.studioName}`,
+          description: data.description || 'No description available.',
+          type: 'studio',
+          link: `/studios/${doc.id}`
+        };
+      });
+
+      setSearchResults([...users, ...studios].sort((a, b) => a.name.localeCompare(b.name)));
+
     } catch (error: any) {
-      console.error("Error searching users:", error);
+      console.error("Error searching:", error);
       toast({
         title: "Search Error",
         description: "Could not perform search. Please try again.",
@@ -95,13 +126,21 @@ export default function ExplorePage() {
     }
   }
 
+  const getIconForType = (type: 'user' | 'studio') => {
+      switch(type) {
+          case 'user': return <User className="h-5 w-5 text-muted-foreground" />;
+          case 'studio': return <Building className="h-5 w-5 text-muted-foreground" />;
+          default: return null;
+      }
+  }
+
   return (
     <div className="flex flex-col gap-6 text-foreground">
         <form onSubmit={handleSearch}>
           <div className="relative">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
               <Input 
-                  placeholder="Search for creators..." 
+                  placeholder="Search creators, studios, and more..." 
                   className="bg-secondary border-none rounded-full pl-12 h-12"
                   value={searchQuery}
                   onChange={handleSearchChange}
@@ -117,17 +156,18 @@ export default function ExplorePage() {
                 </div>
               ) : searchResults.length > 0 ? (
                 <div className="space-y-4">
-                  {searchResults.map(user => (
-                    <Link href={`/profile/${user.id}`} key={user.id}>
+                  {searchResults.map(result => (
+                    <Link href={result.link} key={result.id}>
                         <Card className="p-3 hover:bg-accent transition-colors flex items-center gap-4">
                             <Avatar className="h-14 w-14">
-                                <AvatarImage src={user.avatarUrl} alt={user.username} data-ai-hint="user avatar" />
-                                <AvatarFallback>{user.username.substring(0, 2).toUpperCase()}</AvatarFallback>
+                                <AvatarImage src={result.avatarUrl} alt={result.name} data-ai-hint="user avatar" />
+                                <AvatarFallback>{result.name.substring(0, 2).toUpperCase()}</AvatarFallback>
                             </Avatar>
                             <div className="flex-1">
-                                <p className="font-bold">{user.username}</p>
-                                <p className="text-sm text-muted-foreground line-clamp-2">{user.bio}</p>
+                                <p className="font-bold">{result.name}</p>
+                                <p className="text-sm text-muted-foreground line-clamp-2">{result.description}</p>
                             </div>
+                            {getIconForType(result.type)}
                         </Card>
                     </Link>
                   ))}
@@ -135,7 +175,7 @@ export default function ExplorePage() {
               ) : (
                 <div className="text-center text-muted-foreground py-12">
                   <User className="mx-auto h-12 w-12" />
-                  <p className="mt-4">No users found for "{searchQuery}".</p>
+                  <p className="mt-4">No results found for "{searchQuery}".</p>
                 </div>
               )
           ) : (
