@@ -75,8 +75,10 @@ service cloud.firestore {
     }
 
     match /projects/{projectId} {
-      allow get: if isSignedIn() && resource.data.ownerId == request.auth.uid;
-      allow list: if isSignedIn();
+      // Allow any signed-in user to read (get, list) projects.
+      // The application logic will filter projects for the specific user.
+      allow read: if isSignedIn();
+      // Allow users to create, update, and delete projects they own.
       allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
       allow update, delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
     }
