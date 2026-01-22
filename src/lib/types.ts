@@ -1,6 +1,30 @@
 
 import type { Timestamp } from 'firebase/firestore';
 
+export interface Post {
+    id: string;
+    userId: string;
+    username: string;
+    userAvatar: string;
+    userIsVerified: boolean;
+    caption: string;
+    media: { type: 'image' | 'video', url: string, hint?: string }[];
+    likes: number;
+    comments: number;
+    shares: number;
+    createdAt: Timestamp;
+}
+
+export interface Comment {
+    id: string;
+    userId: string;
+    username: string;
+    userAvatar: string;
+    text: string;
+    createdAt: Timestamp;
+}
+
+
 export interface Status {
   id: string;
   userId: string;

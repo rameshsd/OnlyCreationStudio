@@ -10,36 +10,19 @@ import { formatDistanceToNow } from 'date-fns';
 import { Button } from './ui/button';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
-import { doc, onSnapshot, setDoc, deleteDoc, runTransaction, increment, serverTimestamp } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, deleteDoc, runTransaction, serverTimestamp } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { errorEmitter } from '@/firebase/error-emitter';
+import type { Post } from '@/lib/types';
+
 
 interface Media {
     type: 'image' | 'video';
     url: string;
     hint?: string;
-}
-
-interface FirestoreTimestamp {
-  seconds: number;
-  nanoseconds: number;
-}
-
-export interface Post {
-    id: string;
-    userId: string;
-    username: string;
-    userAvatar: string;
-    userIsVerified: boolean;
-    caption: string;
-    media: Media[];
-    likes: number;
-    comments: number;
-    shares: number;
-    createdAt: FirestoreTimestamp;
 }
 
 const MediaContent = ({ mediaItem }: { mediaItem: Media }) => {
@@ -61,7 +44,6 @@ export function PostCard({ post }: { post: Post }) {
     const { toast } = useToast();
     const [isLiked, setIsLiked] = useState(false);
     const [isSaved, setIsSaved] = useState(false);
-    const [likeCount, setLikeCount] = useState(post.likes);
     const [isLikePending, setIsLikePending] = useState(false);
     const [isSavePending, setIsSavePending] = useState(false);
 
@@ -103,7 +85,7 @@ export function PostCard({ post }: { post: Post }) {
                     transaction.set(likeRef, { userId: user.uid, createdAt: serverTimestamp() });
                 }
             });
-            // Optimistic update handled by local state, confirmed by onSnapshot
+            // Snapshot listener will update the state
         } catch (e: any) {
             console.error("Like transaction failed: ", e);
             toast({
@@ -146,10 +128,35 @@ export function PostCard({ post }: { post: Post }) {
         }
     };
     
-    const handleComment = () => toast({ title: "Coming Soon!", description: "Commenting functionality is under development." });
-    const handleShare = () => toast({ title: "Coming Soon!", description: "Sharing functionality is under development." });
+    const handleShare = async () => {
+        const shareData = {
+            title: `Check out this post by ${post.username}`,
+            text: post.caption,
+            url: `${window.location.origin}/posts/${post.id}`,
+        };
+        if (navigator.share) {
+            try {
+                await navigator.share(shareData);
+                const postRef = doc(db, 'posts', post.id);
+                await runTransaction(db, async (transaction) => {
+                    const postDoc = await transaction.get(postRef);
+                    if (!postDoc.exists()) throw "Post does not exist!";
+                    const newShares = (postDoc.data().shares || 0) + 1;
+                    transaction.update(postRef, { shares: newShares });
+                });
+            } catch (error) {
+                console.log('Error sharing:', error);
+            }
+        } else {
+            navigator.clipboard.writeText(shareData.url);
+            toast({
+                title: 'Link Copied!',
+                description: 'The post link has been copied to your clipboard.',
+            });
+        }
+    };
 
-    const formatTimestamp = (timestamp: FirestoreTimestamp) => {
+    const formatTimestamp = (timestamp: Post['createdAt']) => {
       if (!timestamp) return 'Just now';
       const date = new Date(timestamp.seconds * 1000 + timestamp.nanoseconds / 1000000);
       return formatDistanceToNow(date, { addSuffix: true });
@@ -175,13 +182,15 @@ export function PostCard({ post }: { post: Post }) {
                 </div>
             </CardHeader>
             <CardContent className="p-0">
-                {post.caption && <p className="text-sm whitespace-pre-line px-4 mb-4">{post.caption}</p>}
-                
-                {post.media && post.media.length > 0 && (
-                     <div className="relative aspect-[4/3] bg-secondary">
-                        <MediaContent mediaItem={post.media[0]} />
-                    </div>
-                )}
+                <Link href={`/posts/${post.id}`}>
+                    {post.caption && <p className="text-sm whitespace-pre-line px-4 mb-4">{post.caption}</p>}
+                    
+                    {post.media && post.media.length > 0 && (
+                         <div className="relative aspect-[4/3] bg-secondary">
+                            <MediaContent mediaItem={post.media[0]} />
+                        </div>
+                    )}
+                </Link>
             </CardContent>
              <CardFooter className="p-4 flex flex-col items-start gap-3">
                 <div className="w-full flex justify-between items-center text-muted-foreground">
@@ -190,10 +199,10 @@ export function PostCard({ post }: { post: Post }) {
                             <Heart className={cn("h-5 w-5", isLiked && "fill-red-500 text-red-500")} />
                             <span className="text-sm font-medium">{post.likes}</span>
                         </button>
-                        <button onClick={handleComment} className="flex items-center gap-1.5 hover:text-primary transition-colors">
+                        <Link href={`/posts/${post.id}`} className="flex items-center gap-1.5 hover:text-primary transition-colors">
                             <MessageCircle className="h-5 w-5" />
                             <span className="text-sm font-medium">{post.comments}</span>
-                        </button>
+                        </Link>
                         <button onClick={handleShare} className="flex items-center gap-1.5 hover:text-primary transition-colors">
                             <Send className="h-5 w-5" />
                         </button>

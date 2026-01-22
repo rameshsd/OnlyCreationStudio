@@ -23,7 +23,6 @@ export function StudioPostCard({ studio }: { studio: StudioProfile }) {
     const { toast } = useToast();
     const [isLiked, setIsLiked] = useState(false);
     const [isSaved, setIsSaved] = useState(false);
-    const [likeCount, setLikeCount] = useState(studio.likes || 0);
     const [isLikePending, setIsLikePending] = useState(false);
     const [isSavePending, setIsSavePending] = useState(false);
     
@@ -107,8 +106,33 @@ export function StudioPostCard({ studio }: { studio: StudioProfile }) {
         }
     };
     
-    const handleComment = () => toast({ title: "Coming Soon!", description: "Commenting on studios is under development." });
-    const handleShare = () => toast({ title: "Coming Soon!", description: "Sharing functionality is under development." });
+    const handleShare = async () => {
+        const shareData = {
+            title: `Check out this studio: ${studio.studioName}`,
+            text: studio.description,
+            url: `${window.location.origin}/studios/${studio.id}`,
+        };
+        if (navigator.share) {
+            try {
+                await navigator.share(shareData);
+                const studioRef = doc(db, 'studio_profiles', studio.id);
+                await runTransaction(db, async (transaction) => {
+                    const studioDoc = await transaction.get(studioRef);
+                    if (!studioDoc.exists()) throw "Studio does not exist!";
+                    const newShares = (studioDoc.data().shares || 0) + 1;
+                    transaction.update(studioRef, { shares: newShares });
+                });
+            } catch (error) {
+                console.log('Error sharing:', error);
+            }
+        } else {
+            navigator.clipboard.writeText(shareData.url);
+            toast({
+                title: 'Link Copied!',
+                description: 'The studio link has been copied to your clipboard.',
+            });
+        }
+    };
 
     const rating = studio.rating || 4.8;
     const reviewCount = studio.reviewCount || 24;
@@ -156,10 +180,10 @@ export function StudioPostCard({ studio }: { studio: StudioProfile }) {
                             <Heart className={cn("h-5 w-5", isLiked && "fill-red-500 text-red-500")} />
                             <span className="text-sm font-medium">{studio.likes || 0}</span>
                         </button>
-                        <button onClick={handleComment} className="flex items-center gap-1.5 hover:text-primary transition-colors">
+                        <Link href={`/studios/${studio.id}#comments`} className="flex items-center gap-1.5 hover:text-primary transition-colors">
                             <MessageCircle className="h-5 w-5" />
                             <span className="text-sm font-medium">{studio.comments || 0}</span>
-                        </button>
+                        </Link>
                         <button onClick={handleShare} className="flex items-center gap-1.5 hover:text-primary transition-colors">
                             <Send className="h-5 w-5" />
                         </button>

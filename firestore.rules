@@ -69,13 +69,19 @@ service cloud.firestore {
     match /posts/{postId} {
       allow read: if isSignedIn();
       allow create: if isAuthor(request.resource.data);
-      allow update: if isSignedIn() && (isAuthor(resource.data) || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']) && (request.resource.data.likes == resource.data.likes + 1 || request.resource.data.likes == resource.data.likes - 1)));
+      allow update: if isSignedIn() && (isAuthor(resource.data) || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'comments', 'shares'])));
       allow delete: if isAuthor(resource.data);
     }
     
     match /posts/{postId}/likes/{userId} {
       allow read: if isSignedIn();
       allow write: if isSignedIn() && request.auth.uid == userId;
+    }
+
+    match /posts/{postId}/comments/{commentId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.auth.uid == request.resource.data.userId;
+      allow delete: if isSignedIn() && (isAuthor(get(/databases/$(database)/documents/posts/$(postId)).data) || request.auth.uid == resource.data.userId);
     }
 
     match /shorts/{shortId} {
@@ -86,12 +92,21 @@ service cloud.firestore {
     match /studio_profiles/{studioProfileId} {
       allow read: if isSignedIn();
       allow create: if isProfileOwner(request.resource.data.userProfileId);
-      allow update: if isSignedIn() && (isProfileOwner(resource.data.userProfileId) || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']) && (request.resource.data.likes == resource.data.likes + 1 || request.resource.data.likes == resource.data.likes - 1)));
+      allow update: if isSignedIn() && (isProfileOwner(resource.data.userProfileId) || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'comments', 'shares'])));
     }
     
     match /studio_profiles/{studioProfileId}/likes/{userId} {
       allow read: if isSignedIn();
       allow write: if isSignedIn() && request.auth.uid == userId;
+    }
+    
+    match /studio_profiles/{studioProfileId}/comments/{commentId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.auth.uid == request.resource.data.userId;
+      function isStudioOwner(studioId) {
+        return request.auth.uid == get(/databases/$(database)/documents/studio_profiles/$(studioId)).data.userProfileId;
+      }
+      allow delete: if isSignedIn() && (isStudioOwner(studioProfileId) || request.auth.uid == resource.data.userId);
     }
 
     match /projects/{projectId} {

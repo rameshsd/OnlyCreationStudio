@@ -175,6 +175,19 @@
       },
       "required": ["userId", "createdAt"]
     },
+    "PostComment": {
+      "title": "PostComment",
+      "type": "object",
+      "description": "Represents a comment on a post.",
+      "properties": {
+        "userId": { "type": "string" },
+        "username": { "type": "string" },
+        "userAvatar": { "type": "string", "format": "uri" },
+        "text": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "username", "text", "createdAt"]
+    },
     "SavedPost": {
       "title": "SavedPost",
       "type": "object",
@@ -324,6 +337,10 @@
         "comments": {
           "type": "number",
           "description": "Number of comments on the studio profile."
+        },
+        "shares": {
+            "type": "number",
+            "description": "Number of shares of the studio profile."
         }
       },
       "required": [
@@ -342,6 +359,19 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["userId", "createdAt"]
+    },
+    "StudioComment": {
+      "title": "StudioComment",
+      "type": "object",
+      "description": "Represents a comment on a studio profile.",
+      "properties": {
+        "userId": { "type": "string" },
+        "username": { "type": "string" },
+        "userAvatar": { "type": "string", "format": "uri" },
+        "text": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "username", "text", "createdAt"]
     },
     "SavedStudio": {
       "title": "SavedStudio",
@@ -581,6 +611,14 @@
           "description": "Stores likes for a specific post. The document ID is the user's UID."
         }
       },
+       {
+        "path": "/posts/{postId}/comments/{commentId}",
+        "definition": {
+          "entityName": "PostComment",
+          "schema": { "$ref": "#/entities/PostComment" },
+          "description": "Stores comments for a specific post."
+        }
+      },
       {
         "path": "/shorts/{shortId}",
         "definition": {
@@ -620,6 +658,14 @@
         }
       },
       {
+        "path": "/studio_profiles/{studioProfileId}/comments/{commentId}",
+        "definition": {
+          "entityName": "StudioComment",
+          "schema": { "$ref": "#/entities/StudioComment" },
+          "description": "Stores comments for a specific studio profile."
+        }
+      },
+      {
         "path": "/studio_profiles/{studioProfileId}/bookings/{bookingId}",
         "definition": {
           "entityName": "Booking",
@@ -644,6 +690,6 @@
           }
       }
     ],
-    "reasoning": "This simplified structure directly matches the user's confirmed list of collections: users, user_profiles, posts, projects, and studio_profiles. It uses a flat architecture for scalable queries, especially for the main post feed. User data is split between private 'users' and public 'user_profiles' for security. Statuses are a subcollection under user_profiles to enable efficient querying and collection group scans. Shorts are in a top-level collection for easy global fetching. Conversations and Messages are added for the chat feature. The user_favorites collection is added to support the new 'favorite' feature. Subcollections for likes and bookmarks/saves have been added to posts and studios to support engagement features."
+    "reasoning": "This simplified structure directly matches the user's confirmed list of collections: users, user_profiles, posts, projects, and studio_profiles. It uses a flat architecture for scalable queries, especially for the main post feed. User data is split between private 'users' and public 'user_profiles' for security. Statuses are a subcollection under user_profiles to enable efficient querying and collection group scans. Shorts are in a top-level collection for easy global fetching. Conversations and Messages are added for the chat feature. The user_favorites collection is added to support the new 'favorite' feature. Subcollections for likes and bookmarks/saves have been added to posts and studios to support engagement features. Comment subcollections have been added to posts and studios."
   }
 }

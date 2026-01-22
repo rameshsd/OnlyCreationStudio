@@ -10,16 +10,20 @@ import { Calendar } from '@/components/ui/calendar';
 import { Star, MapPin, Camera, Mic, Lightbulb, Users, Clock, Loader2, AlertTriangle, Edit, Building, Home } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useDoc } from '@/firebase/firestore/use-doc';
-import { doc, updateDoc, collection, query, where, addDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, updateDoc, collection, query, where, addDoc, serverTimestamp, runTransaction, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/hooks/use-auth';
 import { LocationEditor } from './location-editor';
 import { OlaMap } from '@/components/maps/OlaMap';
 import { useCollection } from '@/firebase/firestore/use-collection';
-import { format } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { errorEmitter } from '@/firebase/error-emitter';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Textarea } from '@/components/ui/textarea';
+import type { Comment } from '@/lib/types';
+
 
 interface FirestoreTimestamp {
     seconds: number;
@@ -53,6 +57,7 @@ export interface StudioProfile {
     reviewCount?: number;
     likes?: number;
     comments?: number;
+    shares?: number;
 }
 
 interface Booking {
@@ -123,7 +128,10 @@ export default function StudioDetailPage() {
   const { toast } = useToast();
   const params = useParams<{ id: string }>();
   const studioId = params.id;
-  const { user } = useAuth();
+  const { user, userData } = useAuth();
+  const [newComment, setNewComment] = useState('');
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+
 
   const studioDocRef = useMemo(() => {
     if (!studioId) return null;
@@ -143,6 +151,9 @@ export default function StudioDetailPage() {
   }, [studioId, date]);
   
   const { data: bookings, isLoading: bookingsLoading } = useCollection<Booking>(bookingsQuery);
+
+  const commentsQuery = useMemo(() => studioId ? query(collection(db, 'studio_profiles', studioId, 'comments'), orderBy('createdAt', 'desc')) : null, [studioId]);
+  const { data: comments, isLoading: commentsLoading } = useCollection<Comment>(commentsQuery);
 
   const bookedTimeSlots = useMemo(() => new Set(bookings?.map(b => b.time) || []), [bookings]);
 
@@ -200,6 +211,42 @@ export default function StudioDetailPage() {
         setIsBooking(false);
     }
   };
+
+  const handleAddComment = async () => {
+    if (!user || !userData || !newComment.trim() || !studioId) return;
+    setIsSubmittingComment(true);
+
+    const commentData = {
+        userId: user.uid,
+        username: userData.username,
+        userAvatar: userData.avatarUrl || '',
+        text: newComment.trim(),
+        createdAt: serverTimestamp(),
+    };
+
+    const studioDocRef = doc(db, 'studio_profiles', studioId);
+    const commentsColRef = collection(db, 'studio_profiles', studioId, 'comments');
+    
+    try {
+        await runTransaction(db, async (transaction) => {
+            const studioDoc = await transaction.get(studioDocRef);
+            if (!studioDoc.exists()) throw "Studio does not exist!";
+            
+            const newCommentCount = (studioDoc.data().comments || 0) + 1;
+            transaction.update(studioDocRef, { comments: newCommentCount });
+
+            const newCommentRef = doc(commentsColRef);
+            transaction.set(newCommentRef, commentData);
+        });
+        setNewComment('');
+    } catch (error: any) {
+        console.error("Error adding comment:", error);
+        toast({ title: 'Error', description: "Could not post comment.", variant: 'destructive' });
+    } finally {
+        setIsSubmittingComment(false);
+    }
+  };
+
 
   const onLocationUpdate = () => {
     toast({
@@ -308,6 +355,58 @@ export default function StudioDetailPage() {
                         </p>
                     )}
                     <p className="text-muted-foreground">{studioData.location.address}</p>
+                </CardContent>
+            </Card>
+            <Card id="comments">
+                <CardHeader>
+                    <CardTitle>Comments ({comments?.length || 0})</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    {user && (
+                        <div className="flex gap-3">
+                            <Avatar>
+                                <AvatarImage src={userData?.avatarUrl} />
+                                <AvatarFallback>{userData?.username?.substring(0, 2).toUpperCase()}</AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 space-y-2">
+                                <Textarea 
+                                    placeholder="Add a comment about the studio..."
+                                    value={newComment}
+                                    onChange={(e) => setNewComment(e.target.value)}
+                                    disabled={isSubmittingComment}
+                                />
+                                <Button onClick={handleAddComment} disabled={isSubmittingComment || !newComment.trim()}>
+                                    {isSubmittingComment && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    Post Comment
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+                     {commentsLoading ? (
+                        <div className="space-y-4">
+                            <Skeleton className="h-12 w-full" />
+                        </div>
+                    ) : comments && comments.length > 0 ? (
+                        comments.map(comment => (
+                            <div key={comment.id} className="flex gap-3">
+                                <Avatar className="h-8 w-8">
+                                    <AvatarImage src={comment.userAvatar} />
+                                    <AvatarFallback>{comment.username.substring(0,2).toUpperCase()}</AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-2">
+                                        <p className="font-semibold text-sm">{comment.username}</p>
+                                        <p className="text-xs text-muted-foreground">
+                                            {formatDistanceToNow(new Date(comment.createdAt.seconds * 1000), { addSuffix: true })}
+                                        </p>
+                                    </div>
+                                    <p className="text-sm">{comment.text}</p>
+                                </div>
+                            </div>
+                        ))
+                    ) : (
+                        <p className="text-sm text-muted-foreground text-center py-4">No comments yet. Be the first to leave a review!</p>
+                    )}
                 </CardContent>
             </Card>
         </div>
