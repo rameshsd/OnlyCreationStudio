@@ -89,16 +89,16 @@ const ChatWindow = ({ conversation, messages, onSendMessage, onBack, isLoadingMe
     }
     
     if (!conversation) {
-        // If 'onBack' is present, it means we're on mobile and a convo IS selected, it's just loading.
-        // So we show a loading state with a back button instead of the generic placeholder.
-        if (onBack) {
-            return (
+        // If a conversation is selected but not yet loaded, show a loading skeleton.
+        // This is indicated by `isLoadingMessages` being true when `conversation` is not yet available.
+        if (isLoadingMessages) {
+             return (
                 <Card className="w-full lg:w-2/3 flex flex-col h-full">
                     <CardHeader className="border-b">
                         <div className="flex items-center gap-3">
-                            <Button variant="ghost" size="icon" className="lg:hidden" onClick={onBack}>
+                            {onBack && <Button variant="ghost" size="icon" className="lg:hidden" onClick={onBack}>
                                 <ArrowLeft className="h-5 w-5"/>
-                            </Button>
+                            </Button>}
                             <div className="flex items-center gap-3">
                                 <Skeleton className="h-10 w-10 rounded-full" />
                                 <div className="space-y-2">
@@ -114,7 +114,7 @@ const ChatWindow = ({ conversation, messages, onSendMessage, onBack, isLoadingMe
             );
         }
 
-        // The original placeholder for desktop view or when no convo is selected.
+        // If no conversation is selected at all, show the placeholder.
         return (
             <Card className="w-full lg:w-2/3 flex flex-col h-full">
                 <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground h-full">
